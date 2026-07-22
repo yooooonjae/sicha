@@ -624,6 +624,41 @@
       }));
     }
 
+    /* 신호원장 — 예측 장부 + 자동 채점 KPI (축적 전엔 '축적 시작' 정직 표기) */
+    if (B.ledger) {
+      const LD = B.ledger, kk = LD.kpi || {};
+      const verified = kk.verified || 0;
+      const kL = [
+        { v: String(kk.total || 0), l: "누적 신호 — 장부에 기록된 예측" },
+        { v: String(verified), l: "검증 완료 — 검증기한 경과·채점됨" },
+        verified
+          ? { v: kk.hit_rate + "%", l: "방향 적중률 — 예측 방향과 실제 반응 일치", c: kk.hit_rate >= 50 ? "pos" : "neg" }
+          : { v: "축적 시작", l: (kk.start || "—") + " — 검증기한 도래 전(정직 표기)", c: "mut" },
+      ];
+      const kEl = $("ledger-kpis");
+      if (kEl) kEl.innerHTML = kL.map(x =>
+        `<div class="kpi"><div class="v${x.c ? " " + x.c : ""}" style="font-size:22px">${x.v}</div><div class="l">${x.l}</div></div>`).join("");
+      const stColor = s => s === "적중" ? "var(--pos)" : s === "빗나감" ? "var(--neg)" : "var(--ink-3)";
+      const stLabel = s => s === "pending" ? "대기" : s;
+      const dirWord = d => d === "-" ? "하락" : d === "+" ? "상승" : d;
+      const rows = (LD.entries || []).slice().reverse(); // 최신 판정 먼저
+      const tEl = $("ledger-table");
+      if (tEl) tEl.innerHTML = rows.length ? `<div class="table-scroll"><table class="sheet">
+        <thead><tr><th>판정일</th><th>신호(선행 → 반응)</th><th class="num">예상</th><th class="num">검증기한</th><th>상태</th></tr></thead><tbody>` +
+        rows.map(e => `<tr>
+          <td class="num">${e.decided_on}</td>
+          <td><b>${e.x}</b> ${dirWord(e.dir)} <span style="color:var(--ink-3)">→</span> <b>${e.y}</b></td>
+          <td class="num">+${e.lag}M · ${dirWord(e.expect_dir)}</td>
+          <td class="num">${e.verify_by}</td>
+          <td style="font-weight:700;color:${stColor(e.status)}">${stLabel(e.status)}${e.observed_dir ? ` <span style="color:var(--ink-3);font-weight:400">관측 ${dirWord(e.observed_dir)}</span>` : ""}</td>
+        </tr>`).join("") + `</tbody></table></div>` :
+        `<p class="note" style="border-top:none;padding-top:0">아직 기록된 신호가 없다 — 선행 변수의 방향 전환이 잡히는 빌드부터 축적된다.</p>`;
+      const nEl = $("ledger-note");
+      if (nEl) nEl.innerHTML = `채점 규칙: <b>검증기한(판정일 + 예상시차 + 2개월)</b>이 지난 신호만, 반응 변수 변환값(전년동월비·차분)의
+        <b>예측월(전환월 + 예상시차)</b> 부호를 예측 방향(선행 방향 × 관계 부호)과 대조한다. <b>단순 부호 규칙</b>이라 반응의 크기·유의성·자기상관은
+        보지 않으며, 반응월이 표본 밖이면 '미검증'이다. 신호는 선행 변수의 방향 전환이라 재빌드해도 같은 전환은 한 번만 기록된다(판정일 고정).`;
+    } else { const lp = $("ledger"); if (lp) lp.hidden = true; }
+
     /* Ⅶ 지역확산 — 확산 지도(대표) + 발산 바 */
     const SP = B.spread, KOREA = window.__KOREA__ || [];
     if (SP) {
@@ -753,6 +788,23 @@
     $("m-src-rows").innerHTML = src.join("");
     $("m-src-n").textContent = `매매 ${(M.n_sale || 0).toLocaleString()} · 전월세 ${nAll.toLocaleString()}(전세 ${(M.n_jeonse || 0).toLocaleString()})`;
     if (M.n_skip != null) $("m-skip").textContent = M.n_skip;
+
+    /* Ⅸ 데이터 상태 — 관측월·수집일 매니페스트 */
+    if (B.manifest && B.manifest.datasets && $("m-manifest-rows")) {
+      const pgt = p => p == null ? "—"
+        : (typeof p === "object")
+          ? `${p.pct.toFixed(0)}% <span style="color:var(--ink-3)">(${p.done.toLocaleString()}/${p.total.toLocaleString()})</span>`
+          : `${Math.round(p * 100)}%`;
+      $("m-manifest-rows").innerHTML = B.manifest.datasets.map(d => {
+        const obs = d.obs_range ? `${d.obs_range[0]} ~ ${d.obs_range[1]}` : "—";
+        return `<tr><td><b>${d.name}</b><br><span style="color:var(--ink-3);font-size:12px">${d.source || ""}</span></td>
+          <td>${d.scope || "—"}</td>
+          <td class="num">${obs}</td>
+          <td class="num">${d.collected_at || "—"}</td>
+          <td class="num">${(d.rows || 0).toLocaleString()}<span class="u">${d.unit || ""}</span></td>
+          <td class="num">${pgt(d.progress)}</td></tr>`;
+      }).join("");
+    }
   }
 
   /* ── 시차실험실 — 슬라이더로 파형 정렬 ─────────── */

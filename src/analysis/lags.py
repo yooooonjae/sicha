@@ -7,15 +7,19 @@
 표현 규칙: "예측적 선후관계이며 단독 인과효과가 아니다"(사이트 문구 계약).
 """
 
+import datetime
 import json
 import os
 import re
+import time
 from pathlib import Path
 from statistics import median
 
+from src.analysis import manifest
 from src.analysis.metrics import jeonse_only
 
 ROOT = Path(__file__).resolve().parents[2]
+LEDGER = ROOT / "data" / "ledger.json"
 SUJI = Path(os.environ.get("SUJI_DIR", str(Path.home() / "개발"))) / "data"
 SUN = Path(os.environ.get("SUNHWAN_DIR", str(Path.home() / "순환"))) / "data"
 MAX_LAG = 24
@@ -246,6 +250,75 @@ PAIRS = [  # (선행, 반응, 최대 탐색 시차)
 ]
 
 
+# ── 신호원장 — 예측을 판정일·검증기한과 함께 적고, 기한 뒤 자동 채점 ──────
+
+def _date_plus_months(dstr, months):
+    """ISO 날짜 + months개월 (검증기한 계산)."""
+    d = datetime.date.fromisoformat(dstr)
+    idx = d.year * 12 + (d.month - 1) + months
+    y, m = idx // 12, idx % 12 + 1
+    leap = y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)
+    last = [31, 29 if leap else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]
+    return datetime.date(y, m, min(d.day, last)).isoformat()
+
+
+def load_ledger():
+    if LEDGER.exists():
+        try:
+            return json.load(open(LEDGER))
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {"created": None, "entries": []}
+
+
+def update_ledger(signals, T, run_date):
+    """당일 신호를 원장에 append — 선행→반응@전환월 key로 중복 방지(재관측은 in-place 갱신).
+
+    · 판정일 = 최초 기록일(고정) · 검증기한 = 판정일 + 예상시차 + 2개월.
+    · 검증기한이 지난 pending 항목만 자동 채점: 반응 변수 변환값(전년동월비/차분)의
+      예측월(전환월 + 예상시차) 부호를 예측 방향(선행 방향 × 관계 부호)과 대조한다.
+    한계: 단순 부호 규칙 — 크기·유의성·자기상관을 보지 않는다. 전환월이 없는 신호(방향
+    전환 미탐지)는 판정일 기준이 없어 원장에서 제외한다.
+    """
+    led = load_ledger()
+    entries = {e["id"]: e for e in led.get("entries", [])}
+    for s in signals:
+        turn, lag = s.get("turn"), s.get("lag")
+        if not turn or lag is None:
+            continue
+        r = s.get("r")
+        key = f"{s['x']}→{s['y']}@{turn}"
+        rel = -1 if (r is not None and r < 0) else 1
+        dsign = 1 if s["dir"] == "+" else -1
+        exp = "+" if dsign * rel > 0 else "-"
+        if key in entries:  # 같은 신호 재관측 — 판정일·검증기한은 고정, 생생 필드만 갱신
+            entries[key].update(last_seen=run_date, elapsed=s.get("elapsed"))
+            continue
+        entries[key] = {
+            "id": key, "x": s["x"], "y": s["y"], "dir": s["dir"], "turn": turn,
+            "lag": lag, "r": r, "expect_dir": exp, "target_month": _shift(turn, lag),
+            "decided_on": run_date, "verify_by": _date_plus_months(run_date, lag + 2),
+            "status": "pending", "observed_dir": None, "scored_on": None,
+            "elapsed": s.get("elapsed"), "last_seen": run_date,
+        }
+    for e in entries.values():  # 자동 채점 — 검증기한 지난 pending만
+        if e["status"] != "pending" or run_date < e["verify_by"]:
+            continue
+        yv = (T.get(e["y"]) or {}).get(e["target_month"])
+        if yv is None:
+            e.update(status="미검증", scored_on=run_date)  # 반응월 표본 밖
+            continue
+        obs = "+" if yv > 0 else "-" if yv < 0 else "0"
+        e.update(observed_dir=obs, scored_on=run_date,
+                 status="적중" if obs == e["expect_dir"]
+                 else "빗나감" if obs != "0" else "미검증")
+    ordered = sorted(entries.values(), key=lambda e: (e["decided_on"], e["id"]))
+    out = {"created": led.get("created") or run_date, "updated": run_date, "entries": ordered}
+    LEDGER.parent.mkdir(exist_ok=True)
+    json.dump(out, open(LEDGER, "w"), ensure_ascii=False, indent=1)
+    return out
+
+
 def main():
     S = load_series()
     T = {n: transform(n, m) for n, m in S.items()}
@@ -317,6 +390,50 @@ def main():
                         "agree": agree_dir, "r": g["r"], "latest": yms[-1]})
     bundle_signals = signals
 
+    # 신호원장 — 당일 신호를 판정일·검증기한과 함께 기록·채점(축적 기록, 커밋 대상)
+    run_date = time.strftime("%Y-%m-%d")
+    led = update_ledger(bundle_signals, T, run_date)
+    _scored = [e for e in led["entries"] if e["status"] in ("적중", "빗나감")]
+    _hits = [e for e in _scored if e["status"] == "적중"]
+    ledger_view = {"entries": led["entries"],
+                   "kpi": {"total": len(led["entries"]), "verified": len(_scored),
+                           "hit_rate": round(len(_hits) / len(_scored) * 100) if _scored else None,
+                           "start": led["created"]}}
+    print(f"신호원장: 누적 {ledger_view['kpi']['total']} · 검증완료 "
+          f"{ledger_view['kpi']['verified']} · 적중률 {ledger_view['kpi']['hit_rate']} → data/ledger.json")
+
+    # 데이터 상태 매니페스트(時差 원천) — metrics가 쓴 視差 위에 병합
+    def _months(*names):
+        return len({k for n in names for k in S.get(n, {})})
+
+    def _range(*names):
+        ks = sorted(k for n in names for k in S.get(n, {}))
+        return [manifest.ym_dash(ks[0]), manifest.ym_dash(ks[-1])] if ks else None
+
+    def _collected(path):
+        return (time.strftime("%Y-%m-%d", time.localtime(os.path.getmtime(path)))
+                if os.path.exists(path) else None)
+
+    sigha_ds = [
+        {"key": "ecos_rate", "name": "한국은행 ECOS 금리(기준·주담대)",
+         "source": "한국은행 ECOS(수지 공유 원천)", "scope": "전국",
+         "obs_range": _range("기준금리", "주담대금리"), "collected_at": _collected(SUJI / "ecos.json"),
+         "rows": _months("기준금리", "주담대금리"), "unit": "개월", "progress": 1.0},
+        {"key": "treasury10y", "name": "국고채 10년 금리",
+         "source": "순환(循環) treasury10y", "scope": "전국",
+         "obs_range": _range("국고10년"), "collected_at": _collected(SUN / "treasury10y.json"),
+         "rows": _months("국고10년"), "unit": "개월", "progress": 1.0},
+        {"key": "kosis_supply", "name": "KOSIS 주택 공급(미분양·착공·준공)",
+         "source": "KOSIS(수지 공유 원천)", "scope": "전국 총량",
+         "obs_range": _range("미분양", "착공", "준공", "준공후미분양"),
+         "collected_at": _collected(SUJI / "kosis.json"),
+         "rows": _months("미분양", "착공", "준공", "준공후미분양"), "unit": "개월", "progress": 1.0},
+        {"key": "archub_permits", "name": "건축HUB 인허가(세대수)",
+         "source": "건축HUB(수지 공유 원천)", "scope": "대표 시군구 표본",
+         "obs_range": _range("인허가"), "collected_at": _collected(SUJI / "archub.json"),
+         "rows": _months("인허가"), "unit": "개월", "progress": 1.0},
+    ]
+
     # SERIES 계약 — 각 변환 시계열의 공간 범위·주기·단위·집계·변환·기간·n (연구 카드 메타 줄용)
     series_meta = {}
     for n, m in T.items():
@@ -330,6 +447,8 @@ def main():
     bp = ROOT / "out" / "site_bundle.json"
     bundle = json.load(open(bp))
     bundle["signals"] = bundle_signals
+    bundle["ledger"] = ledger_view
+    bundle["manifest"] = manifest.upsert(sigha_ds, run_date)
     bundle["lag"] = {
         "series": {n: sorted(({"ym": t, "v": v} for t, v in m.items()),
                              key=lambda r: r["ym"]) for n, m in T.items()},

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --paper: #ffffff; --ink: #16181d; --ink-2: #4b5563; --ink-3: #6b7280;
+    --eye-blue: #1547c8; --eye-red: #d3232e; --time-main: #176b73;
+    --hairline: #e7eaee; --rule: #16181d;
+    --serif: "MaruBuri", "AppleMyungjo", "Songti SC", "Noto Serif KR", serif;
+    --sans: "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+    --mono: "SF Mono", "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    position: relative;
+    background-image:
+      linear-gradient(var(--hairline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hairline) 1px, transparent 1px);
+    background-size: 60px 60px; background-position: -1px -1px;
+  }
+  .veil { position: absolute; inset: 0; background:
+      radial-gradient(120% 90% at 20% 0%, #fff 40%, rgba(255,255,255,.72) 100%); }
+  .frame { position: absolute; inset: 0; padding: 66px 72px; display: flex;
+    flex-direction: column; justify-content: space-between; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .eyebrow { font-family: var(--mono); font-size: 17px; letter-spacing: .26em;
+    text-transform: uppercase; color: var(--ink-3); }
+  .site { font-family: var(--mono); font-size: 17px; letter-spacing: .12em; color: var(--time-main); font-weight: 600; }
+  .mid { display: flex; align-items: center; gap: 20px; }
+  .col-l { flex: 1; }
+  .wordmark { font-family: var(--serif); font-weight: 700; font-size: 130px;
+    line-height: 1.0; letter-spacing: .01em; color: var(--ink); white-space: nowrap;
+    text-shadow: 5px 0 0 rgba(211,35,46,.5), -5px 0 0 rgba(21,71,200,.5); }
+  .wordmark .dot { color: var(--ink-3); text-shadow: none; font-size: 80px; vertical-align: 14px; margin: 0 6px; }
+  .sub { font-family: var(--serif); font-size: 33px; color: var(--ink); margin-top: 26px; letter-spacing: .01em; }
+  .rule { height: 2px; background: var(--rule); width: 430px; margin: 24px 0 18px; position: relative; }
+  .rule::after { content: ""; position: absolute; right: 0; top: -3px; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--eye-red); }
+  .tags { display: flex; gap: 26px; font-size: 20px; color: var(--ink-2); }
+  .tags b { font-family: var(--serif); }
+  .tags .t-blue b { color: var(--eye-blue); }
+  .tags .t-teal b { color: var(--time-main); }
+  .diagram { width: 384px; flex: none; }
+  .bottom { display: flex; justify-content: space-between; align-items: baseline;
+    border-top: 1px solid var(--hairline); padding-top: 20px; }
+  .legend { display: flex; gap: 22px; font-size: 18px; color: var(--ink-2); align-items: center; }
+  .legend .k { display: inline-flex; align-items: center; gap: 8px; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .credit { font-family: var(--mono); font-size: 16px; color: var(--ink-3); letter-spacing: .06em; }
+</style>
+</head>
+<body>
+<div class="veil"></div>
+<div class="frame">
+  <div class="top">
+    <div class="eyebrow">부동산 가격의 시차 관측</div>
+    <div class="site">sicha.pages.dev</div>
+  </div>
+
+  <div class="mid">
+    <div class="col-l">
+      <div class="wordmark">視差<span class="dot">·</span>時差</div>
+      <div class="sub">한 자산을 보는 세 개의 눈,<br>신호의 전달시간</div>
+      <div class="rule"></div>
+      <div class="tags">
+        <span class="t-blue"><b>視差</b> 세 가격 사이의 각도</span>
+        <span class="t-teal"><b>時差</b> 신호가 시장을 통과하는 시간</span>
+      </div>
+    </div>
+    <svg class="diagram" viewBox="0 0 430 430" role="img" aria-label="세 개의 눈이 한 자산을 바라보는 시차 다이어그램">
+      <defs>
+        <marker id="aK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#16181d"/></marker>
+        <marker id="aB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1547c8"/></marker>
+        <marker id="aR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#d3232e"/></marker>
+      </defs>
+      <!-- 축 -->
+      <line x1="215" y1="40" x2="215" y2="392" stroke="#e7eaee" stroke-width="1"/>
+      <line x1="40" y1="300" x2="392" y2="300" stroke="#e7eaee" stroke-width="1"/>
+      <!-- 시선 -->
+      <line x1="215" y1="118" x2="215" y2="240" stroke="#16181d" stroke-width="2" marker-end="url(#aK)"/>
+      <line x1="132" y1="352" x2="192" y2="288" stroke="#1547c8" stroke-width="2" marker-end="url(#aB)"/>
+      <line x1="298" y1="352" x2="238" y2="288" stroke="#d3232e" stroke-width="2" marker-end="url(#aR)"/>
+      <!-- 자산 ◇ -->
+      <rect x="198" y="253" width="34" height="34" fill="none" stroke="#16181d" stroke-width="2.4" transform="rotate(45 215 270)"/>
+      <circle cx="215" cy="270" r="3.4" fill="#16181d"/>
+      <text x="215" y="326" text-anchor="middle" font-family="'MaruBuri','AppleMyungjo',serif" font-size="18" font-weight="700" fill="#16181d">자산</text>
+      <text x="215" y="346" text-anchor="middle" font-size="12.5" fill="#6b7280">같은 집 · 세 개의 가격</text>
+      <!-- 시장(흑) -->
+      <circle cx="215" cy="92" r="20" fill="none" stroke="#16181d" stroke-width="2.4"/>
+      <circle cx="215" cy="92" r="7" fill="#16181d"/>
+      <text x="215" y="55" text-anchor="middle" font-size="15.5" font-weight="700" fill="#16181d">시장의 눈</text>
+      <text x="215" y="72" text-anchor="middle" font-size="12" fill="#6b7280">실거래가</text>
+      <!-- 세입자(청) -->
+      <circle cx="108" cy="368" r="20" fill="none" stroke="#1547c8" stroke-width="2.4"/>
+      <circle cx="108" cy="368" r="7" fill="#1547c8"/>
+      <text x="80" y="410" text-anchor="middle" font-size="15.5" font-weight="700" fill="#1547c8">세입자의 눈</text>
+      <text x="80" y="428" text-anchor="middle" font-size="12" fill="#6b7280">전세가</text>
+      <!-- 행정(적) -->
+      <circle cx="322" cy="368" r="20" fill="none" stroke="#d3232e" stroke-width="2.4"/>
+      <circle cx="322" cy="368" r="7" fill="#d3232e"/>
+      <text x="350" y="410" text-anchor="middle" font-size="15.5" font-weight="700" fill="#d3232e">행정의 눈</text>
+      <text x="350" y="428" text-anchor="middle" font-size="12" fill="#6b7280">공시가격</text>
+    </svg>
+  </div>
+
+  <div class="bottom">
+    <div class="legend">
+      <span class="k"><span class="sw" style="background:#16181d"></span>시장 실거래</span>
+      <span class="k"><span class="sw" style="background:#1547c8"></span>세입자 전세</span>
+      <span class="k"><span class="sw" style="background:#d3232e"></span>행정 공시</span>
+    </div>
+    <div class="credit">收支 · 循環 · 時差 — 부동산 연구 시리즈</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,60 @@
+{
+ "created": "2026-07-23",
+ "updated": "2026-07-23",
+ "entries": [
+  {
+   "id": "기준금리→주담대금리@202607",
+   "x": "기준금리",
+   "y": "주담대금리",
+   "dir": "+",
+   "turn": "202607",
+   "lag": 0,
+   "r": -0.605,
+   "expect_dir": "-",
+   "target_month": "202607",
+   "decided_on": "2026-07-23",
+   "verify_by": "2026-09-23",
+   "status": "pending",
+   "observed_dir": null,
+   "scored_on": null,
+   "elapsed": 0,
+   "last_seen": "2026-07-23"
+  },
+  {
+   "id": "미분양→착공@202512",
+   "x": "미분양",
+   "y": "착공",
+   "dir": "-",
+   "turn": "202512",
+   "lag": 1,
+   "r": -0.446,
+   "expect_dir": "+",
+   "target_month": "202601",
+   "decided_on": "2026-07-23",
+   "verify_by": "2026-10-23",
+   "status": "pending",
+   "observed_dir": null,
+   "scored_on": null,
+   "elapsed": 5,
+   "last_seen": "2026-07-23"
+  },
+  {
+   "id": "주담대금리→거래량@202601",
+   "x": "주담대금리",
+   "y": "거래량",
+   "dir": "+",
+   "turn": "202601",
+   "lag": 0,
+   "r": -0.543,
+   "expect_dir": "-",
+   "target_month": "202601",
+   "decided_on": "2026-07-23",
+   "verify_by": "2026-09-23",
+   "status": "pending",
+   "observed_dir": null,
+   "scored_on": null,
+   "elapsed": 4,
+   "last_seen": "2026-07-23"
+  }
+ ]
+}

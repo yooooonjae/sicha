@@ -2,13 +2,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>시차(視差) — 한 자산을 보는 세 개의 눈</title>
 <meta name="description" content="같은 아파트에 매겨진 세 개의 가격 — 실거래가·전세가·공시가격. 그 사이의 거리와 시간을 공공 데이터로 계측한다.">
+<link rel="canonical" href="https://sicha.pages.dev/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="視差·時差">
+<meta property="og:url" content="https://sicha.pages.dev/">
+<meta property="og:title" content="視差·時差 — 한 자산을 보는 세 개의 눈, 신호의 전달시간">
+<meta property="og:description" content="같은 아파트에 매겨진 세 개의 가격 — 실거래가·전세가·공시가격. 그 사이의 거리(視差)와 신호의 전달 시간(時差)을 공공 데이터로 계측한다.">
+<meta property="og:image" content="https://sicha.pages.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="세 개의 눈(시장·세입자·행정)이 한 자산을 바라보는 적청 다이어그램과 視差·時差 표제">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="視差·時差 — 한 자산을 보는 세 개의 눈, 신호의 전달시간">
+<meta name="twitter:description" content="실거래가·전세가·공시가격 세 시선의 거리(視差)와 신호의 전달 시간(時差)을 공공 데이터로 계측한다.">
+<meta name="twitter:image" content="https://sicha.pages.dev/og.png">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101216" media="(prefers-color-scheme: dark)">
 {{ROBOTS}}
 <style>{{CSS:tokens.css}}{{CSS:base.css}}{{CSS:components.css}}</style>
 <nav class="appbar" aria-label="장 탐색">
   <div class="wrap row">
     <a class="brand" href="#top"><span class="hanja">視差</span> 시차</a>
     <div class="tabs">
-      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 시차지도</a><a href="#ch6">Ⅵ 실험실</a><a href="#ch7">Ⅶ 지역확산</a><a href="#ch8">Ⅷ 사건연구</a><a href="#ch9">Ⅸ 방법론</a>
+      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 시차지도</a><a href="#ch6">Ⅵ 실험실</a><a href="#ch7">Ⅶ 지역확산</a><a href="#ch8">Ⅷ 사건연구</a><a href="#ledger">附 신호원장</a><a href="#ch9">Ⅸ 방법론</a>
     </div>
     <button class="toc-btn" id="tocBtn" aria-label="목차 열기">목차</button>
     <button class="theme-btn" id="themeBtn" aria-label="테마 전환">☀</button>
@@ -24,6 +40,7 @@
   <a href="#ch6"><span class="no">Ⅵ</span> 시차실험실 — 파형을 직접 정렬</a>
   <a href="#ch7"><span class="no">Ⅶ</span> 지역확산 — 신호는 어디로 퍼지는가</a>
   <a href="#ch8"><span class="no">Ⅷ</span> 사건연구 — 정책 이후 시장은 언제 반응했는가</a>
+  <a href="#ledger"><span class="no">附</span> 신호원장 — 예측을 검증기한과 함께 기록·채점</a>
   <a href="#ch9"><span class="no">Ⅸ</span> 방법론</a>
 </div>
 
@@ -109,6 +126,7 @@
     <a class="nav-card" href="#ch6"><span class="nc-no">Ⅵ</span><span class="nc-t">시차실험실</span><span class="nc-d">두 파형을 슬라이더로 직접 정렬</span></a>
     <a class="nav-card" href="#ch7"><span class="nc-no">Ⅶ</span><span class="nc-t">지역확산</span><span class="nc-d">서울↔지역 양방향 · 신호는 어디로 퍼지나</span></a>
     <a class="nav-card" href="#ch8"><span class="nc-no">Ⅷ</span><span class="nc-t">사건연구</span><span class="nc-d">정책 이후 시장은 언제 반응했는가(z 이탈)</span></a>
+    <a class="nav-card" href="#ledger"><span class="nc-no">附</span><span class="nc-t">신호원장</span><span class="nc-d">예측을 판정일·검증기한과 함께 기록·자동 채점</span></a>
     <a class="nav-card" href="#ch9"><span class="nc-no">Ⅸ</span><span class="nc-t">방법론</span><span class="nc-d">출처·표본 설계·지표 정의·한계</span></a>
   </div>
 
@@ -401,6 +419,27 @@
   <div id="event-cards"></div>
 </section>
 
+<!-- 신호원장 — 예측의 장부 (Ⅷ 사건연구 뒤·Ⅸ 방법론 앞) ───────────── -->
+<section class="ch wrap" id="ledger">
+  <div class="ch-head"><span class="no">附</span><h2>신호원장 — 예측의 장부</h2>
+    <div class="meta">기록 <b>판정일·예상시차·검증기한</b><br>채점 <b>검증기한 경과 후 자동</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">시차지도가 말하는 "예상 반응 구간"은 사후 검증이 없으면 이야기로 남는다.
+  이 장부는 사이트가 매 빌드에 관측한 <b>현재 신호</b>를 판정일·예상시차·검증기한과 함께
+  적어 두고, 검증기한이 지나면 반응 변수가 실제로 예측 방향으로 움직였는지 <b>자동 채점</b>한다 —
+  축적된 기록만이 이 지도의 예측력을 스스로 증명하거나 반증한다.</p>
+  <div class="plate" id="ledger-plate">
+    <div class="viz-head">
+      <div class="viz-title">신호 장부 — 판정일 · 예상 · 검증기한 · 상태</div>
+      <div class="viz-unit">판정일 고정 · 재빌드해도 같은 전환은 한 번만</div>
+      <div class="viz-q">각 행은 선행 변수의 방향 전환(신호)과 반응 변수에 대한 예측이다</div>
+    </div>
+    <div class="kpi-row" id="ledger-kpis" style="margin:12px 0 14px"></div>
+    <div id="ledger-table"></div>
+    <p class="note" id="ledger-note"></p>
+  </div>
+</section>
+
 <!-- Ⅸ 방법론 ──────────────────────────────────────── -->
 <section class="ch wrap" id="ch9">
   <div class="ch-head"><span class="no">Ⅸ</span><h2>방법론 — 출처·정의·한계</h2>
@@ -413,6 +452,14 @@
       <thead><tr><th>원천</th><th>내용</th><th>범위</th><th class="num">규모</th></tr></thead>
       <tbody id="m-src-rows"></tbody>
     </table></div></div></details>
+  <details class="method"><summary>데이터 상태 — 관측월·수집일·진행률</summary>
+    <div class="body"><div class="table-scroll"><table class="sheet">
+      <thead><tr><th>데이터</th><th>공간 범위</th><th>관측월</th><th>수집일</th><th class="num">규모</th><th class="num">진행률</th></tr></thead>
+      <tbody id="m-manifest-rows"></tbody>
+    </table></div>
+    <p class="note"><b>관측월</b>은 데이터가 담는 기간, <b>수집일</b>은 실제로 받아온 날 — 둘은 다르다.
+    관측월이 최신이어도 수집일이 오래면 갱신이 밀린 것이다. 전월세는 시군구×월 셀 단위로 수집해
+    진행률을 따로 표기한다(중단 후 재개 가능). 원본 명세는 저장소의 <span class="num">DATA_MANIFEST.json</span>이다.</p></div></details>
   <details class="method"><summary>표본 설계 — 왜 전수가 아닌가</summary>
     <div class="body"><p>매매·전세는 수지(收支) 연구와 동일한 시군구 집합(시도별 대표
     시군구, 매매 원거래와 같은 파일 범위)에서 수집한다 — 전세가율의 분자·분모가 같은
@@ -475,6 +522,7 @@
   <div class="sig anaglyph">視差</div>
   <p>시차 — 한 자산을 보는 세 개의 눈 · 개인 연구 포트폴리오</p>
   <p>수집·계산·조립 전 과정 재현 가능 · 본 페이지는 외부 네트워크 요청이 없는 정적 단일 파일이다</p>
+  <p class="build-stamp">빌드 <span class="num">{{COMMIT}}</span> · 관측 컷오프 <span class="num">{{CUTOFF}}</span> · 빌드일 <span class="num">{{BUILT_AT}}</span></p>
 </footer>
 
 <script>window.__BUNDLE__ = {{DATA}};</script>

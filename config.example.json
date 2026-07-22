@@ -1,0 +1,6 @@
+{
+ "service_key": "국토부 공공데이터포털 서비스키 — 전월세 실거래(collect-rent)",
+ "vworld_key": "VWorld 인증키 — 공시가격 지오코딩→공시(collect-gongsi)",
+ "ecos_key": "한국은행 ECOS 인증키 — 금리(자매 리포에서 수집)",
+ "kosis_key": "KOSIS 인증키(base64) — 주택 공급(자매 리포에서 수집)"
+}

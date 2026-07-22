@@ -16,6 +16,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import median
 
+from src.analysis import manifest
+
 ROOT = Path(__file__).resolve().parents[2]
 SUJI_RAW = Path(os.environ.get("SUJI_DIR", str(Path.home() / "개발"))) / "data" / "raw" / "rtms"
 
@@ -265,6 +267,7 @@ def main():
     bundle = {"meta": {"built_at": time.strftime("%Y-%m-%d"), "n_sale": n_sale,
                        "sgg_names": dict(sales_names)}}
 
+    gongsi = None
     gp = ROOT / "data" / "gongsi.json"
     if gp.exists():
         gongsi = json.load(open(gp))
@@ -278,8 +281,9 @@ def main():
               f"연도별 {bundle['real']['by_year']}")
 
     rp = ROOT / "data" / "rent.json"
-    if rp.exists() and json.load(open(rp)).get("rents"):
-        rents = json.load(open(rp))["rents"]
+    rent_doc = json.load(open(rp)) if rp.exists() else None  # 173MB — 한 번만 로드
+    if rent_doc and rent_doc.get("rents"):
+        rents = rent_doc["rents"]
         bd = rental_breakdown(rents)
         by_sgg, reverse = jeonse_metrics(rents, sales)
         bundle["jeonse"] = {"by_sgg": by_sgg, "reverse": reverse}
@@ -306,6 +310,46 @@ def main():
                       f"동일 단지 전세 {an['n_jeonse']}건 — {rt}")
     else:
         print("전세 데이터 없음 — rent.json 수집 후 재실행")
+
+    # ── 데이터 상태 매니페스트(視差 원천) — 관측월 ≠ 수집일 ──────────
+    sale_yms = sorted({ym for s in sales.values() for ym in s})
+    sale_files = glob.glob(str(SUJI_RAW / "sale_*_p*.xml"))
+    sale_collected = (time.strftime("%Y-%m-%d", time.localtime(
+        max(os.path.getmtime(f) for f in sale_files))) if sale_files else None)
+    prog = None
+    pp = ROOT / "data" / "rent_progress.json"
+    if pp.exists():
+        done = len(json.load(open(pp)).get("done", []))
+        try:  # 목표 셀 = 매매 raw의 (시군구×월) 집합(진행률의 분모)
+            from src.collect.rent import target_set
+            sgg_t, ym_t = target_set()
+            total = len(sgg_t) * len(ym_t)
+        except Exception:
+            total = done
+        prog = {"done": done, "total": total,
+                "pct": round(done / total * 100, 1) if total else 0.0}
+    ds = []
+    if sale_yms:
+        ds.append({"key": "rtms_sale", "name": "국토부 RTMS 매매 실거래",
+                   "source": "국토교통부 RTMS(수지 공유 원천)", "scope": "전국 표본(시도 대표 시군구)",
+                   "obs_range": [manifest.ym_dash(sale_yms[0]), manifest.ym_dash(sale_yms[-1])],
+                   "collected_at": sale_collected, "rows": n_sale, "unit": "건", "progress": 1.0})
+    if rent_doc and rent_doc.get("rents"):
+        yr = rent_doc.get("ym_range") or [None, None]
+        ds.append({"key": "rtms_rent", "name": "국토부 RTMS 전월세 실거래",
+                   "source": "국토교통부 RTMS 전월세", "scope": "동일 시군구·월(전세가율 분모와 정합)",
+                   "obs_range": [manifest.ym_dash(yr[0]), manifest.ym_dash(yr[1])],
+                   "collected_at": rent_doc.get("collected_at"),
+                   "rows": bundle["meta"].get("n_rental_all", 0), "unit": "행", "progress": prog})
+    if gongsi:
+        gyears = sorted({y for s in gongsi["samples"] for y in s.get("prices", {})})
+        ds.append({"key": "gongsi", "name": "공동주택 공시가격",
+                   "source": "VWorld NED(부동산공시)", "scope": "거래 상위 단지 표본",
+                   "obs_range": [gyears[0], gyears[-1]] if gyears else None,
+                   "collected_at": gongsi.get("collected_at"),
+                   "rows": len(gongsi["samples"]), "unit": "단지", "progress": 1.0})
+    bundle["manifest"] = manifest.upsert(ds, bundle["meta"]["built_at"])
+    print(f"매니페스트(視差): {len(ds)}개 데이터셋 → DATA_MANIFEST.json")
 
     (ROOT / "out").mkdir(exist_ok=True)
     json.dump(bundle, open(ROOT / "out" / "site_bundle.json", "w"),

@@ -10,27 +10,49 @@
 ## 구조
 
 ```
-src/collect/    rent.py(전월세 실거래 — 일 쿼터 분할 수집·resume)
-                gongsi.py(공동주택 공시가격 — VWorld 지오코더→지적→공시 3단 체인)
-src/analysis/   metrics.py(전세가율·역전세·현실화율) · lags.py(전달 시차·국면·이동창)
-                events.py(정책 5건 event study — z-이탈 경로)
-src/build/      assemble.py — 단일 HTML 조립(폰트 서브셋 인라인 포함)
-tests/          지표 단위 테스트
+src/collect/       rent.py(전월세 실거래 — 일 쿼터 분할 수집·resume)
+                   gongsi.py(공동주택 공시가격 — VWorld 지오코더→지적→공시 3단 체인)
+src/analysis/      metrics.py(전세가율·역전세·현실화율 · 視差 매니페스트)
+                   lags.py(전달 시차·국면·이동창·지역확산 · 신호원장 · 時差 매니페스트)
+                   events.py(정책 5건 event study — z-이탈 경로)
+                   manifest.py(DATA_MANIFEST.json 병합 — 관측월 ≠ 수집일)
+src/build/         assemble.py — 단일 HTML 조립(폰트 인라인·빌드 스탬프·og.png 동봉)
+site/og.html       OG 이미지 원본(1200×630 — 헤드리스 크롬으로 site/og.png 렌더)
+data/ledger.json   신호원장(예측 장부·자동 채점) — 커밋 대상(축적 기록)
+DATA_MANIFEST.json 데이터 상태(관측월·수집일·전월세 진행률)
+tests/             지표·시차 부호 규칙 단위 테스트
 ```
 
-재현: `python3 -m src.analysis.metrics && python3 -m src.analysis.lags
-&& python3 -m src.analysis.events && python3 src/build/assemble.py`
-(config.json의 API 키는 커밋하지 않는다 · 단일 파일 · 외부 요청 없음)
+재현: `make all`(지표→시차→사건→조립). 최신 번들로 페이지만 다시 짜려면 `make build`,
+타깃 전체는 `make help`. 키·경로 설정은 예시 파일에서 복사한다:
 
-원자료는 자매 리포(수지·순환)에서 참조한다 — 두 리포를 홈(`~/개발`·`~/순환`)에 클론하거나,
-다른 위치라면 `SUJI_DIR`·`SUNHWAN_DIR` 환경변수로 각 리포의 경로를 지정한다
-(예: `SUJI_DIR=/path/to/개발 SUNHWAN_DIR=/path/to/순환 python3 -m src.analysis.lags`).
+```
+cp .env.example .env                  # SUJI_DIR·SUNHWAN_DIR (자매 리포 위치)
+cp config.example.json config.json    # 수집 API 키 (커밋 금지)
+```
+
+`make build`·`make test`는 키·원자료가 필요 없다 — 사이트는 외부 요청 없는 단일 파일이다.
+원자료는 자매 리포(수지·순환)를 홈(`~/개발`·`~/순환`)에 두거나, 다른 위치라면
+`SUJI_DIR`·`SUNHWAN_DIR` 환경변수로 각 리포의 경로를 지정한다.
 
 ## 방법의 태도
 
 모든 수치는 예측적 선후관계이며 인과 주장이 아니다. 국면 전환이 만드는 가짜
 피크는 6개월 내 국소 피크를 병기하고, 탐색 편향·표본 한계·데이터 공백을
 화면과 방법론 장에 그대로 남긴다.
+
+## 신호원장 — 예측의 장부
+
+`lags.py`는 매 빌드에 현재 신호(선행 변수의 방향 전환)를 판정일·예상시차·검증기한과
+함께 `data/ledger.json`에 기록한다(선행→반응@전환월 key로 같은 전환은 한 번만). 검증기한
+(판정일 + 예상시차 + 2개월)이 지난 신호는 반응 변수가 실제로 예측 방향으로 움직였는지를
+단순 부호 규칙으로 자동 채점한다 — 크기·유의성은 보지 않는 1차 검증이다. 원장은
+gitignore하지 않는다(축적 기록·커밋 대상). 사이트 **신호원장(附)** 장이 표·방향 적중률로
+이를 보여주며, 데이터가 쌓이기 전엔 "축적 시작"으로 정직하게 표기한다.
+
+`DATA_MANIFEST.json`은 각 데이터셋의 **관측월(데이터가 담는 기간)** 과 **수집일(실제로
+받아온 날)** 을 분리해 기록하고(전월세는 시군구×월 진행률 포함), 방법론 장의 '데이터 상태'
+표와 페이지 푸터의 관측 컷오프 빌드 스탬프가 이를 읽는다.
 
 ## 연구 시리즈
 

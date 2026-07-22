@@ -1,0 +1,107 @@
+{
+ "generated_at": "2026-07-23",
+ "datasets": [
+  {
+   "key": "rtms_sale",
+   "name": "국토부 RTMS 매매 실거래",
+   "source": "국토교통부 RTMS(수지 공유 원천)",
+   "scope": "전국 표본(시도 대표 시군구)",
+   "obs_range": [
+    "2023-08",
+    "2026-07"
+   ],
+   "collected_at": "2026-07-21",
+   "rows": 413114,
+   "unit": "건",
+   "progress": 1.0
+  },
+  {
+   "key": "rtms_rent",
+   "name": "국토부 RTMS 전월세 실거래",
+   "source": "국토교통부 RTMS 전월세",
+   "scope": "동일 시군구·월(전세가율 분모와 정합)",
+   "obs_range": [
+    "2023-08",
+    "2026-07"
+   ],
+   "collected_at": "2026-07-23",
+   "rows": 1208843,
+   "unit": "행",
+   "progress": {
+    "done": 1692,
+    "total": 1692,
+    "pct": 100.0
+   }
+  },
+  {
+   "key": "gongsi",
+   "name": "공동주택 공시가격",
+   "source": "VWorld NED(부동산공시)",
+   "scope": "거래 상위 단지 표본",
+   "obs_range": [
+    "2021",
+    "2025"
+   ],
+   "collected_at": "2026-07-22",
+   "rows": 108,
+   "unit": "단지",
+   "progress": 1.0
+  },
+  {
+   "key": "ecos_rate",
+   "name": "한국은행 ECOS 금리(기준·주담대)",
+   "source": "한국은행 ECOS(수지 공유 원천)",
+   "scope": "전국",
+   "obs_range": [
+    "2014-07",
+    "2026-07"
+   ],
+   "collected_at": "2026-07-21",
+   "rows": 145,
+   "unit": "개월",
+   "progress": 1.0
+  },
+  {
+   "key": "treasury10y",
+   "name": "국고채 10년 금리",
+   "source": "순환(循環) treasury10y",
+   "scope": "전국",
+   "obs_range": [
+    "2014-01",
+    "2026-06"
+   ],
+   "collected_at": "2026-07-23",
+   "rows": 150,
+   "unit": "개월",
+   "progress": 1.0
+  },
+  {
+   "key": "kosis_supply",
+   "name": "KOSIS 주택 공급(미분양·착공·준공)",
+   "source": "KOSIS(수지 공유 원천)",
+   "scope": "전국 총량",
+   "obs_range": [
+    "2016-07",
+    "2026-05"
+   ],
+   "collected_at": "2026-07-21",
+   "rows": 119,
+   "unit": "개월",
+   "progress": 1.0
+  },
+  {
+   "key": "archub_permits",
+   "name": "건축HUB 인허가(세대수)",
+   "source": "건축HUB(수지 공유 원천)",
+   "scope": "대표 시군구 표본",
+   "obs_range": [
+    "2015-01",
+    "2026-06"
+   ],
+   "collected_at": "2026-07-21",
+   "rows": 138,
+   "unit": "개월",
+   "progress": 1.0
+  }
+ ]
+}
