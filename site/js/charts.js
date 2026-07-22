@@ -77,6 +77,25 @@
     t.classList.add("on");
   }
   function tipHide() { if (tipEl) tipEl.classList.remove("on"); }
+  // 포인터 공통 툴팁 바인딩 — 데스크톱 hover(pointerenter/move)와 모바일 탭(click)을
+  // 한 경로로 처리. 차트 밖 pointerdown 시 숨김. htmlFn() 은 위치와 무관한 정적 HTML 반환.
+  // 데스크톱 hover 동작은 pointer 이벤트가 mouse 를 그대로 승계하므로 불변.
+  let tipGuard = false;
+  function bindTip(node, htmlFn) {
+    if (!tipGuard) {
+      tipGuard = true;
+      document.addEventListener("pointerdown", ev => {
+        const t = ev.target;
+        if (!t || !t.closest || !t.closest("[data-tip]")) tipHide();
+      }, true);
+    }
+    node.setAttribute("data-tip", "1");
+    const show = ev => tipShow(htmlFn(), ev.clientX, ev.clientY);
+    node.addEventListener("pointerenter", show);
+    node.addEventListener("pointermove", show);
+    node.addEventListener("click", show);
+    node.addEventListener("pointerleave", tipHide);
+  }
 
   function extent(arr) {
     let lo = Infinity, hi = -Infinity;
@@ -133,6 +152,26 @@
     bar.appendChild(resetBtn);
     root.appendChild(bar);
     return resetBtn;
+  }
+
+  /* ---------- 다계열 라벨 정렬 ---------- */
+  // line() 툴팁은 배열 인덱스 i 를 전 계열에 공유한다(V.map(s => s.points[i])).
+  // 서로 다른 원천 배열에서 온 계열은 라벨 축이 어긋날 수 있으므로, 렌더 직전
+  // 라벨 합집합(시간순)으로 재색인한다 — 결측 y = NaN (extent/line/aggregate 의
+  // Number.isFinite 가드가 갭으로 처리). 같은 축이면 무변화(NaN 미발생·x 동일).
+  function alignByLabel(series) {
+    const order = [], seen = new Set();
+    series.forEach(s => (s.points || []).forEach(p => {
+      if (!seen.has(p.label)) { seen.add(p.label); order.push(p.label); }
+    }));
+    order.sort((a, b) => {
+      const ta = timeOf(a), tb = timeOf(b);
+      return ta == null || tb == null ? 0 : ta - tb;
+    });
+    return series.map(s => {
+      const m = new Map((s.points || []).map(p => [p.label, p.y]));
+      return { ...s, points: order.map((lab, i) => ({ x: i, label: lab, y: m.has(lab) ? m.get(lab) : NaN })) };
+    });
   }
 
   /* ---------- 라인 차트 (다중 계열 + 크로스헤어 + 드래그 확대 + 시간 단위) ---------- */
@@ -374,8 +413,7 @@
         .textContent = s.name;
       el("text", { x: tx, y: H - 22, "text-anchor": "middle", "font-size": 11.5, "font-weight": 700, fill: col, "font-family": "var(--font-num)" }, svg)
         .textContent = fmt.eok(isSum ? s.y1 : s.value);
-      r.addEventListener("mousemove", ev => tipShow(`<div class="t-title">${s.name}</div><b class="num">${fmt.eok(isSum ? s.y1 : s.value)}원</b>`, ev.clientX, ev.clientY));
-      r.addEventListener("mouseleave", tipHide);
+      bindTip(r, () => `<div class="t-title">${s.name}</div><b class="num">${fmt.eok(isSum ? s.y1 : s.value)}원</b>`);
     });
     // 0 기준선
     el("line", { x1: M.l, x2: W - M.r, y1: y(0), y2: y(0), stroke: css("--axis"), "stroke-width": 1.2 }, svg);
@@ -404,9 +442,8 @@
       el("text", { x: xl - 6, y: cy + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg).textContent = fmt.eok(it.low);
       el("text", { x: xr + 6, y: cy + 4, "font-size": 11.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg).textContent = fmt.eok(it.high);
       [neg, pos].forEach(r2 => {
-        r2.addEventListener("mousemove", ev => tipShow(
-          `<div class="t-title">${it.name}</div>나빠질 때 <b class="num">${fmt.eok(it.low)}</b> · 현재 기준 <b class="num">${fmt.eok(base)}</b> · 좋아질 때 <b class="num">${fmt.eok(it.high)}</b>`, ev.clientX, ev.clientY));
-        r2.addEventListener("mouseleave", tipHide);
+        bindTip(r2, () =>
+          `<div class="t-title">${it.name}</div>나빠질 때 <b class="num">${fmt.eok(it.low)}</b> · 현재 기준 <b class="num">${fmt.eok(base)}</b> · 좋아질 때 <b class="num">${fmt.eok(it.high)}</b>`);
       });
     });
     el("line", { x1: x(base), x2: x(base), y1: M.t, y2: H - M.b, stroke: css("--ink"), "stroke-width": 1.4 }, svg);
@@ -438,9 +475,8 @@
           const miss = el("rect", { x: M.l + c * cw + 1, y: M.t + r * cellH + 1,
             width: cw - 2, height: cellH - 2, fill: css("--surface-2"), rx: 5,
             stroke: css("--hairline-2"), "stroke-dasharray": "3 3" }, svg);
-          miss.addEventListener("mousemove", ev => tipShow(
-            `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>자료 없음`, ev.clientX, ev.clientY));
-          miss.addEventListener("mouseleave", tipHide);
+          bindTip(miss, () =>
+            `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>자료 없음`);
           return;
         }
         // 발산형 파랑↔주황: 음수 = 파랑(강도 비례), 양수 = 주황 램프 (한국 관행: 하락=파랑)
@@ -457,9 +493,8 @@
             "font-size": 11.5, "font-weight": 700, "font-family": "var(--font-num)", "pointer-events": "none",
             fill: strong ? "#fff" : css("--ink-2") }, svg).textContent = (opts.cellFmt || vFmt)(v);
         }
-        rect.addEventListener("mousemove", ev => tipShow(
-          `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>${opts.vLabel || "이익"} <b class="num">${vFmt(v)}</b>`, ev.clientX, ev.clientY));
-        rect.addEventListener("mouseleave", tipHide);
+        bindTip(rect, () =>
+          `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>${opts.vLabel || "이익"} <b class="num">${vFmt(v)}</b>`);
       });
       el("text", { x: M.l - 8, y: M.t + r * cellH + cellH / 2 + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-2"), "font-family": "var(--font-num)" }, svg).textContent = yv;
     });
@@ -661,8 +696,7 @@
         fill: grad(svg, barCol, "h", -0.18, 0.16), rx: 6, opacity: isSel ? 1 : .95 }, svg);
       el("text", { x: M.l + Math.max(2, w2) + 9, y: cy + rowH / 2 + 5, "font-size": 13, fill: css("--ink-2"), "font-family": "var(--font-num)", "font-weight": 700 }, svg)
         .textContent = opts.fmt ? opts.fmt(d.value) : fmt.num(d.value, 0);
-      bar.addEventListener("mousemove", ev => tipShow(`<div class="t-title">${d.name}</div><b class="num">${opts.fmt ? opts.fmt(d.value) : fmt.num(d.value, 0)}</b>${opts.onSelect ? '<br><span style="opacity:.7">클릭: 상세 보기</span>' : ""}`, ev.clientX, ev.clientY));
-      bar.addEventListener("mouseleave", tipHide);
+      bindTip(bar, () => `<div class="t-title">${d.name}</div><b class="num">${opts.fmt ? opts.fmt(d.value) : fmt.num(d.value, 0)}</b>${opts.onSelect ? '<br><span style="opacity:.7">클릭: 상세 보기</span>' : ""}`);
       if (opts.onSelect) {
         [bar, lab].forEach(nd => {
           nd.style.cursor = "pointer";
@@ -748,8 +782,7 @@
       }
       placed.push(pickBox);
       el("text", { x: pick.x, y: pick.y, "text-anchor": pick.anchor, "font-size": 11.5, "font-weight": 700, fill: css("--ink-2") }, svg).textContent = p.name;
-      c.addEventListener("mousemove", ev => tipShow(`<div class="t-title">${p.name}</div>매매지수 1년 변동 <b class="num">${p.y >= 0 ? "+" : ""}${p.y.toFixed(1)}%</b><br>미분양 1년 증감 <b class="num">${p.x >= 0 ? "+" : ""}${p.x.toFixed(0)}%</b>`, ev.clientX, ev.clientY));
-      c.addEventListener("mouseleave", tipHide);
+      bindTip(c, () => `<div class="t-title">${p.name}</div>매매지수 1년 변동 <b class="num">${p.y >= 0 ? "+" : ""}${p.y.toFixed(1)}%</b><br>미분양 1년 증감 <b class="num">${p.x >= 0 ? "+" : ""}${p.x.toFixed(0)}%</b>`);
     });
     return svg;
   }
@@ -791,10 +824,8 @@
       const r = Math.max(6, Math.sqrt(p.size || 100) * (opts.sizeK || 0.35));
       const c = el("circle", { cx: X(p.x), cy: Y(p.y), r, fill: col, "fill-opacity": .78,
         stroke: css("--surface"), "stroke-width": 1.6 }, svg);
-      c.addEventListener("mousemove", ev => tipShow(
-        `<div class="t-title">${p.name}</div>${opts.xName || "x"} <b class="num">${opts.xFmt ? opts.xFmt(p.x) : p.x}</b><br>${opts.yName || "y"} <b class="num">${opts.yFmt ? opts.yFmt(p.y) : p.y}</b><br><span style="opacity:.7">${p.group || ""}</span>`,
-        ev.clientX, ev.clientY));
-      c.addEventListener("mouseleave", tipHide);
+      bindTip(c, () =>
+        `<div class="t-title">${p.name}</div>${opts.xName || "x"} <b class="num">${opts.xFmt ? opts.xFmt(p.x) : p.x}</b><br>${opts.yName || "y"} <b class="num">${opts.yFmt ? opts.yFmt(p.y) : p.y}</b><br><span style="opacity:.7">${p.group || ""}</span>`);
       if (p.label) el("text", { x: X(p.x), y: Y(p.y) - r - 5, "text-anchor": "middle", "font-size": 11,
         "font-weight": 700, fill: css("--ink-2") }, svg).textContent = p.name;
     });
@@ -809,5 +840,5 @@
     return svg;
   }
 
-  global.Charts = { line, smallMultiples, waterfall, tornado, heatmap, gauge, fan, hbars, phase, scatter, fmt, tipHide };
+  global.Charts = { line, smallMultiples, waterfall, tornado, heatmap, gauge, fan, hbars, phase, scatter, fmt, tipHide, alignByLabel };
 })(typeof window !== "undefined" ? window : globalThis);
