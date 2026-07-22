@@ -136,8 +136,12 @@ section.ch + section.ch { border-top: 1px solid var(--hairline); }
 .eye-tag.red { color: var(--eye-red-deep); background: var(--wash-red); border-color: transparent; }
 .eye-tag.red::before { background: var(--eye-red); }
 
-/* 표 */
-table.sheet { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+/* 표 — 모바일에서는 plate가 가로 스크롤 컨테이너가 된다 */
+.plate { overflow-x: auto; }
+table.sheet { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 540px; }
+@media (max-width: 640px) {
+  .plate .viz-unit { margin-top: 0; text-align: left; }
+}
 table.sheet th {
   text-align: left; font-size: 12px; letter-spacing: .06em; color: var(--ink-2);
   border-bottom: 2px solid var(--ink); padding: 8px 10px; white-space: nowrap;

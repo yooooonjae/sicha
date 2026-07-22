@@ -73,7 +73,10 @@
   }
 
   /* ── 렌더 (테마 전환 시 재호출) ───────────────── */
+  const mobQ = matchMedia("(max-width: 640px)");
+  mobQ.addEventListener("change", () => render());
   function render() {
+    const MOB = mobQ.matches;  // 모바일 — 좁은 viewBox로 세로 판독 확보
     const J = B.jeonse, R = B.real, M = B.meta || {};
 
     /* 홈 KPI */
@@ -133,7 +136,7 @@
       Charts.line($("j-line"), top.map(([sgg, series], i) => ({
         name: nm(sgg),
         points: series.map(p => ({ label: p.q.replace("Q", " Q"), y: p.ratio })),
-      })), { height: 330, aria: "시군구별 전세가율 분기 추이" });
+      })), { width: MOB ? 560 : 1160, height: MOB ? 300 : 330, aria: "시군구별 전세가율 분기 추이" });
 
       const latest = Object.entries(J.by_sgg)
         .map(([sgg, s]) => ({ name: nm(sgg), value: s[s.length - 1].ratio }))
@@ -162,13 +165,13 @@
           points: years.map(y => ({ label: y + ".01", y: OF[y] != null ? OF[y] : NaN })) },
         { name: "이 표본 중앙값", color: "--s2", emph: true,
           points: years.map(y => ({ label: y + ".01", y: R.by_year[y] ? R.by_year[y].med : NaN })) },
-      ], { height: 300, interactive: false, aria: "연도별 현실화율 — 표본과 정부 발표 대조" });
+      ], { width: MOB ? 560 : 1160, height: 300, interactive: false, aria: "연도별 현실화율 — 표본과 정부 발표 대조" });
 
       const pts = R.by_complex.filter(c => c.year >= 2024).map(c => ({
         x: c.market_eok, y: c.ratio, label: c.apt,
         group: c.sido === "서울" ? "서울" : "그 외",
       }));
-      Charts.scatter($("r-scatter"), pts, { width: 560, height: 420,
+      Charts.scatter($("r-scatter"), pts, { width: MOB ? 420 : 560, height: MOB ? 480 : 420,
         groups: { "서울": "--s2", "그 외": "--ink-3" },
         xName: "시장 중앙값(억)", yName: "현실화율(%)",
         xFmt: v => v.toFixed(0), yFmt: v => v.toFixed(0) + "%",
@@ -188,7 +191,7 @@
       Charts.scatter($("q-quad"), B.quad.map(q => ({
         x: q.rr, y: q.jr, label: nm(q.sgg),
         group: (q.jr >= ym && q.rr < xm) ? "겹침" : "관측",
-      })), { height: 480, xRef: xm, yRef: ym,
+      })), { width: MOB ? 420 : 1160, height: MOB ? 520 : 480, xRef: xm, yRef: ym,
         groups: { "겹침": "--s2", "관측": "--s1" },
         xName: "현실화율(%) — 행정의 시차", yName: "전세가율(%) — 세입자의 시차",
         xFmt: v => v.toFixed(0), yFmt: v => v.toFixed(0),
@@ -275,6 +278,7 @@
     }
 
     function drawLab() {
+      const MOB = matchMedia("(max-width: 640px)").matches;
       const nx = sx.value, ny = sy.value, k = +sk.value;
       const xm = toMap(L.series[nx]), ym_ = toMap(L.series[ny]);
       const isRate = n => (L.rate_vars || []).includes(n);
@@ -303,7 +307,7 @@
           points: labels.map((t, i) => ({ label: mk(t), y: zx(xv[i]) })) },
         { name: ny + (k ? ` (+${k}개월 앞당김)` : "") + " — " + unit(ny) + "·z", color: "--s2",
           points: labels.map((t, i) => ({ label: mk(t), y: zy(yv[i]) })) },
-      ], { height: 320, interactive: false, aria: "두 변수의 파형 정렬(표준화)" });
+      ], { width: MOB ? 560 : 1160, height: MOB ? 340 : 320, interactive: false, aria: "두 변수의 파형 정렬(표준화)" });
       const cur = corrAt(xm, ym_, k);
       $("lab-read").innerHTML = cur.r == null
         ? `시차 +${k}개월 · 겹침 ${cur.n}개월 — 표본 부족`
@@ -314,7 +318,7 @@
         const c = corrAt(xm, ym_, kk);
         if (c.r != null) pts.push({ x: kk, y: c.r, label: "+" + kk + "M", group: kk === k ? "현재" : "곡선" });
       }
-      Charts.scatter($("lab-curve"), pts, { width: 560, height: 300, yRef: 0,
+      Charts.scatter($("lab-curve"), pts, { width: MOB ? 420 : 560, height: MOB ? 340 : 300, yRef: 0,
         groups: { "현재": "--s2", "곡선": "--ink-3" },
         xName: "시차(개월)", yName: "r",
         xFmt: v => "+" + Math.round(v), yFmt: v => v.toFixed(1),
