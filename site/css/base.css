@@ -33,6 +33,12 @@ main, nav, footer { position: relative; z-index: 1; }
 a { color: var(--eye-blue); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
+/* 키보드 포커스 — 전역(마우스 클릭엔 표시 안 함). 시간 편 요소는 각자 재정의 가능 */
+:focus-visible { outline: 2px solid var(--eye-blue); outline-offset: 2px; border-radius: 3px; }
+
+/* 뷰포트 전용 표시 — 640px 경계로 데스크톱 SVG ↔ 모바일 세로 마크업 전환 */
+.mobile-only { display: none; }
+
 ::selection { background: var(--wash-blue); color: var(--eye-blue-deep); }
 
 h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; }
@@ -52,4 +58,6 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing:
 @media (max-width: 640px) {
   body { font-size: 15px; }
   .wrap { padding: 0 18px; }
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block; }
 }

@@ -29,6 +29,17 @@
   --wash-blue: #eef3ff;
   --wash-red: #fdeeee;
 
+  /* 時差 편(Ⅴ~Ⅷ) 팔레트 — 청록·적갈·회. 視差의 청·적과 구분해 '시간의 시차'를 표시한다.
+     time-main = 선행·수요·서울 선행(+r) · time-supply = 공급·후행·음(−r) · time-neutral = 동행·범위 불일치 */
+  --time-main: #176b73;
+  --time-main-deep: #0f545b;
+  --time-main-wash: #e3f1f1;
+  --time-supply: #a65c32;
+  --time-supply-deep: #874624;
+  --time-supply-wash: #f6ebe3;
+  --time-neutral: #717985;
+  --time-neutral-wash: #eef0f2;
+
   /* charts.js 계약 — blueprint = 이 사이트의 주 계열(청) */
   --blueprint: var(--eye-blue);
   --blueprint-2: var(--eye-red);
@@ -46,14 +57,14 @@
   --axis: #8a94a3;
   --cross: #d3d8e0;        /* 모눈 교차 십자 */
 
-  /* 히트맵 청 램프 (라이트) */
-  --seq-100: #f2f6ff;
-  --seq-200: #dbe6fd;
-  --seq-300: #b9cdfa;
-  --seq-400: #8fabf3;
-  --seq-500: #5f83e6;
-  --seq-600: #3560d4;
-  --seq-700: #1d43ae;
+  /* 히트맵·확산지도·카드 톤 램프 (라이트) — 時差 편 전용이라 청록(time-main 계열)으로 통일 */
+  --seq-100: #eef5f5;
+  --seq-200: #d5e8e8;
+  --seq-300: #abd2d3;
+  --seq-400: #78b5b7;
+  --seq-500: #47959b;
+  --seq-600: #24757c;
+  --seq-700: #13565d;
 
   /* 타이포 */
   --font-display: "MaruBuri Sub", "Songti SC", "AppleMyungjo", "Noto Serif KR", serif; /* 시차 고유 — 마루부리 서브셋 1순위 (14차: 그릇만 통일, 활자는 정체성) */
@@ -81,6 +92,15 @@
   --wash-blue: #17203a;
   --wash-red: #331a1e;
 
+  --time-main: #4fb3bb;
+  --time-main-deep: #7ccdd3;
+  --time-main-wash: #123338;
+  --time-supply: #d99873;
+  --time-supply-deep: #e6b092;
+  --time-supply-wash: #3a281d;
+  --time-neutral: #9aa2ad;
+  --time-neutral-wash: #23272f;
+
   --pos: #4fd396;
 
   --rule: #2c313a;
@@ -90,13 +110,13 @@
   --axis: #7a828e;
   --cross: #2a2f38;
 
-  --seq-100: #151b2c;
-  --seq-200: #1b2742;
-  --seq-300: #24365e;
-  --seq-400: #2f4a85;
-  --seq-500: #3f63b4;
-  --seq-600: #5b82dd;
-  --seq-700: #86a7f2;
+  --seq-100: #12211f;
+  --seq-200: #163a37;
+  --seq-300: #1f5450;
+  --seq-400: #2c736d;
+  --seq-500: #3f958d;
+  --seq-600: #5bb3aa;
+  --seq-700: #8ad0c8;
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 40px rgba(0, 0, 0, .35);
 }

@@ -30,20 +30,17 @@
 <main id="top">
 <header class="hero wrap">
   <p class="eyebrow">부동산 가격의 시차 관측 · {{BUILT_AT}} 기준</p>
-  <h1><span class="hanja anaglyph">視差</span> —<br>한 자산을 보는<br>세 개의 눈</h1>
-  <p class="sub">같은 아파트에 세 개의 가격이 동시에 존재한다. <b>시장의 눈(실거래가)</b>,
-  <b>세입자의 눈(전세가)</b>, <b>행정의 눈(공시가격)</b>. 천문학이 시차(視差)로 별까지의
-  거리를 재듯, 세 시선의 각도차를 재면 자산의 리스크가 보인다 — 세 가격은 같은 시각을
-  살지 않으므로(공시는 연 1회, 전세는 2년 주기) 이것은 시간의 차(時差)이기도 하다.</p>
+  <h1><span class="hanja anaglyph">視差</span>·<span class="hanja anaglyph">時差</span> —</h1>
+  <p class="sub">같은 자산을 보는 세 눈이 만드는 <b>공간의 시차(視差)</b>와, 선행 신호가
+  시장을 통과하는 <b>시간의 시차(時差)</b> — 부동산 가격의 두 각도를 공공 데이터로 계측한다.</p>
   <div class="cta-row">
-    <a class="btn primary" href="#ch4">이중 시차 지도 보기 →</a>
-    <a class="btn" href="#ch2">전세가율 관측</a>
-    <a class="btn" href="#ch3">현실화율 관측</a>
+    <a class="btn primary" href="#ch1">공간의 시차 보기 →</a>
+    <a class="btn time" href="#ch5">시간의 시차 보기 →</a>
   </div>
 
-  <!-- 세 시선 다이어그램 — 세 눈이 한 자산에 수렴한다 -->
-  <div class="plate" style="padding:10px 8px 4px">
-    <svg viewBox="0 0 1120 300" role="img" aria-label="세 개의 눈이 한 자산을 바라보는 시차 다이어그램" style="width:100%;height:auto;display:block">
+  <!-- 세 시선 다이어그램 — 데스크톱 SVG + 모바일 세로 마크업 -->
+  <div class="plate" id="hero-diagram" style="padding:10px 8px 4px">
+    <svg class="desktop-only" viewBox="0 0 1120 300" role="img" aria-label="세 개의 눈이 한 자산을 바라보는 시차 다이어그램" style="width:100%;height:auto;display:block">
       <defs>
         <marker id="mB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--eye-blue)"/></marker>
         <marker id="mR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--eye-red)"/></marker>
@@ -78,40 +75,79 @@
       <path d="M 500 137 A 62 62 0 0 1 500 163" fill="none" stroke="var(--axis)" stroke-width="1.2" stroke-dasharray="3 3"/>
       <text x="470" y="155" text-anchor="end" font-size="11.5" fill="var(--ink-2)" font-style="italic">시차각 = 리스크</text>
     </svg>
+    <div class="eye3-mob mobile-only" style="padding:4px 4px 2px">
+      <div class="e3-eye black"><span class="e3-dot"></span><span><b>시장의 눈</b> — 실거래가 · 오늘의 합의</span></div>
+      <div class="e3-eye blue"><span class="e3-dot"></span><span><b>세입자의 눈</b> — 전세가 · 사용의 값</span></div>
+      <div class="e3-eye red"><span class="e3-dot"></span><span><b>행정의 눈</b> — 공시가 · 과세·담보의 기준</span></div>
+      <div class="e3-arrow">↓ 세 시선이 한 자산에 수렴</div>
+      <div class="e3-asset"><b>◇ 자산</b><span>같은 집 · 세 개의 가격 · 각도차 = 리스크</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- 홈 섹션 1 — 視差 · 공간의 차이 ─────────────────── -->
+<section class="home-sec wrap" id="home-space">
+  <div class="home-head"><span class="hanja">視差</span><span class="home-tag">공간의 차이</span></div>
+  <p class="home-lede">같은 아파트에 세 개의 가격이 동시에 존재한다 — <b>시장(실거래)·세입자(전세)·행정(공시)</b>.
+  세 시선의 각도차를 재면 보증금과 담보의 리스크가 보인다.</p>
+  <div class="nav-cards">
+    <a class="nav-card" href="#ch1"><span class="nc-no">Ⅰ</span><span class="nc-t">세 개의 가격</span><span class="nc-d">단지 하나에서 세 눈이 읽는 값 · 데이터 계보</span></a>
+    <a class="nav-card" href="#ch2"><span class="nc-no">Ⅱ</span><span class="nc-t">세입자의 눈 — 전세가율</span><span class="nc-d">사용의 값이 소유의 값에서 차지하는 비중 · 역전세</span></a>
+    <a class="nav-card" href="#ch3"><span class="nc-no">Ⅲ</span><span class="nc-t">행정의 눈 — 현실화율</span><span class="nc-d">공시가가 시장을 따라온 정도 · 가격대별 괴리</span></a>
+    <a class="nav-card" href="#ch4"><span class="nc-no">Ⅳ</span><span class="nc-t">겹침 — 이중 시차</span><span class="nc-d">전세가율 × 현실화율 사분면 · 리스크가 겹치는 곳</span></a>
+  </div>
+  <div class="kpi-row" id="home-kpis"></div>
+</section>
+
+<!-- 홈 섹션 2 — 時差 · 시간의 차이 ─────────────────── -->
+<section class="home-sec wrap" id="home-time">
+  <div class="home-head"><span class="hanja">時差</span><span class="home-tag">시간의 차이</span></div>
+  <p class="home-lede">세 가격은 같은 시각을 살지 않는다 — 공시는 연 1회, 전세는 2년 주기. 여기서부터는
+  <b>선행 신호가 시장을 통과하는 시간</b>을 잰다 — 무엇이 먼저 움직이고, 반응은 몇 개월 뒤 오는가.</p>
+  <div class="nav-cards">
+    <a class="nav-card" href="#ch5"><span class="nc-no">Ⅴ</span><span class="nc-t">시차지도</span><span class="nc-d">선행 × 반응 전수표 · 무엇이 먼저 움직이는가</span></a>
+    <a class="nav-card" href="#ch6"><span class="nc-no">Ⅵ</span><span class="nc-t">시차실험실</span><span class="nc-d">두 파형을 슬라이더로 직접 정렬</span></a>
+    <a class="nav-card" href="#ch7"><span class="nc-no">Ⅶ</span><span class="nc-t">지역확산</span><span class="nc-d">서울↔지역 양방향 · 신호는 어디로 퍼지나</span></a>
+    <a class="nav-card" href="#ch8"><span class="nc-no">Ⅷ</span><span class="nc-t">사건연구</span><span class="nc-d">정책 이후 시장은 언제 반응했는가(z 이탈)</span></a>
+    <a class="nav-card" href="#ch9"><span class="nc-no">Ⅸ</span><span class="nc-t">방법론</span><span class="nc-d">출처·표본 설계·지표 정의·한계</span></a>
   </div>
 
-  <div class="kpi-row" id="home-kpis" style="margin-top:22px"></div>
-  <div class="plate" style="margin-top:14px" id="signal-plate">
+  <div class="plate" id="wave-band">
+    <div class="viz-title">선행과 반응 사이의 시간 — 신호는 시차를 두고 전달된다</div>
+    <div class="viz-q">선행 신호(<b style="color:var(--time-main)">청록</b>)가 먼저 움직이고, 반응 지표(<b style="color:var(--time-supply)">적갈</b>)가 k개월 뒤 같은 모양으로 따라온다</div>
+    <svg class="desktop-only" viewBox="0 0 1120 150" role="img" aria-label="선행 신호와 반응 지표가 시간차를 두고 반복되는 파형" style="width:100%;height:auto;display:block">
+      <defs><marker id="mLag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink-2)"/></marker></defs>
+      <line x1="40" y1="120" x2="1080" y2="120" stroke="var(--hairline)" stroke-width="1"/>
+      <path d="M 60 55 Q 105 15 150 55 T 240 55 Q 285 15 330 55 T 420 55 Q 465 15 510 55 T 600 55 Q 645 15 690 55 T 780 55" fill="none" stroke="var(--time-main)" stroke-width="2"/>
+      <path d="M 200 95 Q 245 60 290 95 T 380 95 Q 425 60 470 95 T 560 95 Q 605 60 650 95 T 740 95 Q 785 60 830 95 T 920 95" fill="none" stroke="var(--time-supply)" stroke-width="2"/>
+      <line x1="105" y1="15" x2="105" y2="128" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>
+      <line x1="245" y1="15" x2="245" y2="128" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>
+      <path d="M 110 124 L 240 124" stroke="var(--ink-2)" stroke-width="1.2" marker-end="url(#mLag)"/>
+      <text x="175" y="142" text-anchor="middle" font-size="11.5" fill="var(--ink-2)" font-family="var(--font-num)">전달 시차</text>
+      <text x="66" y="30" font-size="12" font-weight="700" fill="var(--time-main)">선행 신호</text>
+      <text x="850" y="82" font-size="12" font-weight="700" fill="var(--time-supply)">반응 지표</text>
+    </svg>
+    <svg class="mobile-only" viewBox="0 0 324 180" role="img" aria-label="선행 신호와 반응 지표의 전달 시차 파형(모바일)" style="width:100%;height:auto">
+      <defs><marker id="mLagM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink-2)"/></marker></defs>
+      <text x="8" y="16" font-size="13" font-weight="700" fill="var(--time-main)">선행 신호</text>
+      <path d="M 8 46 Q 40 24 72 46 T 136 46 Q 168 24 200 46 T 264 46 Q 296 24 316 40" fill="none" stroke="var(--time-main)" stroke-width="2.4"/>
+      <text x="8" y="94" font-size="13" font-weight="700" fill="var(--time-supply)">반응 지표</text>
+      <path d="M 40 122 Q 72 100 104 122 T 168 122 Q 200 100 232 122 T 296 122" fill="none" stroke="var(--time-supply)" stroke-width="2.4"/>
+      <line x1="40" y1="26" x2="40" y2="150" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>
+      <line x1="72" y1="26" x2="72" y2="150" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>
+      <path d="M 42 164 L 70 164" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#mLagM)"/>
+      <text x="80" y="168" font-size="13" fill="var(--ink-2)">전달 시차 = k개월</text>
+    </svg>
+  </div>
+
+  <div class="plate" id="signal-plate">
     <div class="viz-title">현재 신호 — 전달경로의 어디에 있는가</div>
     <div class="viz-q">선행 변수의 최근 방향 전환과, 과거 시차로 본 예상 반응 구간</div>
     <div class="kpi-row" id="home-signals" style="margin-top:10px"></div>
     <p class="note">신호 = 선행 변수 변환값의 부호 전환. 예상 구간은 과거 최적 시차이며 보장이 아니다 —
     방향 일치는 전 표본에서 그 시차의 부호 관계가 유지된 비율(음의 관계는 역방향 기준).</p>
   </div>
-
-  <div class="plate" style="margin-top:22px;padding:18px 24px 8px">
-    <div class="viz-title">이 사이트의 두 계측 — 공간의 시차(視差), 시간의 시차(時差)</div>
-    <div class="viz-q">Ⅰ~Ⅳ장은 세 가격 사이의 각도를, Ⅴ~Ⅵ장은 신호가 전달되는 시간을 잰다</div>
-    <svg viewBox="0 0 1120 150" role="img" aria-label="선행 신호와 반응 지표가 시간차를 두고 반복되는 파형" style="width:100%;height:auto;display:block">
-      <line x1="40" y1="120" x2="1080" y2="120" stroke="var(--hairline)" stroke-width="1"/>
-      <path d="M 60 55 Q 105 15 150 55 T 240 55 Q 285 15 330 55 T 420 55 Q 465 15 510 55 T 600 55 Q 645 15 690 55 T 780 55" fill="none" stroke="var(--eye-blue)" stroke-width="2"/>
-      <path d="M 200 95 Q 245 60 290 95 T 380 95 Q 425 60 470 95 T 560 95 Q 605 60 650 95 T 740 95 Q 785 60 830 95 T 920 95" fill="none" stroke="var(--eye-red)" stroke-width="2"/>
-      <line x1="105" y1="15" x2="105" y2="128" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>
-      <line x1="245" y1="15" x2="245" y2="128" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>
-      <path d="M 110 124 L 240 124" stroke="var(--ink)" stroke-width="1.2" marker-end="url(#mK)"/>
-      <text x="175" y="142" text-anchor="middle" font-size="11.5" fill="var(--ink-2)" font-family="var(--font-num)">전달 시차</text>
-      <text x="66" y="30" font-size="12" font-weight="700" fill="var(--eye-blue)">선행 신호</text>
-      <text x="850" y="82" font-size="12" font-weight="700" fill="var(--eye-red)">반응 지표</text>
-    </svg>
-  </div>
-
-  <div class="sister">
-    <span class="t">자매 연구</span>
-    <span class="n">수지(收支) — 개별 사업의 손익 · 순환(循環) — 시장의 생애주기</span>
-    <a class="btn" href="https://yoonjae.pages.dev" target="_blank" rel="noopener">수지 열기 →</a>
-    <a class="btn" href="https://sunhwan.pages.dev" target="_blank" rel="noopener" style="margin-left:0">순환 열기 →</a>
-  </div>
-</header>
+</section>
 
 <!-- Ⅰ 세 개의 가격 ─────────────────────────────────── -->
 <section class="ch wrap" id="ch1">
@@ -131,14 +167,14 @@
   </div>
   <div class="plate">
     <div class="viz-title">데이터 계보 — 세 눈의 원천</div>
-    <table class="sheet">
+    <div class="table-scroll"><table class="sheet">
       <thead><tr><th>눈</th><th>가격</th><th>원천</th><th>주기</th><th class="num">이 사이트의 표본</th></tr></thead>
       <tbody>
         <tr><td><span class="eye-tag black">시장</span></td><td>아파트 매매 실거래가</td><td>국토교통부 RTMS</td><td>상시 (신고 기준)</td><td class="num" id="lin-sale">—</td></tr>
         <tr><td><span class="eye-tag blue">세입자</span></td><td>아파트 전세 실거래가</td><td>국토교통부 RTMS 전월세</td><td>상시 (월세 0 계약만)</td><td class="num" id="lin-rent">—</td></tr>
         <tr><td><span class="eye-tag red">행정</span></td><td>공동주택 공시가격</td><td>VWorld NED (부동산공시)</td><td>연 1회 (1월 1일 기준)</td><td class="num" id="lin-gongsi">—</td></tr>
       </tbody>
-    </table>
+    </table></div>
     <p class="note">매매·전세는 동일한 시군구 집합·동일한 월 범위에서 수집해 분자와 분모가 같은 표본 위에 선다.
     공시 표본은 시군구별 거래 최다 단지 상위 3곳 — 전수가 아닌 <b>거래 상위 단지 표본</b>이다(Ⅴ장).</p>
   </div>
@@ -153,23 +189,29 @@
   좁아 적은 자본으로 소유가 가능해지고 — 같은 이유로, 가격이 내리면 보증금이 매매가에
   먼저 부딪힌다. 세입자의 눈은 그래서 리스크의 최전선이다.</p>
   <div class="plate">
+    <div class="viz-head">
     <div class="viz-title">시군구별 전세가율 — 분기 추이</div>
     <div class="viz-q">사용의 값은 소유의 값 어디까지 올라와 있는가</div>
     <div class="viz-unit">% · 분기 중앙값 비율 · 드래그로 구간 확대</div>
+    </div>
     <div id="j-line"></div>
     <p class="note" id="j-line-note">단지·전용면적대(±10%) 매칭 표본이 5건 이상인 분기는 매칭 비율,
     미만이면 ㎡당 중앙값 비율로 폴백한다 — 두 방식이 섞임을 감안해 추세로 읽어야 한다.</p>
   </div>
   <div class="grid2">
     <div class="plate">
+      <div class="viz-head">
       <div class="viz-title">최신 분기 전세가율 — 시군구 비교</div>
       <div class="viz-unit" id="j-rank-unit">%</div>
+      </div>
       <div id="j-rank"></div>
     </div>
     <div class="plate">
+      <div class="viz-head">
       <div class="viz-title">역전세 관측 — 8분기 전 대비 전세 중앙값</div>
       <div class="viz-q">2년 전 계약이 지금 갱신된다면, 보증금은 얼마나 움직이는가</div>
       <div class="viz-unit">% · ㎡당 전세 중앙값 변화</div>
+      </div>
       <div id="j-rev"></div>
       <p class="note">음수(적색)는 2년 전보다 전세 시세가 낮다는 뜻 — 임대인이 차액을 돌려줘야
       하는 <b>역전세 압력</b>의 근사다. 동일 계약 추적이 아닌 집계 비교(Ⅴ장 한계).</p>
@@ -186,9 +228,11 @@
   반영한다. 공시가 시장가의 몇 %를 따라왔는지 — 현실화율 — 는 곧 행정의 눈과 시장의 눈
   사이 시차각이다. 각도가 클수록 세 부담은 가볍고, 담보의 장부는 시장과 멀어진다.</p>
   <div class="plate">
+    <div class="viz-head">
     <div class="viz-title">연도별 현실화율 — 표본 중앙값 궤적</div>
     <div class="viz-q">행정의 눈은 시장을 얼마나 따라왔는가</div>
     <div class="viz-unit">% · 단지·연도 관측 중앙값</div>
+    </div>
     <div id="r-year"></div>
     <p class="note">공시 기준일(1월 1일) 전후 1년(전년 7월~당년 6월)의 동단지·동면적대 매매
     중앙값과 대조. 시장이 급등한 해에는 분모가 먼저 움직여 현실화율이 내려 보인다.
@@ -198,14 +242,18 @@
   </div>
   <div class="grid2">
     <div class="plate">
+      <div class="viz-head">
       <div class="viz-title">단지별 산점 — 시장가 × 현실화율</div>
       <div class="viz-q">비싼 집일수록 행정의 눈은 더 멀리 있는가</div>
       <div class="viz-unit">가로 시장 중앙값(억) · 세로 현실화율(%) · 2024~25 관측</div>
+      </div>
       <div id="r-scatter"></div>
     </div>
     <div class="plate">
+      <div class="viz-head">
       <div class="viz-title">시군구별 현실화율 — 2024~25 표본 중앙값</div>
       <div class="viz-unit">%</div>
+      </div>
       <div id="r-rank"></div>
       <p class="note">시군구당 표본 3단지 내외 — 지역 대표치가 아니라 <b>거래 상위 단지의
       경향</b>으로 읽어야 한다.</p>
@@ -223,9 +271,11 @@
   담보·과세의 장부는 시장을 덜 반영한 지역이다. 세입자의 리스크와 행정의 착시가
   같은 곳에서 겹친다면, 그곳이 신탁·심사의 눈이 먼저 가야 할 자리다.</p>
   <div class="plate">
+    <div class="viz-head">
     <div class="viz-title">이중 시차 사분면 — 시군구</div>
     <div class="viz-q">두 각도가 함께 벌어진 곳은 어디인가</div>
     <div class="viz-unit">가로 현실화율(%) · 세로 전세가율(%) · 점선 = 표본 중앙값</div>
+    </div>
     <div id="q-quad"></div>
     <p class="note" id="q-note">전세가율은 최신 분기, 현실화율은 2024~25 표본 중앙값.
     시군구 수가 적어 사분면은 <b>탐색적 지도</b>다 — 개별 지역 판정은 원자료 확인이 먼저다.</p>
@@ -251,18 +301,20 @@
       <div id="path-svg"></div>
       <aside id="path-detail" class="path-detail"><p class="pd-empty">화살표 위 <b>시차 라벨</b>을 누르면 두 변수 관계의 상세 — 시차·상관·국면·방향 일치율 — 가 여기 표시된다.</p></aside>
     </div>
-    <p class="note">시차는 6개월 내 국소 피크 우선(없으면 전역 최적). <b style="color:var(--eye-blue)">청색 실선</b> = 금융·수요 경로,
-    <b style="color:var(--eye-red)">적색 점선</b> = 공급 피드백 경로, <b style="color:var(--ink-2)">회색 실선</b> = 동행(펄스 없음),
-    <b style="color:var(--ink-3)">회색 점선</b> = 공간 범위 불일치(표본↔총량 — 탐색적, 펄스 없음) — 선·화살촉·펄스가 모두 계열 색을 따른다.
+    <p class="note">시차는 6개월 내 국소 피크 우선(없으면 전역 최적). <b style="color:var(--time-main)">청록 실선</b> = 금융·수요 경로,
+    <b style="color:var(--time-supply)">적갈 점선</b> = 공급 피드백 경로, <b style="color:var(--time-neutral)">회색 실선</b> = 동행(펄스 없음),
+    <b style="color:var(--time-neutral)">회색 점선</b> = 공간 범위 불일치(표본↔총량 — 탐색적, 펄스 없음) — 선·화살촉·펄스가 모두 계열 색을 따른다.
     <b>각 화살표의 시차는 두 변수 사이에서 따로 추정한 값이라 경로 전체의
     시차로 합산할 수 없다.</b> 매매가→전세가는 전세가가 서울 표본이라 서울 하위 계열로 관측한다.
     "0M 동행"은 월간 자료에서 선후를 구분할 수 없다는 뜻이며(펄스 없음),
     경로는 가설의 배열이지 인과 증명이 아니다.</p>
   </div>
   <div class="plate" id="lag-heat-plate">
+    <div class="viz-head">
     <div class="viz-title">시차지도 — 선행 × 반응 전수표</div>
     <div class="viz-q">행(선행)이 열(반응)보다 몇 개월 앞서 움직였나 · 셀 클릭 = 실험실에서 열기</div>
     <div class="viz-unit">셀 위 = 최적 시차 · 아래 = 부호 r · 농도 = |r|</div>
+    </div>
     <div id="lag-heat"></div>
     <p class="note">셀 위는 최적 시차, 아래는 <b>부호를 포함한 상관계수</b>(예: −.62)다. <b>점선 테두리 = 전·후반 부호 불안정</b>,
     <b>▲ = 탐색 상한에서 최대(미확정)</b>. 빈칸 = 이 사이트가 재는 관측 쌍이 아니다(경로 가설에 없는 조합). 색이 짙을수록 상관이 강하다(|r|).
@@ -298,7 +350,7 @@
     <div style="display:flex;align-items:center;gap:14px;margin:14px 0 4px">
       <button class="btn-sm" id="lab-play" aria-label="시차 자동 스윕">▶</button>
       <span class="num" style="font-size:12px;color:var(--ink-3)">0</span>
-      <input id="lab-k" type="range" min="0" max="24" value="0" step="1" style="flex:1;accent-color:var(--eye-blue)" aria-label="시차 개월">
+      <input id="lab-k" type="range" min="0" max="24" value="0" step="1" style="flex:1;accent-color:var(--time-main)" aria-label="시차 개월">
       <span class="num" style="font-size:12px;color:var(--ink-3)">+24개월</span>
     </div>
     <div id="lab-wave"></div>
@@ -306,8 +358,10 @@
   </div>
   <div class="grid2">
     <div class="plate">
+      <div class="viz-head">
       <div class="viz-title">시차별 상관 곡선</div>
       <div class="viz-unit">가로 시차(개월) · 세로 r</div>
+      </div>
       <div id="lab-curve"></div>
     </div>
     <div class="plate">
@@ -355,10 +409,10 @@
   <p class="lede">모든 수치는 공공 API에서 수집해 로컬에서 계산했고, 이 페이지는 외부 요청
   없는 단일 파일이다. 아래 접힘에 원천·표본 설계·지표 정의·한계를 전부 남긴다.</p>
   <details class="method"><summary>원천과 수집 — 3개 API · <span id="m-src-n">—</span></summary>
-    <div class="body"><table class="sheet">
+    <div class="body"><div class="table-scroll"><table class="sheet">
       <thead><tr><th>원천</th><th>내용</th><th>범위</th><th class="num">규모</th></tr></thead>
       <tbody id="m-src-rows"></tbody>
-    </table></div></details>
+    </table></div></div></details>
   <details class="method"><summary>표본 설계 — 왜 전수가 아닌가</summary>
     <div class="body"><p>매매·전세는 수지(收支) 연구와 동일한 시군구 집합(시도별 대표
     시군구, 매매 원거래와 같은 파일 범위)에서 수집한다 — 전세가율의 분자·분모가 같은
@@ -403,6 +457,13 @@
     <span id="m-skip">—</span>건)은 수집 로그에 사유와 함께 남겼다.</p></div></details>
 </section>
 </main>
+
+<div class="wrap"><div class="sister">
+  <span class="t">자매 연구</span>
+  <span class="n">수지(收支) — 개별 사업의 손익 · 순환(循環) — 시장의 생애주기</span>
+  <a class="btn" href="https://yoonjae.pages.dev" target="_blank" rel="noopener">수지 열기 →</a>
+  <a class="btn" href="https://sunhwan.pages.dev" target="_blank" rel="noopener" style="margin-left:0">순환 열기 →</a>
+</div></div>
 
 <footer>
   <div class="wrap" style="text-align:left;padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--hairline)">

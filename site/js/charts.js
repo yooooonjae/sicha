@@ -479,9 +479,9 @@
             `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>자료 없음`);
           return;
         }
-        // 발산형 파랑↔주황: 음수 = 파랑(강도 비례), 양수 = 주황 램프 (한국 관행: 하락=파랑)
+        // 발산형: 음수 = 단색(강도 비례 불투명도), 양수 = --seq 램프. 음수색은 opts.negColor로 지정(기본 --s2)
         let fill, op;
-        if (v < 0) { fill = css("--s2"); op = 0.22 + 0.68 * (Math.abs(v) / maxAbs); }
+        if (v < 0) { fill = css(opts.negColor || "--s2"); op = 0.22 + 0.68 * (Math.abs(v) / maxAbs); }
         else { fill = css(seq[Math.min(6, Math.floor((v / maxAbs) * 6.99))]); op = 1; }
         const rect = el("rect", {
           x: M.l + c * cw + 1, y: M.t + r * cellH + 1,

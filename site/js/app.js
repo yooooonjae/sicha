@@ -182,14 +182,14 @@
         if (sg) tenantRows += `<tr class="ref-row"><td colspan="3">지역 참고값 — 이 시군구 최신 전세가율 <span class="ref-badge">참고</span></td>
           <td class="num">${sg.ratio}% <span style="color:var(--ink-3)">(${sg.q} 시군구)</span></td></tr>`;
       }
-      $("c1-table").innerHTML = `<table class="sheet"><thead><tr>
+      $("c1-table").innerHTML = `<div class="table-scroll"><table class="sheet"><thead><tr>
         <th>연도</th><th class="num">시장의 눈 — 매매 중앙값</th><th class="num">행정의 눈 — 공시가격</th>
         <th class="num">현실화율</th></tr></thead><tbody>` +
         best.map(c => `<tr><td class="num">${c.year}</td>
           <td class="num">${c.market_eok.toFixed(1)}<span class="u">억</span></td>
           <td class="num" style="color:var(--eye-red)">${c.gongsi_eok.toFixed(1)}<span class="u">억</span></td>
           <td class="num"><b>${c.ratio}%</b></td></tr>`).join("") +
-        tenantRows + `</tbody></table>`;
+        tenantRows + `</tbody></table></div>`;
     }
 
     /* Ⅱ 전세가율 */
@@ -289,7 +289,7 @@
       ];
       const SUPPLY_EDGE = new Set(["매매가|미분양", "미분양|착공", "착공|준공", "준공|준공후미분양"]);
       const SUPPLY_NODE = new Set(["미분양", "착공", "준공", "준공후미분양"]);
-      const rCol = v => v < 0 ? "var(--eye-red)" : "var(--eye-blue)";
+      const rCol = v => v < 0 ? "var(--time-supply)" : "var(--time-main)";
       // 관계 상세(우측 패널·모바일 인라인 공유) — grid 항목을 판독표로
       const detailHTML = (x, y) => {
         const g = gridResolve(x, y);
@@ -309,7 +309,7 @@
             ${row("인상기", rg(g.regime_up))}
             ${row("인하기", rg(g.regime_down))}
             ${g.lag_near != null ? row("6M내 피크", "+" + g.lag_near + "M (" + g.r_near + ")") : ""}
-            ${g.at_bound ? `<div><dt>주의</dt><dd style="color:var(--eye-red)">상한(${g.max_lag}M)에서 최대 — 미확정</dd></div>` : ""}
+            ${g.at_bound ? `<div><dt>주의</dt><dd style="color:var(--time-supply)">상한(${g.max_lag}M)에서 최대 — 미확정</dd></div>` : ""}
           </dl>
           <button class="btn-sm pd-open" data-x="${g.x}" data-y="${g.y}">실험실에서 열기 →</button>`;
       };
@@ -388,9 +388,9 @@
           const mismatch = !!(g0 && g0.scope_mismatch);  // 공간 범위 불일치 = 탐색적(경로는 유지)
           const supply = SUPPLY_EDGE.has(a + "|" + b);
           const zero = lag === 0;
-          // 색 의미화: 공간 범위 불일치 = 회색 점선(탐색적, 우선) · 금융·수요 = 청 실선 ·
-          //           공급 피드백 = 적갈 점선 · 동행(0M) = 회색 실선(펄스 없음)
-          const col = mismatch ? "var(--ink-3)" : zero ? "var(--axis)" : supply ? "var(--eye-red)" : "var(--eye-blue)";
+          // 색 의미화(時差 팔레트): 공간 범위 불일치 = 회 점선(탐색적, 우선) · 금융·수요 = 청록 실선 ·
+          //           공급 피드백 = 적갈 점선 · 동행(0M) = 회 실선(펄스 없음)
+          const col = mismatch ? "var(--time-neutral)" : zero ? "var(--time-neutral)" : supply ? "var(--time-supply)" : "var(--time-main)";
           const mk = mismatch || zero ? "arrow-mute" : supply ? "arrow-supply" : "arrow-demand";
           const dashed = mismatch || supply;
           let d;
@@ -399,14 +399,14 @@
           svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="${col}" stroke-width="1.8" opacity="${mismatch ? .5 : zero ? .55 : .8}"${dashed ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#${mk})"/>`;
           if (lag && !mismatch) {  // 동행(0M)·불일치(탐색적)는 확정 펄스를 그리지 않는다
             const dur = Math.max(1.4, lag * 0.55);
-            svg += `<circle r="4.5" fill="${supply ? "var(--eye-red)" : "var(--eye-blue)"}" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
+            svg += `<circle r="4.5" fill="${supply ? "var(--time-supply)" : "var(--time-main)"}" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
           }
           if (lag != null) {
             const mx = (x1 + x2) / 2, my = y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2;
             const txt = zero ? "0M 동행" : "+" + lag + "M";
             const w3 = zero ? 80 : 62;
-            const pillBg = mismatch || zero ? "var(--surface-2)" : supply ? "var(--wash-red)" : "var(--wash-blue)";
-            const pillFg = mismatch ? "var(--ink-3)" : zero ? "var(--ink-2)" : supply ? "var(--eye-red-deep)" : "var(--eye-blue-deep)";
+            const pillBg = mismatch || zero ? "var(--surface-2)" : supply ? "var(--time-supply-wash)" : "var(--time-main-wash)";
+            const pillFg = mismatch ? "var(--time-neutral)" : zero ? "var(--ink-2)" : supply ? "var(--time-supply-deep)" : "var(--time-main-deep)";
             svg += `<g class="path-lag${mismatch ? " mismatch" : ""}" data-x="${a}" data-y="${b}" style="cursor:pointer">
               <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="23" rx="11.5" fill="${pillBg}"${mismatch ? ' stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 2"' : ""}/>
               <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="14" font-weight="700" fill="${pillFg}" font-family="${zero ? "var(--font-body)" : "var(--font-num)"}">${txt}</text>
@@ -415,12 +415,12 @@
         });
         for (const [nm2, [x, y]] of Object.entries(NODES)) {
           const supply = SUPPLY_NODE.has(nm2);
-          svg += `<circle cx="${x}" cy="${y}" r="${R0 - 6}" fill="var(--surface)" stroke="${supply ? "var(--eye-red)" : "var(--eye-blue)"}" stroke-width="2"/>
+          svg += `<circle cx="${x}" cy="${y}" r="${R0 - 6}" fill="var(--surface)" stroke="${supply ? "var(--time-supply)" : "var(--time-main)"}" stroke-width="2"/>
             <text x="${x}" y="${y + 4.5}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${nm2}</text>`;
         }
-        // 화살촉을 계열 색으로 분리: 수요=청 · 공급=적갈 · 동행=회색
+        // 화살촉을 계열 색으로 분리(時差 팔레트): 수요=청록 · 공급=적갈 · 동행=회
         const arrowM = (id, fill) => `<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${fill}"/></marker>`;
-        svg += `<defs>${arrowM("arrow-demand", "var(--eye-blue)")}${arrowM("arrow-supply", "var(--eye-red)")}${arrowM("arrow-mute", "var(--axis)")}</defs></svg>`;
+        svg += `<defs>${arrowM("arrow-demand", "var(--time-main)")}${arrowM("arrow-supply", "var(--time-supply)")}${arrowM("arrow-mute", "var(--time-neutral)")}</defs></svg>`;
         pp.innerHTML = svg;
         if (playBtn && !playBtn.dataset.bound) {
           playBtn.dataset.bound = "1";
@@ -457,7 +457,7 @@
         const rFmt = r => (r < 0 ? "−" : "+") + Math.abs(r).toFixed(2).replace(/^0\./, "."); // 부호 포함 r(−.62)
         const cellsH = rowsH.map(x => colsH.map(y => { const r = rAt(x, y); return r == null ? NaN : Math.abs(r); }));
         Charts.heatmap($("lag-heat"), { xs: colsH, ys: rowsH, cells: cellsH }, {
-          width: MOB ? 720 : 1120, cellH: MOB ? 42 : 46, labelW: 96,
+          width: MOB ? 720 : 1120, cellH: MOB ? 42 : 46, labelW: 96, negColor: "--time-supply",
           cellText: true, xName: "반응", yName: "선행", vLabel: "|r|",
           cellFmt: (v, r, c) => { const lg = lagAt(rowsH[r], colsH[c]); return lg == null ? "" : lg === 0 ? "0M" : "+" + lg + "M"; },
           cellSub: (v, r, c) => { const rr = rAt(rowsH[r], colsH[c]); return rr == null ? "" : rFmt(rr); }, // 아래줄 = 표시 시차의 부호 r
@@ -471,12 +471,12 @@
       const grade = g => {
         let res = g.n < 25 ? ["짧은 표본", "var(--ink-3)"]
           : g.n < 60 ? (g.stable ? ["B−(중간)", "var(--ink-2)"] : ["C(중간)", "var(--ink-3)"])
-          : (g.stable && Math.abs(g.r) >= 0.4) ? ["A", "var(--eye-blue)"]
-          : g.stable ? ["B", "var(--eye-blue)"] : ["C", "var(--ink-3)"];
-        if (g.scope_mismatch && res[0] === "A") res = ["B", "var(--eye-blue)"]; // 공간 범위 불일치 = A 금지
+          : (g.stable && Math.abs(g.r) >= 0.4) ? ["A", "var(--time-main)"]
+          : g.stable ? ["B", "var(--time-main)"] : ["C", "var(--ink-3)"];
+        if (g.scope_mismatch && res[0] === "A") res = ["B", "var(--time-main)"]; // 공간 범위 불일치 = A 금지
         return res;
       };
-      const rC = v => v < 0 ? "var(--eye-red)" : "var(--eye-blue)";
+      const rC = v => v < 0 ? "var(--time-supply)" : "var(--time-main)";
       const agreeShow = g => g.agree == null ? null
         : (g.r < 0 ? 100 - g.agree : g.agree);
       const spark = (ws, maxLag) => {
@@ -488,8 +488,8 @@
         const pl = ws.map((w, i) => `${x2(i).toFixed(1)},${y2(w.lag).toFixed(1)}`).join(" ");
         return `<svg viewBox="0 0 ${W2} ${H2}" style="width:${W2}px;height:${H2}px;vertical-align:middle">
           <line x1="6" x2="${W2-6}" y1="${y2(0)}" y2="${y2(0)}" stroke="var(--hairline)" stroke-width="1"/>
-          <polyline points="${pl}" fill="none" stroke="var(--eye-blue)" stroke-width="1.6"/>
-          ${ws.map((w, i) => `<circle cx="${x2(i).toFixed(1)}" cy="${y2(w.lag).toFixed(1)}" r="2" fill="var(--eye-blue)"/>`).join("")}
+          <polyline points="${pl}" fill="none" stroke="var(--time-main)" stroke-width="1.6"/>
+          ${ws.map((w, i) => `<circle cx="${x2(i).toFixed(1)}" cy="${y2(w.lag).toFixed(1)}" r="2" fill="var(--time-main)"/>`).join("")}
         </svg>`;
       };
       const GROUPS = [
@@ -517,7 +517,7 @@
         const per = g.period ? `${fmtYm(g.period[0])}–${fmtYm(g.period[1])}` : "—";
         const tv = g.x_transform === g.y_transform ? g.x_transform : `${g.x_transform}→${g.y_transform}`;
         const scopeTxt = g.scope_mismatch ? `${g.x_scope} → ${g.y_scope}` : (g.x_scope || "—");
-        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0;border-left:3px solid ${css(g.scope_mismatch ? "--eye-red" : gi >= 0 && gi < GRP_TONE.length ? GRP_TONE[gi] : "--rule")}">
+        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0;border-left:3px solid ${css(g.scope_mismatch ? "--time-supply" : gi >= 0 && gi < GRP_TONE.length ? GRP_TONE[gi] : "--rule")}">
           <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
             <div class="viz-title">${g.x} → ${g.y}</div>
             ${g.scope_mismatch ? '<span class="scope-badge">공간 범위 불일치</span>' : ""}
@@ -531,7 +531,7 @@
           </div>
           <div style="font-size:20px;margin:6px 0 2px"><b class="num">+${g.lag}</b>개월
             <span class="num" style="color:${rC(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span>
-            <span style="font-size:12.5px;color:var(--ink-3)"> n=<span class="num">${g.n}</span>${g.lag_near != null ? ` · 6M내 피크 <span class="num">+${g.lag_near}M(${g.r_near})</span>` : ""}${g.at_bound ? ` · <b style="color:var(--eye-red)">탐색 상한(<span class="num">${g.max_lag}M</span>)에서 최대 — 미확정</b>` : ""}</span></div>
+            <span style="font-size:12.5px;color:var(--ink-3)"> n=<span class="num">${g.n}</span>${g.lag_near != null ? ` · 6M내 피크 <span class="num">+${g.lag_near}M(${g.r_near})</span>` : ""}${g.at_bound ? ` · <b style="color:var(--time-supply)">탐색 상한(<span class="num">${g.max_lag}M</span>)에서 최대 — 미확정</b>` : ""}</span></div>
           <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">
             ${ag != null ? `방향 일치 <b class="num">${ag}%</b>${g.r < 0 ? " (역방향 기준)" : ""}` : "방향 일치 표본 부족"}
             &nbsp;·&nbsp; ${rg("인상기", g.regime_up)} &nbsp;·&nbsp; ${rg("인하기", g.regime_down)}</div>
@@ -580,10 +580,10 @@
           <line x1="8" x2="${W2-8}" y1="${y2(0)}" y2="${y2(0)}" stroke="var(--hairline)" stroke-width="1"/>
           <line x1="${x2(0)}" x2="${x2(0)}" y1="4" y2="${H2-4}" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="3 3"/>
           ${[1,-1].map(v => `<line x1="8" x2="${W2-8}" y1="${y2(v)}" y2="${y2(v)}" stroke="var(--hairline-2)" stroke-width="1"/>`).join("")}
-          <path d="${d}" fill="none" stroke="var(--eye-blue)" stroke-width="1.8"/>
+          <path d="${d}" fill="none" stroke="var(--time-main)" stroke-width="1.8"/>
           ${(() => { const z0 = zp.find(p => p.k === 0 && p.z != null); return z0 ? `<circle cx="${x2(0)}" cy="${y2(z0.z)}" r="3" fill="var(--ink)" stroke="var(--surface)" stroke-width="1" pointer-events="none"/>` : ""; })()}
           ${zp.filter(p => p.z != null).map(p => `<circle class="ev-hit" cx="${x2(p.k)}" cy="${y2(p.z)}" r="4.5" fill="transparent" style="cursor:crosshair"><title>T${p.k >= 0 ? "+" : ""}${p.k}M · z=${p.z > 0 ? "+" : ""}${p.z}</title></circle>`).join("")}
-          ${peakK != null ? `<circle cx="${x2(peakK)}" cy="${y2(zp.find(p=>p.k===peakK).z)}" r="3.6" fill="var(--eye-red)" stroke="var(--surface)" stroke-width="1" pointer-events="none"/>` : ""}
+          ${peakK != null ? `<circle cx="${x2(peakK)}" cy="${y2(zp.find(p=>p.k===peakK).z)}" r="3.6" fill="var(--time-supply)" stroke="var(--surface)" stroke-width="1" pointer-events="none"/>` : ""}
         </svg>`;
       };
       const evCard = ev => `
@@ -594,14 +594,14 @@
             <span style="margin-left:auto;font-size:12.5px;color:var(--ink-2)">발표 <span class="num">${ev.announce}</span> · 시행 <span class="num">${ev.effective}</span></span>
           </div>
           <div class="viz-q" style="margin-bottom:10px">${ev.note}</div>
-          ${ev.rows.length ? `<table class="sheet"><thead><tr><th>지표</th><th>T−12 ~ T+12 이탈 경로(z)</th>
+          ${ev.rows.length ? `<div class="table-scroll"><table class="sheet"><thead><tr><th>지표</th><th>T−12 ~ T+12 이탈 경로(z)</th>
             <th class="num">첫 반응</th><th class="num">최대 반응</th></tr></thead><tbody>` +
             ev.rows.map(r => `<tr><td><b>${r.ind}</b></td>
               <td>${zSpark(r.z, r.first, r.peak_k)}</td>
               <td class="num">${r.first != null ? "+" + r.first + "M" : "없음"}</td>
-              <td class="num">+${r.peak_k}M <span style="color:${r.peak_z < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">z=${r.peak_z > 0 ? "+" : ""}${r.peak_z}</span></td></tr>`).join("") +
-            "</tbody></table>" : '<p class="note">이 사건 시점을 덮는 관측 지표가 없다(표본 기간 밖).</p>'}
-          <p class="note"><span class="ev-read num" style="color:var(--eye-blue-deep)"></span>동시 사건: ${ev.concurrent}. 점선 = 사건월(T=0), 가는 선 = ±1z.
+              <td class="num">+${r.peak_k}M <span style="color:${r.peak_z < 0 ? "var(--time-supply)" : "var(--time-main)"}">z=${r.peak_z > 0 ? "+" : ""}${r.peak_z}</span></td></tr>`).join("") +
+            "</tbody></table></div>" : '<p class="note">이 사건 시점을 덮는 관측 지표가 없다(표본 기간 밖).</p>'}
+          <p class="note"><span class="ev-read num" style="color:var(--time-main-deep)"></span>동시 사건: ${ev.concurrent}. 점선 = 사건월(T=0), 가는 선 = ±1z.
           거래량·매매가는 2023-08 이후 표본이라 그 이전 사건에는 나타나지 않는다.</p>
         </div>`;
       const tabs = B.events.map((ev, i) =>
@@ -636,22 +636,22 @@
             `<button class="btn-sm sp-tab${i === 0 ? " on" : ""}" data-vn="${vn}">${vn}</button>`).join("")}</div>
           <div class="viz-title" id="sp-title"></div>
           <div class="viz-q">서울과 각 시도의 양방향 최적 시차 —
-            <b style="color:var(--eye-blue)">■ 청</b> 서울이 먼저 ·
-            <b style="color:var(--eye-red)">■ 적</b> 그 지역이 먼저 ·
-            <b style="color:var(--ink-3)">■ 회</b> 동행 · <b style="color:var(--ink-3)">□ 옅음</b> 독립·자료없음</div>
+            <b style="color:var(--time-main)">■ 청록</b> 서울이 먼저 ·
+            <b style="color:var(--time-supply)">■ 적갈</b> 그 지역이 먼저 ·
+            <b style="color:var(--time-neutral)">■ 회</b> 동행 · <b style="color:var(--ink-3)">□ 옅음</b> 독립·자료없음</div>
           <div id="sp-read" class="sp-read"></div>
           <div class="spread-split">
             <div id="sp-map"></div>
             <div><div class="viz-unit" style="margin:0 0 4px">개월 · 양방향 최적 시차(발산 바)</div><div id="sp-panel"></div></div>
           </div>
           <p class="note" id="sp-note"></p></div>`;
-        const seqBlue = ["--seq-300", "--seq-400", "--seq-500", "--seq-600", "--seq-700"];
+        const seqTeal = ["--seq-300", "--seq-400", "--seq-500", "--seq-600", "--seq-700"]; // 청록 램프(--seq) — 서울 선행 농도
         const fillFor = rec => {
           if (!rec || rec.verdict === "독립") return { f: css("--surface-2"), s: css("--hairline-2"), w: 1 };
-          if (rec.verdict === "동행") return { f: css("--seq-200"), s: css("--hairline"), w: 1 };
-          if (rec.verdict === "서울 선행") return { f: css(seqBlue[Math.min(4, Math.floor(Math.abs(rec.k) / 3))]), s: css("--hairline"), w: 1 };
-          const pct = 30 + Math.min(58, Math.abs(rec.k) * 6); // 지역 선행 — 적색 농도
-          return { f: `color-mix(in srgb, ${css("--eye-red")} ${pct}%, ${css("--surface")})`, s: css("--hairline"), w: 1 };
+          if (rec.verdict === "동행") return { f: css("--time-neutral-wash"), s: css("--hairline"), w: 1 };
+          if (rec.verdict === "서울 선행") return { f: css(seqTeal[Math.min(4, Math.floor(Math.abs(rec.k) / 3))]), s: css("--hairline"), w: 1 };
+          const pct = 30 + Math.min(58, Math.abs(rec.k) * 6); // 지역 선행 — 적갈 농도
+          return { f: `color-mix(in srgb, ${css("--time-supply")} ${pct}%, ${css("--surface")})`, s: css("--hairline"), w: 1 };
         };
         const strokeOf = (name, byRegion) => name === "서울" ? css("--ink")
           : (byRegion[name] && byRegion[name].verdict === "독립") || !byRegion[name] ? css("--hairline-2") : css("--hairline");
@@ -669,7 +669,7 @@
           let msvg = `<svg viewBox="0 0 520 690" role="img" aria-label="${vn} 지역확산 지도" style="width:100%;height:auto;display:block">`;
           KOREA.forEach(sd => {
             const isSeoul = sd.name === "서울";
-            const st = isSeoul ? { f: css("--wash-blue"), s: css("--ink"), w: 2.2 } : fillFor(byRegion[sd.name]);
+            const st = isSeoul ? { f: css("--time-main-wash"), s: css("--ink"), w: 2.2 } : fillFor(byRegion[sd.name]);
             msvg += `<path class="kmap-region" data-region="${sd.name}" d="${sd.d}" fill="${st.f}" stroke="${st.s}" stroke-width="${st.w}"/>`;
           });
           msvg += `</svg>`;
@@ -701,7 +701,7 @@
           });
           // 발산 바(우)
           divergeBars($("sp-panel"), bars.map(r2 => ({ name: r2.region, value: r2.k })),
-            { width: MOB ? 560 : 720, posColor: "--s1", negColor: "--s2", zeroLabel: "동시",
+            { width: MOB ? 560 : 720, posColor: "--time-main", negColor: "--time-supply", zeroLabel: "동시",
               fmt: v => (v > 0 ? "+" : "") + v + "M", aria: vn + " 지역확산 시차" });
         };
         drawSp(vars[0][0]);
@@ -812,15 +812,15 @@
       const yv = labels.map(t => ym_.has(shift(t, k)) ? ym_.get(shift(t, k)) : NaN);
       const zx = zfn(xv), zy = zfn(yv);
       Charts.line($("lab-wave"), [
-        { name: nx + "·z", color: "--s1",
+        { name: nx + "·z", color: "--time-main",
           points: labels.map((t, i) => ({ label: mk(t), y: zx(xv[i]) })) },
-        { name: ny + (k ? ` +${k}M` : "") + "·z", color: "--s2",
+        { name: ny + (k ? ` +${k}M` : "") + "·z", color: "--time-supply",
           points: labels.map((t, i) => ({ label: mk(t), y: zy(yv[i]) })) },
       ], { width: MOB ? 560 : 1160, height: MOB ? 340 : 320, rightPad: MOB ? 96 : 116, interactive: false, aria: "두 변수의 파형 정렬(표준화)" });
       const cur = corrAt(xm, ym_, k);
       $("lab-read").innerHTML = cur.r == null
         ? `시차 <span class="num">+${k}</span>개월 · 겹침 <span class="num">${cur.n}</span>개월 — 표본 부족`
-        : `시차 <b class="num">+${k}</b>개월 · r = <b class="num" style="color:${cur.r < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">${cur.r > 0 ? "+" : ""}${cur.r.toFixed(2)}</b> · 겹침 <span class="num">${cur.n}</span>개월`;
+        : `시차 <b class="num">+${k}</b>개월 · r = <b class="num" style="color:${cur.r < 0 ? "var(--time-supply)" : "var(--time-main)"}">${cur.r > 0 ? "+" : ""}${cur.r.toFixed(2)}</b> · 겹침 <span class="num">${cur.n}</span>개월`;
       // 시차별 곡선
       const pts = [];
       for (let kk = 0; kk <= (L.max_lag || 24); kk++) {
@@ -828,7 +828,7 @@
         if (c.r != null) pts.push({ x: kk, y: c.r, label: "+" + kk + "M", group: kk === k ? "현재" : "곡선" });
       }
       Charts.scatter($("lab-curve"), pts, { width: MOB ? 420 : 560, height: MOB ? 340 : 300, yRef: 0,
-        groups: { "현재": "--s2", "곡선": "--ink-3" },
+        groups: { "현재": "--time-main", "곡선": "--ink-3" },
         xName: "시차(개월)", yName: "r",
         xFmt: v => "+" + Math.round(v), yFmt: v => v.toFixed(1),
         aria: "시차별 상관 곡선" });
