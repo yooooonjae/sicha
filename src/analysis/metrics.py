@@ -28,8 +28,17 @@ def band_match(ar, target, tol=0.10):
 
 
 def jeonse_only(rows):
-    """전세 = 월세 0인 계약만."""
-    return [r for r in rows if r.get("rent", 0) == 0]
+    """전세 표본 = 월세 0 · 보증금·전용면적 유효인 계약만.
+
+    rent 결측(None)·월세>0·보증금 0·면적 0/결측은 제외한다 — 뒤의 deposit/ar 나눗셈이
+    항상 유효하도록, 그리고 rental_breakdown의 n_jeonse와 정확히 일치하도록 엄격화한다.
+    """
+    out = []
+    for r in rows:
+        rent = r.get("rent")
+        if rent is not None and rent == 0 and r.get("deposit") and r.get("ar"):
+            out.append(r)
+    return out
 
 
 def ratio_of_medians(rents, sales):
@@ -89,6 +98,33 @@ def q_of(ym):
     return f"{ym[:4]}Q{(int(ym[4:6]) - 1) // 3 + 1}"
 
 
+def shift_quarter(q, d):
+    """'YYYYQn'에서 d분기 이동(d<0 = 과거). 결측 분기 왜곡을 막는 정확한 분기 키 계산."""
+    y, qn = int(q[:4]), int(q.split("Q")[1])
+    idx = y * 4 + (qn - 1) + d
+    return f"{idx // 4}Q{idx % 4 + 1}"
+
+
+def rental_breakdown(rents):
+    """전월세 표본 분해 — 전체·전세·월세·무효(rent 결측/면적0/전세인데 보증금0)."""
+    n_all = n_j = n_m = n_inv = 0
+    for months in rents.values():
+        for rows in months.values():
+            for r in rows:
+                n_all += 1
+                rent = r.get("rent")
+                if rent is None or not r.get("ar"):
+                    n_inv += 1
+                elif rent == 0:
+                    if r.get("deposit"):
+                        n_j += 1
+                    else:
+                        n_inv += 1
+                else:
+                    n_m += 1
+    return {"n_rental_all": n_all, "n_jeonse": n_j, "n_monthly": n_m, "n_invalid": n_inv}
+
+
 # ── 전세가율·역전세 (rent.json 있을 때) ────────────────────────────
 
 def jeonse_metrics(rents, sales):
@@ -127,18 +163,21 @@ def jeonse_metrics(rents, sales):
                                "basis": basis, "n": n})
         if series:
             by_sgg[sgg] = series
-            qs = [s["q"] for s in series]
-            if len(qs) >= 9:
-                now, back = series[-1], series[-9]
-                # 같은 basis의 전세 ㎡ 중앙값 비교가 정확하지만 1차는 비율 시계열의 원값으로
-                now_med = median([r["deposit"] / r["ar"] for r in jeonse_only(
-                    sum((months[m] for m in months if q_of(m) == now["q"]), [])) if r["ar"]])
-                back_med = median([r["deposit"] / r["ar"] for r in jeonse_only(
-                    sum((months[m] for m in months if q_of(m) == back["q"]), [])) if r["ar"]])
-                chg = reverse_change(now_med, back_med)
-                if chg is not None:
-                    reverse[sgg] = {"now_q": now["q"], "back_q": back["q"],
-                                    "chg_pct": round(chg, 1)}
+            # 정확히 8분기 전 분기 키로 비교 — series[-9] 인덱스 비교는 분기 결측 시 왜곡된다.
+            # 8분기 전 분기가 실재할 때만 비교하고, 없으면 '비교 불가'로 reverse에서 제외한다.
+            present = {s["q"] for s in series}
+            now_q = series[-1]["q"]
+            back_q = shift_quarter(now_q, -8)
+            if back_q in present:
+                nj = [r["deposit"] / r["ar"] for r in jeonse_only(
+                    sum((months[m] for m in months if q_of(m) == now_q), []))]
+                bj = [r["deposit"] / r["ar"] for r in jeonse_only(
+                    sum((months[m] for m in months if q_of(m) == back_q), []))]
+                if nj and bj:
+                    chg = reverse_change(median(nj), median(bj))
+                    if chg is not None:
+                        reverse[sgg] = {"now_q": now_q, "back_q": back_q,
+                                        "chg_pct": round(chg, 1)}
     return by_sgg, reverse
 
 
@@ -203,11 +242,13 @@ def main():
     rp = ROOT / "data" / "rent.json"
     if rp.exists() and json.load(open(rp)).get("rents"):
         rents = json.load(open(rp))["rents"]
-        n_rent = sum(len(v) for s in rents.values() for v in s.values())
+        bd = rental_breakdown(rents)
         by_sgg, reverse = jeonse_metrics(rents, sales)
         bundle["jeonse"] = {"by_sgg": by_sgg, "reverse": reverse}
-        bundle["meta"]["n_rent"] = n_rent
-        print(f"전세가율: {len(by_sgg)}시군구 · 역전세 {len(reverse)}시군구 · 전월세 {n_rent:,}행")
+        bundle["meta"]["n_rent"] = bd["n_rental_all"]  # 하위호환 — 전월세 전체 행 수
+        bundle["meta"].update(bd)                      # 전세/월세/무효 분리 저장
+        print(f"전세가율: {len(by_sgg)}시군구 · 역전세 {len(reverse)}시군구 · "
+              f"전월세 {bd['n_rental_all']:,}행(전세 {bd['n_jeonse']:,}·월세 {bd['n_monthly']:,}·무효 {bd['n_invalid']:,})")
         # 사분면: 최신 분기 전세가율 × 시군구 현실화율
         if "real" in bundle:
             quad = []

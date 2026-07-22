@@ -487,11 +487,29 @@
           x: M.l + c * cw + 1, y: M.t + r * cellH + 1,
           width: cw - 2, height: cellH - 2, fill, rx: 5, opacity: op,
         }, svg);
+        const strong = Math.abs(v) / maxAbs > 0.5; // 진한 배경에만 흰 글자 (연한 셀은 먹색 — 대비 확보)
+        const tcol = strong ? "#fff" : css("--ink-2");
+        // 불안정 셀 = 점선 테두리 (관계가 시기 의존적임을 셀에서 바로 표시)
+        if (opts.cellDashed && opts.cellDashed(r, c)) {
+          rect.setAttribute("stroke", strong ? "rgba(255,255,255,.72)" : css("--ink-3"));
+          rect.setAttribute("stroke-width", "1.2");
+          rect.setAttribute("stroke-dasharray", "3 2");
+        }
         if (opts.cellText) {
-          const strong = Math.abs(v) / maxAbs > 0.5; // 진한 배경에만 흰 글자 (연한 셀은 먹색 — 대비 확보)
-          el("text", { x: M.l + c * cw + cw / 2, y: M.t + r * cellH + cellH / 2 + 4, "text-anchor": "middle",
+          const cxc = M.l + c * cw + cw / 2, cyc = M.t + r * cellH + cellH / 2;
+          const sub = opts.cellSub ? opts.cellSub(v, r, c) : null; // 2줄: 위=시차 · 아래=부호 r
+          el("text", { x: cxc, y: sub ? cyc - 1 : cyc + 4, "text-anchor": "middle",
             "font-size": 11.5, "font-weight": 700, "font-family": "var(--font-num)", "pointer-events": "none",
-            fill: strong ? "#fff" : css("--ink-2") }, svg).textContent = (opts.cellFmt || vFmt)(v, r, c);
+            fill: tcol }, svg).textContent = (opts.cellFmt || vFmt)(v, r, c);
+          if (sub) el("text", { x: cxc, y: cyc + 11.5, "text-anchor": "middle", "font-size": 10,
+            "font-weight": 600, "font-family": "var(--font-num)", "pointer-events": "none",
+            fill: tcol, opacity: .82 }, svg).textContent = sub;
+        }
+        // 탐색 상한 도달 셀 표식 (우상단 ▲ 등) — 최대가 경계에서 잡혀 미확정임을 알린다
+        if (opts.cellMark) {
+          const mk = opts.cellMark(r, c);
+          if (mk) el("text", { x: M.l + c * cw + cw - 4, y: M.t + r * cellH + 11, "text-anchor": "end",
+            "font-size": 9.5, fill: tcol, opacity: .9, "pointer-events": "none" }, svg).textContent = mk;
         }
         if (opts.onCell) { // 셀 클릭 → 콜백(선행·반응 축 값). 결측 셀은 위 return으로 제외됨.
           rect.style.cursor = "pointer";

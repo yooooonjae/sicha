@@ -6,6 +6,7 @@
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const NAMES = (B.meta && B.meta.sgg_names) || {};
   const nm = sgg => NAMES[sgg] || sgg;
+  const fmtYm = ym => ym ? ym.slice(0, 4) + "." + ym.slice(4) : "";
 
   /* 실험실 로드 — 전달경로 라벨·시차지도 셀·모바일 카드가 공유 (선택 후 옵션 스크롤) */
   function loadLab(x, y, scroll) {
@@ -120,7 +121,8 @@
     /* Ⅰ 계보 수치 */
     $("m-scope").textContent = (M.sgg_names ? Object.keys(M.sgg_names).length : "—") + "개 시군구";
     $("lin-sale").textContent = (M.n_sale || 0).toLocaleString() + "건";
-    $("lin-rent").textContent = (M.n_rent || 0).toLocaleString() + "행";
+    $("lin-rent").innerHTML = (M.n_rental_all != null ? M.n_rental_all : (M.n_rent || 0)).toLocaleString()
+      + "행 <span style='color:var(--ink-3)'>· 전세 표본 " + (M.n_jeonse || 0).toLocaleString() + "</span>";
     $("lin-gongsi").textContent = R ? (R.by_complex.length + "관측") : "—";
 
     /* Ⅰ 단지 해부 — 현실화 관측 최다 단지 */
@@ -172,7 +174,7 @@
       if (rr0) $("j-line-note").textContent =
         `표본: ${Object.keys(J.by_sgg).length}개 시군구. 매칭 표본 5건 이상 분기는 단지·면적대 매칭 비율, ` +
         `미만이면 ㎡당 중앙값 비율 폴백 — 두 방식이 섞임을 감안해 추세로 읽어야 한다. ` +
-        `역전세 비교창: ${rr0.back_q} → ${rr0.now_q}.`;
+        `역전세 비교창: 정확히 8분기(${rr0.back_q}→${rr0.now_q}) 전 대비 — 8분기 전 분기가 결측인 시군구는 비교에서 제외.`;
     }
 
     /* Ⅲ 현실화율 */
@@ -225,8 +227,11 @@
     /* Ⅴ 전달경로 — 데스크톱: 네트워크+우측 상세 · 모바일: 세로 타임라인 */
     const LG = B.lag;
     if (LG && LG.grid) {
+      // 전세가는 서울 하위 계열로만 관측되므로, 개념 노드(매매가→전세가)를 서울 쌍으로 해석한다.
+      const gridResolve = (x, y) => LG.grid.find(g2 => g2.x === x && g2.y === y)
+        || LG.grid.find(g2 => g2.x === x + "(서울)" && g2.y === y);
       const findLag = (x, y) => {
-        const g = LG.grid.find(g2 => g2.x === x && g2.y === y);
+        const g = gridResolve(x, y);
         return g ? (g.lag_near != null ? g.lag_near : g.lag) : null;
       };
       const NODES = {
@@ -244,12 +249,16 @@
       const rCol = v => v < 0 ? "var(--eye-red)" : "var(--eye-blue)";
       // 관계 상세(우측 패널·모바일 인라인 공유) — grid 항목을 판독표로
       const detailHTML = (x, y) => {
-        const g = LG.grid.find(g2 => g2.x === x && g2.y === y);
+        const g = gridResolve(x, y);
         if (!g) return `<p class="pd-empty">${x} → ${y} — 시차 표에 없는 관계다.</p>`;
         const agr = g.agree == null ? null : (g.r < 0 ? 100 - g.agree : g.agree);
         const rg = o => o ? `+${o.lag}M · r ${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}` : "표본 부족";
         const row = (t, v) => `<div><dt>${t}</dt><dd class="num">${v}</dd></div>`;
-        return `<div class="pd-head">${x} <span style="color:var(--ink-3)">→</span> ${y}</div>
+        const scopeBox = g.scope_mismatch
+          ? `<div class="pd-scopewarn">공간 범위 불일치 · ${g.x_scope} → ${g.y_scope}</div>`
+          : `<div class="pd-scope">공간 범위 · ${g.x_scope}${g.period ? " · " + fmtYm(g.period[0]) + "–" + fmtYm(g.period[1]) : ""}</div>`;
+        return `<div class="pd-head">${g.x} <span style="color:var(--ink-3)">→</span> ${g.y}</div>
+          ${scopeBox}
           <div class="pd-big num">+${g.lag}<span class="pd-unit">개월</span><span style="color:${rCol(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span></div>
           <dl class="pd-list">
             ${row("표본", "n=" + g.n)}
@@ -259,7 +268,7 @@
             ${g.lag_near != null ? row("6M내 피크", "+" + g.lag_near + "M (" + g.r_near + ")") : ""}
             ${g.at_bound ? `<div><dt>주의</dt><dd style="color:var(--eye-red)">상한(${g.max_lag}M)에서 최대 — 미확정</dd></div>` : ""}
           </dl>
-          <button class="btn-sm pd-open" data-x="${x}" data-y="${y}">실험실에서 열기 →</button>`;
+          <button class="btn-sm pd-open" data-x="${g.x}" data-y="${g.y}">실험실에서 열기 →</button>`;
       };
       const bindOpen = scope => scope.querySelectorAll(".pd-open").forEach(b =>
         b.addEventListener("click", () => loadLab(b.dataset.x, b.dataset.y, true)));
@@ -288,7 +297,7 @@
               const a = nd, b = ch.nodes[i + 1], lag = findLag(a, b);
               const supE = SUPPLY_EDGE.has(a + "|" + b);
               const txt = lag == null ? "—" : lag === 0 ? "0M 동행" : "+" + lag + "M";
-              h += `<div class="pt-edge${supE ? " supply" : ""}" data-edge="${i}">
+              h += `<div class="pt-edge${supE ? " supply" : ""}${lag === 0 ? " zero" : ""}" data-edge="${i}">
                 <span class="pt-arrow">↓</span>
                 <button class="pt-lag${lag === 0 ? " zero" : ""}" data-x="${a}" data-y="${b}">${txt}</button>
                 <span class="pt-dash"></span></div>`;
@@ -331,22 +340,28 @@
           const [x1, y1] = NODES[a], [x2, y2] = NODES[b];
           const lag = findLag(a, b);
           const supply = SUPPLY_EDGE.has(a + "|" + b);
+          const zero = lag === 0;
+          // 색 의미화: 금융·수요 = 청(실선), 공급 피드백 = 적갈(점선), 동행 = 회색(정지)
+          const col = zero ? "var(--axis)" : supply ? "var(--eye-red)" : "var(--eye-blue)";
+          const mk = zero ? "arrow-mute" : supply ? "arrow-supply" : "arrow-demand";
           let d;
           if (y1 === y2) d = `M ${x1 + R0} ${y1} L ${x2 - R0 - 8} ${y2}`;
           else d = `M ${x1 - 14} ${y1 + R0 - 6} L ${x2 + 26} ${y2 - R0 + 2}`;
-          svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="var(--rule)" stroke-width="1.6"${supply ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#pm)"/>`;
+          svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="${col}" stroke-width="1.8" opacity="${zero ? .55 : .8}"${supply ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#${mk})"/>`;
           if (lag) {  // 동행(0M)은 펄스를 그리지 않는다 — 순서를 판정할 수 없으므로
             const dur = Math.max(1.4, lag * 0.55);
-            svg += `<circle r="4.5" fill="var(--ink)" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
+            svg += `<circle r="4.5" fill="${supply ? "var(--eye-red)" : "var(--eye-blue)"}" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
           }
           if (lag != null) {
             const mx = (x1 + x2) / 2, my = y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2;
-            const txt = lag === 0 ? "0M 동행" : "+" + lag + "M";
-            const w3 = lag === 0 ? 80 : 62;
+            const txt = zero ? "0M 동행" : "+" + lag + "M";
+            const w3 = zero ? 80 : 62;
+            const pillBg = zero ? "var(--surface-2)" : supply ? "var(--wash-red)" : "var(--wash-blue)";
+            const pillFg = zero ? "var(--ink-2)" : supply ? "var(--eye-red-deep)" : "var(--eye-blue-deep)";
             svg += `<g class="path-lag" data-x="${a}" data-y="${b}" style="cursor:pointer">
-              <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="23" rx="11.5" fill="var(--wash-blue)"/>
-              <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--eye-blue-deep)" font-family="${lag === 0 ? "var(--font-body)" : "var(--font-num)"}">${txt}</text>
-              <title>${a} → ${b}${lag === 0 ? " — 월간 자료에서는 선후를 구분할 수 없다" : ""} — 우측에 상세</title></g>`;
+              <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="23" rx="11.5" fill="${pillBg}"/>
+              <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="14" font-weight="700" fill="${pillFg}" font-family="${zero ? "var(--font-body)" : "var(--font-num)"}">${txt}</text>
+              <title>${a} → ${b}${zero ? " — 월간 자료에서는 선후를 구분할 수 없다" : ""} — 우측에 상세</title></g>`;
           }
         });
         for (const [nm2, [x, y]] of Object.entries(NODES)) {
@@ -354,7 +369,9 @@
           svg += `<circle cx="${x}" cy="${y}" r="${R0 - 6}" fill="var(--surface)" stroke="${supply ? "var(--eye-red)" : "var(--eye-blue)"}" stroke-width="2"/>
             <text x="${x}" y="${y + 4.5}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${nm2}</text>`;
         }
-        svg += `<defs><marker id="pm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--rule)"/></marker></defs></svg>`;
+        // 화살촉을 계열 색으로 분리: 수요=청 · 공급=적갈 · 동행=회색
+        const arrowM = (id, fill) => `<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${fill}"/></marker>`;
+        svg += `<defs>${arrowM("arrow-demand", "var(--eye-blue)")}${arrowM("arrow-supply", "var(--eye-red)")}${arrowM("arrow-mute", "var(--axis)")}</defs></svg>`;
         pp.innerHTML = svg;
         if (playBtn && !playBtn.dataset.bound) {
           playBtn.dataset.bound = "1";
@@ -380,26 +397,36 @@
     if (L && L.grid && L.grid.length) {
       /* 시차지도 — 선행(행) × 반응(열) 전수표. 셀=최적 시차 · 농도=|r| · 클릭=실험실 */
       if ($("lag-heat")) {
-        const XORD = ["기준금리", "국고10년", "주담대금리", "거래량", "매매가", "미분양", "인허가", "착공", "준공"];
+        const XORD = ["기준금리", "국고10년", "주담대금리", "거래량", "매매가", "거래량(서울)", "매매가(서울)", "미분양", "인허가", "착공", "준공"];
         const YORD = ["주담대금리", "거래량", "매매가", "전세가", "미분양", "착공", "준공", "준공후미분양"];
         const rowsH = XORD.filter(x => L.grid.some(g => g.x === x));
         const colsH = YORD.filter(y => L.grid.some(g => g.y === y));
         const gAt = (x, y) => L.grid.find(g => g.x === x && g.y === y);
+        // 셀은 '6M 국소 피크 우선' 시차를 표시하므로 r·농도도 같은 피크값으로 맞춘다(부호·강도 일치).
         const lagAt = (x, y) => { const g = gAt(x, y); return g ? (g.lag_near != null ? g.lag_near : g.lag) : null; };
-        const cellsH = rowsH.map(x => colsH.map(y => { const g = gAt(x, y); return g ? Math.abs(g.r) : NaN; }));
+        const rAt = (x, y) => { const g = gAt(x, y); return g ? (g.lag_near != null ? g.r_near : g.r) : null; };
+        const rFmt = r => (r < 0 ? "−" : "+") + Math.abs(r).toFixed(2).replace(/^0\./, "."); // 부호 포함 r(−.62)
+        const cellsH = rowsH.map(x => colsH.map(y => { const r = rAt(x, y); return r == null ? NaN : Math.abs(r); }));
         Charts.heatmap($("lag-heat"), { xs: colsH, ys: rowsH, cells: cellsH }, {
-          width: MOB ? 660 : 1120, cellH: MOB ? 32 : 38, labelW: 84,
+          width: MOB ? 720 : 1120, cellH: MOB ? 42 : 46, labelW: 96,
           cellText: true, xName: "반응", yName: "선행", vLabel: "|r|",
           cellFmt: (v, r, c) => { const lg = lagAt(rowsH[r], colsH[c]); return lg == null ? "" : lg === 0 ? "0M" : "+" + lg + "M"; },
-          tipFmt: (v, r, c) => { const g = gAt(rowsH[r], colsH[c]); return g ? `+${lagAt(rowsH[r], colsH[c])}M · r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)} · n=${g.n}` : "관측 쌍 아님"; },
-          legend: "행(선행) → 열(반응) · 셀 = 최적 시차 · 농도 = |r| · 빈칸 = 관측 쌍 아님",
+          cellSub: (v, r, c) => { const rr = rAt(rowsH[r], colsH[c]); return rr == null ? "" : rFmt(rr); }, // 아래줄 = 표시 시차의 부호 r
+          cellDashed: (r, c) => { const g = gAt(rowsH[r], colsH[c]); return !!(g && !g.stable); }, // 불안정 = 점선
+          cellMark: (r, c) => { const g = gAt(rowsH[r], colsH[c]); return g && g.at_bound ? "▲" : ""; }, // 탐색 상한 도달
+          tipFmt: (v, r, c) => { const g = gAt(rowsH[r], colsH[c]); if (!g) return "관측 쌍 아님"; const lg = lagAt(rowsH[r], colsH[c]), rr = rAt(rowsH[r], colsH[c]); return `+${lg}M · r ${rr > 0 ? "+" : ""}${rr.toFixed(2)} · n=${g.n}${g.lag_near != null ? ` · 전역 최적 +${g.lag}M(r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)})` : ""}${g.stable ? "" : " · 불안정"}${g.at_bound ? " · 상한 도달" : ""}${g.scope_mismatch ? " · 공간 범위 불일치" : ""}`; },
+          legend: "셀 위 = 최적 시차 · 아래 = 부호 r · 농도 = |r| · 점선 = 불안정 · ▲ = 탐색 상한 · 빈칸 = 관측 쌍 아님",
           aria: "선행×반응 시차 전수표", onCell: (colV, rowV) => loadLab(rowV, colV, true),
         });
       }
-      const grade = g => g.n < 25 ? ["짧은 표본", "var(--ink-3)"]
-        : g.n < 60 ? (g.stable ? ["B−(중간)", "var(--ink-2)"] : ["C(중간)", "var(--ink-3)"])
-        : (g.stable && Math.abs(g.r) >= 0.4) ? ["A", "var(--eye-blue)"]
-        : g.stable ? ["B", "var(--eye-blue)"] : ["C", "var(--ink-3)"];
+      const grade = g => {
+        let res = g.n < 25 ? ["짧은 표본", "var(--ink-3)"]
+          : g.n < 60 ? (g.stable ? ["B−(중간)", "var(--ink-2)"] : ["C(중간)", "var(--ink-3)"])
+          : (g.stable && Math.abs(g.r) >= 0.4) ? ["A", "var(--eye-blue)"]
+          : g.stable ? ["B", "var(--eye-blue)"] : ["C", "var(--ink-3)"];
+        if (g.scope_mismatch && res[0] === "A") res = ["B", "var(--eye-blue)"]; // 공간 범위 불일치 = A 금지
+        return res;
+      };
       const rC = v => v < 0 ? "var(--eye-red)" : "var(--eye-blue)";
       const agreeShow = g => g.agree == null ? null
         : (g.r < 0 ? 100 - g.agree : g.agree);
@@ -419,7 +446,7 @@
       const GROUPS = [
         ["금융 → 신용", ["기준금리|주담대금리"]],
         ["금융·신용 → 수요·가격", ["기준금리|거래량", "기준금리|매매가", "주담대금리|거래량", "주담대금리|매매가", "국고10년|매매가"]],
-        ["수요 → 가격", ["거래량|매매가", "거래량|전세가", "매매가|전세가"]],
+        ["수요 → 가격", ["거래량|매매가", "거래량(서울)|전세가", "매매가(서울)|전세가"]],
         ["가격·재고 → 공급", ["매매가|미분양", "미분양|착공", "인허가|착공", "착공|준공", "준공|준공후미분양"]],
       ];
       const GRP_TONE = ["--seq-600", "--seq-500", "--seq-400", "--seq-300"]; // A~D 청색 계열 농도 (좌측 3px 그룹선)
@@ -438,10 +465,20 @@
         const [gd, gc] = grade(g);
         const ag = agreeShow(g);
         const rg = (t, o) => o ? `${t} <b class="num">+${o.lag}M</b> <span class="num" style="color:${rC(o.r)}">${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}</span>` : `${t} <span style="color:var(--ink-3)">표본 부족</span>`;
-        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0;border-left:3px solid ${css(gi >= 0 && gi < GRP_TONE.length ? GRP_TONE[gi] : "--rule")}">
-          <div style="display:flex;align-items:baseline;gap:10px">
+        const per = g.period ? `${fmtYm(g.period[0])}–${fmtYm(g.period[1])}` : "—";
+        const tv = g.x_transform === g.y_transform ? g.x_transform : `${g.x_transform}→${g.y_transform}`;
+        const scopeTxt = g.scope_mismatch ? `${g.x_scope} → ${g.y_scope}` : (g.x_scope || "—");
+        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0;border-left:3px solid ${css(g.scope_mismatch ? "--eye-red" : gi >= 0 && gi < GRP_TONE.length ? GRP_TONE[gi] : "--rule")}">
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
             <div class="viz-title">${g.x} → ${g.y}</div>
+            ${g.scope_mismatch ? '<span class="scope-badge">공간 범위 불일치</span>' : ""}
             <span class="num" style="margin-left:auto;font-weight:800;color:${gc}">${gd}</span>
+          </div>
+          <div class="lag-meta">
+            <span><span class="lag-meta-k">공간 범위</span> ${g.scope_mismatch ? `<b class="scope-warn">${scopeTxt}</b>` : `<b>${scopeTxt}</b>`}</span>
+            <span class="lag-meta-sep">·</span><span><span class="lag-meta-k">기간</span> <span class="num">${per}</span></span>
+            <span class="lag-meta-sep">·</span><span><span class="lag-meta-k">변환</span> ${tv}</span>
+            <span class="lag-meta-sep">·</span><span><span class="lag-meta-k">n</span> <span class="num">${g.n}</span></span>
           </div>
           <div style="font-size:20px;margin:6px 0 2px"><b class="num">+${g.lag}</b>개월
             <span class="num" style="color:${rC(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span>
@@ -631,12 +668,14 @@
     src.push(`<tr><td>국토부 RTMS 매매</td><td>아파트 매매 실거래(수지 공유 원천)</td>
       <td>${M.sgg_names ? Object.keys(M.sgg_names).length : "—"}개 시군구 · 36개월</td>
       <td class="num">${(M.n_sale || 0).toLocaleString()}<span class="u">건</span></td></tr>`);
-    src.push(`<tr><td>국토부 RTMS 전월세</td><td>아파트 전월세 실거래 — 동일 시군구·월 범위</td>
-      <td>동일</td><td class="num">${(M.n_rent || 0).toLocaleString()}<span class="u">행</span></td></tr>`);
+    const nAll = M.n_rental_all != null ? M.n_rental_all : (M.n_rent || 0);
+    src.push(`<tr><td>국토부 RTMS 전월세</td>
+      <td>아파트 전월세 실거래 — 전세 표본 ${(M.n_jeonse || 0).toLocaleString()} · 월세 ${(M.n_monthly || 0).toLocaleString()}${M.n_invalid ? " · 무효 " + M.n_invalid.toLocaleString() : ""}(전세 = 월세 0·보증금·면적 유효)</td>
+      <td>동일 시군구·월 범위</td><td class="num">${nAll.toLocaleString()}<span class="u">행</span></td></tr>`);
     if (R) src.push(`<tr><td>VWorld NED 공시</td><td>공동주택 공시가격 — 지오코더→지적→공시 3단 체인</td>
       <td>2021~2025 · 표본단지</td><td class="num">${R.by_complex.length}<span class="u">관측</span></td></tr>`);
     $("m-src-rows").innerHTML = src.join("");
-    $("m-src-n").textContent = `매매 ${(M.n_sale || 0).toLocaleString()} · 전월세 ${(M.n_rent || 0).toLocaleString()}`;
+    $("m-src-n").textContent = `매매 ${(M.n_sale || 0).toLocaleString()} · 전월세 ${nAll.toLocaleString()}(전세 ${(M.n_jeonse || 0).toLocaleString()})`;
     if (M.n_skip != null) $("m-skip").textContent = M.n_skip;
   }
 

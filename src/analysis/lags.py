@@ -56,6 +56,16 @@ def load_series():
                 prc.setdefault(m["ym"], []).append(m["median_price_per_m2"])
     S["거래량"] = vol
     S["매매가"] = {ym: median(v) for ym, v in prc.items()}
+    # 서울 하위 계열 — 전세가(서울 표본)와 공간 범위를 맞춘다.
+    # trades["서울"] = sggCd 11*(강남 11680·노원 11350)이라 별도 raw 재파싱 없이 동일 결과.
+    svol, sprc = {}, {}
+    for gu, months in r["trades"].get("서울", {}).items():
+        for m in months:
+            svol[m["ym"]] = svol.get(m["ym"], 0) + m["count"]
+            sprc.setdefault(m["ym"], []).append(m["median_price_per_m2"])
+    if svol:
+        S["거래량(서울)"] = svol
+        S["매매가(서울)"] = {ym: median(v) for ym, v in sprc.items()}
     rp = ROOT / "data" / "rent.json"
     if rp.exists():
         rents = json.load(open(rp)).get("rents", {})
@@ -72,6 +82,41 @@ def load_series():
 
 
 RATE_VARS = {"기준금리", "주담대금리", "국고10년"}
+
+
+# ── 공간 범위 계약 (SERIES) — 각 시계열의 {scope, freq, unit, agg} ──────
+# scope ∈ {"전국", "서울 표본", "대표 시군구 표본"}. PAIRS scope 일치 검사의 근거.
+# 거래량·매매가는 전국 대표 표본이라 KOSIS 전국 계열과 같은 '전국'으로 취급하되,
+# 전세가(서울 표본)와 짝지을 때만 서울 하위 계열로 범위를 맞춘다.
+SERIES_META = {
+    "기준금리":     {"scope": "전국", "freq": "월", "unit": "% (연)", "agg": "월말 정책금리"},
+    "주담대금리":   {"scope": "전국", "freq": "월", "unit": "% (연)", "agg": "신규취급 가중평균"},
+    "국고10년":     {"scope": "전국", "freq": "월", "unit": "% (연)", "agg": "월평균 금리"},
+    "미분양":       {"scope": "전국", "freq": "월", "unit": "호", "agg": "전국 합계"},
+    "준공후미분양": {"scope": "전국", "freq": "월", "unit": "호", "agg": "전국 합계"},
+    "착공":         {"scope": "전국", "freq": "월", "unit": "호", "agg": "전국 합계"},
+    "준공":         {"scope": "전국", "freq": "월", "unit": "호", "agg": "전국 합계"},
+    "인허가":       {"scope": "대표 시군구 표본", "freq": "월", "unit": "세대", "agg": "시도 대표 시군구 세대수 합"},
+    "거래량":       {"scope": "전국", "freq": "월", "unit": "건", "agg": "표본 시군구 거래건수 합"},
+    "매매가":       {"scope": "전국", "freq": "월", "unit": "원/㎡", "agg": "표본 시군구 ㎡당 중앙값"},
+    "거래량(서울)": {"scope": "서울 표본", "freq": "월", "unit": "건", "agg": "서울 표본 거래건수 합"},
+    "매매가(서울)": {"scope": "서울 표본", "freq": "월", "unit": "원/㎡", "agg": "서울 표본 ㎡당 중앙값"},
+    "전세가":       {"scope": "서울 표본", "freq": "월", "unit": "원/㎡", "agg": "서울 표본 전세 ㎡당 중앙값"},
+}
+
+
+def scope_of(name):
+    return (SERIES_META.get(name) or {}).get("scope", "전국")
+
+
+def tlabel(name):
+    return "12개월 차분(pp)" if name in RATE_VARS else "전년동월비(%)"
+
+
+def overlap_period(xm, ym_, k):
+    """최적 시차에서 겹치는 관측월 범위 [min, max] (6자리 ym)."""
+    ts = sorted(t for t in xm if _shift(t, k) in ym_)
+    return [ts[0], ts[-1]] if ts else None
 
 
 def transform(name, m):
@@ -185,7 +230,9 @@ def rolling_lag(xm, ym_, win=60, step=6, max_lag=MAX_LAG):
 PAIRS = [  # (선행, 반응, 최대 탐색 시차)
     ("기준금리", "주담대금리", 18), ("기준금리", "거래량", 18), ("기준금리", "매매가", 18),
     ("주담대금리", "거래량", 18), ("주담대금리", "매매가", 18), ("국고10년", "매매가", 18),
-    ("거래량", "매매가", 18), ("거래량", "전세가", 18), ("매매가", "전세가", 18),
+    ("거래량", "매매가", 18),
+    # 전세가는 서울 표본 — 서울 하위 계열과 짝지어 공간 범위를 맞춘다(전국↔서울 불일치 제거)
+    ("거래량(서울)", "전세가", 18), ("매매가(서울)", "전세가", 18),
     ("매매가", "미분양", 30), ("미분양", "착공", 30), ("인허가", "착공", 30),
     ("착공", "준공", 48), ("준공", "준공후미분양", 30),
 ]
@@ -197,6 +244,10 @@ def main():
     T = {n: m for n, m in T.items() if len(m) >= 24}
     print("변환 시계열:", {n: len(m) for n, m in T.items()})
 
+    # 공간 범위 계약 — PAIRS의 모든 변수는 scope가 정의돼 있어야 한다 (빌드 시 검사).
+    for a, b, _ in PAIRS:
+        assert a in SERIES_META and b in SERIES_META, f"scope 미정의: {a}→{b}"
+
     reg = regime_months(T.get("기준금리", {}))
     grid = []
     for a, b, ml in PAIRS:
@@ -206,6 +257,11 @@ def main():
         if not res:
             continue
         g = {"x": a, "y": b, **{k2: v for k2, v in res.items() if k2 != "curve"}}
+        # 공간 범위 일치 검사 — 불일치 쌍은 scope_mismatch로 표시(A등급·전달경로 제외의 근거)
+        g["x_scope"], g["y_scope"] = scope_of(a), scope_of(b)
+        g["scope_mismatch"] = g["x_scope"] != g["y_scope"]
+        g["x_transform"], g["y_transform"] = tlabel(a), tlabel(b)
+        g["period"] = overlap_period(T[a], T[b], res["lag"])
         g["agree"] = agree_pct(T[a], T[b], res["lag"])
         for rg_name, rg_key in [("up", "up"), ("down", "down")]:
             sub = {t: v for t, v in T[a].items() if reg.get(t) == rg_key}
@@ -253,18 +309,30 @@ def main():
                         "agree": agree_dir, "r": g["r"], "latest": yms[-1]})
     bundle_signals = signals
 
+    # SERIES 계약 — 각 변환 시계열의 공간 범위·주기·단위·집계·변환·기간·n (연구 카드 메타 줄용)
+    series_meta = {}
+    for n, m in T.items():
+        md = SERIES_META.get(n, {"scope": "전국", "freq": "월", "unit": "", "agg": ""})
+        yms = sorted(m)
+        series_meta[n] = {"scope": md["scope"], "freq": md["freq"], "unit": md["unit"],
+                          "agg": md["agg"], "transform": tlabel(n),
+                          "period": [yms[0], yms[-1]] if yms else None, "n": len(m)}
+
+    n_mismatch = sum(1 for g in grid if g.get("scope_mismatch"))
     bp = ROOT / "out" / "site_bundle.json"
     bundle = json.load(open(bp))
     bundle["signals"] = bundle_signals
     bundle["lag"] = {
         "series": {n: sorted(({"ym": t, "v": v} for t, v in m.items()),
                              key=lambda r: r["ym"]) for n, m in T.items()},
+        "series_meta": series_meta,
         "rate_vars": sorted(RATE_VARS & set(T)),
         "grid": grid,
         "max_lag": MAX_LAG,
     }
     json.dump(bundle, open(bp, "w"), ensure_ascii=False)
-    print(f"병합: lag.series {len(T)}개 변수 · grid {len(grid)}쌍 → {bp}")
+    print(f"병합: lag.series {len(T)}개 변수 · grid {len(grid)}쌍"
+          f"(공간 범위 불일치 {n_mismatch}쌍) → {bp}")
 
 
 

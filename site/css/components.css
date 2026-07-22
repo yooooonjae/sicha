@@ -205,6 +205,8 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 .pd-list > div { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; padding: 6px 0; border-bottom: 1px dashed var(--hairline); }
 .pd-list dt { color: var(--ink-2); margin: 0; } .pd-list dd { color: var(--ink); margin: 0; text-align: right; }
 .pd-open { width: 100%; }
+.pd-scope { font-size: 11.5px; color: var(--ink-3); margin: -2px 0 8px; }
+.pd-scopewarn { font-size: 11.5px; font-weight: 700; color: var(--eye-red-deep); background: var(--wash-red); border-radius: 6px; padding: 3px 8px; display: inline-block; margin: -2px 0 8px; }
 
 .pt-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .pt-tab { padding: 7px 14px; font-size: 13px; border: 1px solid var(--rule); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink-2); cursor: pointer; }
@@ -215,7 +217,10 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 .pt-node .pt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--eye-blue); flex: none; }
 .pt-node.supply .pt-dot { background: var(--eye-red); }
 .pt-edge { display: flex; align-items: center; gap: 10px; padding: 7px 0 7px 14px; }
-.pt-edge .pt-arrow { color: var(--ink-3); font-size: 18px; line-height: 1; }
+/* 색 의미화: 수요 = 청 · 공급 = 적갈 · 동행 = 회색 (동행이 공급보다 우선) */
+.pt-edge .pt-arrow { color: var(--eye-blue); font-size: 18px; line-height: 1; }
+.pt-edge.supply .pt-arrow { color: var(--eye-red); }
+.pt-edge.zero .pt-arrow { color: var(--ink-3); }
 .pt-lag { font-family: var(--font-num); font-weight: 700; font-size: 12.5px; color: var(--eye-blue-deep); background: var(--wash-blue); border: 0; border-radius: 12px; padding: 5px 13px; cursor: pointer; }
 .pt-lag.zero { color: var(--ink-2); background: var(--surface-2); font-family: var(--font-body); }
 /* 계측 활자(.num) 안의 한글 단위는 고딕으로 — Plex Mono엔 한글이 없어 폭·기준선이 어긋나던 혼용 해소 */
@@ -229,6 +234,14 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 .lag-badge { font-family: var(--font-num); font-weight: 800; font-size: 11.5px; letter-spacing: .02em; color: var(--paper); background: var(--ink); border-radius: 5px; padding: 2px 7px; }
 .lag-grpname { font-size: 13px; letter-spacing: .08em; color: var(--ink-2); font-weight: 700; }
 .lag-grpcnt { font-size: 12px; color: var(--ink-3); }
+
+/* Ⅴ 연구 카드 — 공간 범위 메타 줄 + 불일치 배지 */
+.lag-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-3); line-height: 1.5; margin: 2px 0 4px; }
+.lag-meta b { color: var(--ink-2); font-weight: 700; }
+.lag-meta .lag-meta-k { opacity: .75; letter-spacing: .01em; }
+.lag-meta .lag-meta-sep { color: var(--rule); }
+.lag-meta b.scope-warn { color: var(--eye-red-deep); }
+.scope-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: var(--eye-red-deep); background: var(--wash-red); border-radius: 6px; padding: 1px 8px; white-space: nowrap; }
 
 /* Ⅷ 사건 z-스파크 점 위계 — 기본 선+정점(T=0·최대), 나머지는 hover/tap 노출 */
 #ev-panel .ev-hit { transition: fill .12s ease; }
