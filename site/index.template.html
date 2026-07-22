@@ -8,7 +8,7 @@
   <div class="wrap row">
     <a class="brand" href="#top"><span class="hanja">視差</span> 시차</a>
     <div class="tabs">
-      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 방법론</a>
+      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 시차지도</a><a href="#ch6">Ⅵ 실험실</a><a href="#ch7">Ⅶ 방법론</a>
     </div>
     <button class="toc-btn" id="tocBtn" aria-label="목차 열기">목차</button>
     <button class="theme-btn" id="themeBtn" aria-label="테마 전환">☀</button>
@@ -20,7 +20,9 @@
   <a href="#ch2"><span class="no">Ⅱ</span> 세입자의 눈 — 전세가율</a>
   <a href="#ch3"><span class="no">Ⅲ</span> 행정의 눈 — 현실화율</a>
   <a href="#ch4"><span class="no">Ⅳ</span> 겹침 — 이중 시차</a>
-  <a href="#ch5"><span class="no">Ⅴ</span> 방법론</a>
+  <a href="#ch5"><span class="no">Ⅴ</span> 시차지도 — 무엇이 먼저 움직이는가</a>
+  <a href="#ch6"><span class="no">Ⅵ</span> 시차실험실 — 파형을 직접 정렬</a>
+  <a href="#ch7"><span class="no">Ⅶ</span> 방법론</a>
 </div>
 
 <main id="top">
@@ -77,6 +79,22 @@
   </div>
 
   <div class="kpi-row" id="home-kpis" style="margin-top:22px"></div>
+
+  <div class="plate" style="margin-top:22px;padding:18px 24px 8px">
+    <div class="viz-title">이 사이트의 두 계측 — 공간의 시차(視差), 시간의 시차(時差)</div>
+    <div class="viz-q">Ⅰ~Ⅳ장은 세 가격 사이의 각도를, Ⅴ~Ⅵ장은 신호가 전달되는 시간을 잰다</div>
+    <svg viewBox="0 0 1120 150" role="img" aria-label="선행 신호와 반응 지표가 시간차를 두고 반복되는 파형" style="width:100%;height:auto;display:block">
+      <line x1="40" y1="120" x2="1080" y2="120" stroke="var(--hairline)" stroke-width="1"/>
+      <path d="M 60 55 Q 105 15 150 55 T 240 55 Q 285 15 330 55 T 420 55 Q 465 15 510 55 T 600 55 Q 645 15 690 55 T 780 55" fill="none" stroke="var(--eye-blue)" stroke-width="2"/>
+      <path d="M 200 95 Q 245 60 290 95 T 380 95 Q 425 60 470 95 T 560 95 Q 605 60 650 95 T 740 95 Q 785 60 830 95 T 920 95" fill="none" stroke="var(--eye-red)" stroke-width="2"/>
+      <line x1="105" y1="15" x2="105" y2="128" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>
+      <line x1="245" y1="15" x2="245" y2="128" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>
+      <path d="M 110 124 L 240 124" stroke="var(--ink)" stroke-width="1.2" marker-end="url(#mK)"/>
+      <text x="175" y="142" text-anchor="middle" font-size="11.5" fill="var(--ink-2)" font-family="var(--font-num)">전달 시차</text>
+      <text x="66" y="30" font-size="12" font-weight="700" fill="var(--eye-blue)">선행 신호</text>
+      <text x="850" y="82" font-size="12" font-weight="700" fill="var(--eye-red)">반응 지표</text>
+    </svg>
+  </div>
 
   <div class="sister">
     <span class="t">자매 연구</span>
@@ -205,9 +223,68 @@
   </div>
 </section>
 
-<!-- Ⅴ 방법론 ──────────────────────────────────────── -->
+<!-- Ⅴ 시차지도 ────────────────────────────────────── -->
 <section class="ch wrap" id="ch5">
-  <div class="ch-head"><span class="no">Ⅴ</span><h2>방법론 — 출처·정의·한계</h2>
+  <div class="ch-head"><span class="no">Ⅴ</span><h2>시차지도 — 무엇이 먼저 움직이는가</h2>
+    <div class="meta">방법 <b>교차상관 0~24개월 스캔</b><br>변환 <b>금리 12개월 차분 · 그 외 전년동월비</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">여기서부터는 시간의 시차(時差)다. 금리·거래·가격·공급은 동시에 움직이지 않는다 —
+  선행 신호가 반응 지표에 도달하기까지의 <b>전달 시간</b>을, 두 시계열을 한 달씩 밀어가며
+  잰다. 아래 표의 모든 수치는 <b>예측적 선후관계이며 단독 인과효과가 아니다</b>.</p>
+  <div class="plate">
+    <div class="viz-title">전달 시차 일람 — 선행 → 반응</div>
+    <div class="viz-q">각 쌍에서 |r|가 최대가 되는 시차는 몇 개월인가</div>
+    <div id="lag-map"></div>
+    <p class="note">안정 = 표본 전/후반 분할에서 부호가 유지됨. n이 작은 쌍(거래·가격·전세 —
+    매매 원거래 3년 표본의 전년동월비라 24개월)은 참고 수준이다. 장주기 국면 전환(인상기→인하기)이
+    원거리 시차에 가짜 피크를 만들 수 있어, 6개월 내 국소 피크가 다르면 함께 표기한다.</p>
+  </div>
+</section>
+
+<!-- Ⅵ 시차실험실 ──────────────────────────────────── -->
+<section class="ch wrap" id="ch6">
+  <div class="ch-head"><span class="no">Ⅵ</span><h2>시차실험실 — 파형을 직접 정렬한다</h2>
+    <div class="meta">조작 <b>변수 2개 · 시차 슬라이더</b><br>계산 <b>브라우저 로컬</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">두 변수를 고르고 슬라이더로 반응 지표를 왼쪽으로 끌어당겨 보라 — 파형이
+  겹치는 지점의 시차가 곧 전달 시간의 후보다. 오른쪽 곡선은 시차별 상관을 전부 훑은
+  결과로, 슬라이더 위치의 r가 점으로 찍힌다.</p>
+  <div class="plate">
+    <div class="viz-title" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <select id="lab-x" class="btn" style="padding:8px 12px;font-weight:600"></select>
+      <span style="color:var(--ink-3)">→</span>
+      <select id="lab-y" class="btn" style="padding:8px 12px;font-weight:600"></select>
+      <span id="lab-read" class="num" style="margin-left:auto;font-size:15px"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;margin:12px 0 4px">
+      <span class="num" style="font-size:12px;color:var(--ink-3)">0</span>
+      <input id="lab-k" type="range" min="0" max="24" value="0" step="1" style="flex:1;accent-color:var(--eye-blue)" aria-label="시차 개월">
+      <span class="num" style="font-size:12px;color:var(--ink-3)">+24개월</span>
+    </div>
+    <div id="lab-wave"></div>
+    <p class="note">반응 지표(적색)를 시차만큼 앞당겨 겹친다. 두 파형은 각자 표준화(z)해 모양만 비교한다 — 단위가 달라도 정렬이 보인다. 결측 구간은 선이 끊긴다.</p>
+  </div>
+  <div class="grid2">
+    <div class="plate">
+      <div class="viz-title">시차별 상관 곡선</div>
+      <div class="viz-unit">가로 시차(개월) · 세로 r</div>
+      <div id="lab-curve"></div>
+    </div>
+    <div class="plate">
+      <div class="viz-title">읽는 법</div>
+      <div class="viz-q" style="margin-bottom:8px">곡선의 봉우리가 전달 시간의 후보다</div>
+      <p class="note" style="border-top:none;padding-top:0;margin-top:0">· 봉우리가 낮고 넓으면 —
+      전달이 약하거나 여러 경로가 섞여 있다.<br>· 봉우리가 두 개면 — 단기 전달과 장주기
+      국면이 겹쳐 있을 수 있다.<br>· 표본이 짧은 쌍은 곡선 끝(큰 시차)일수록 겹치는 달이
+      줄어 신뢰가 떨어진다.<br>· 상관은 선후관계의 근사일 뿐 인과의 증명이 아니다 —
+      같은 원인(금리)이 양쪽을 함께 움직일 수 있다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Ⅶ 방법론 ──────────────────────────────────────── -->
+<section class="ch wrap" id="ch7">
+  <div class="ch-head"><span class="no">Ⅶ</span><h2>방법론 — 출처·정의·한계</h2>
     <div class="meta">갱신 <b>{{BUILT_AT}}</b><br>원칙 <b>전 수치 재현 가능</b></div></div>
   <div class="ch-rule"></div>
   <p class="lede">모든 수치는 공공 API에서 수집해 로컬에서 계산했고, 이 페이지는 외부 요청
@@ -231,6 +308,14 @@
     구분 기록한다.<br>· 역전세 지표 = 현재 분기 ㎡당 전세 중앙값 ÷ 8분기 전 동일값 − 1.<br>
     · 현실화율 = 공시가격(최빈 전용면적 구간의 호 중앙값) ÷ 공시 기준일 전후 1년
     동단지·동면적대(±10%) 매매 중앙값(3건 이상일 때만).</p></div></details>
+  <details class="method"><summary>時差 편 방법 — 변환·스캔·안정성</summary>
+    <div class="body"><p>· 변환: 금리류는 12개월 차분(pp), 수량·가격류는 전년동월비(%) —
+    수준의 추세·계절성을 1차로 걷어낸다.<br>· 스캔: r(x_t, y_{t+k})를 k=0~24개월 전 구간
+    탐색, |r| 최대 시차를 최적으로 보고하되 6개월 내 국소 피크가 다르면 병기한다.<br>
+    · 안정성: 표본을 전/후반으로 갈라 같은 시차의 부호가 유지되는지 본다.<br>
+    · 알려진 한계: 자기상관 미보정(유효 표본 과대), 다중검정 미보정(24개 시차 탐색),
+    국면 전환(인상기→인하기)이 만드는 원거리 가짜 피크, 짧은 표본(거래·가격·전세 24개월).
+    이는 1차 계측이며, 개선(프리화이트닝·블록 부트스트랩)은 로드맵에 있다.</p></div></details>
   <details class="method"><summary>한계 — 이 지도가 말하지 않는 것</summary>
     <div class="body"><p>· 전세가율은 시군구·분기 중앙값의 비율이다 — 개별 계약의 안전도가
     아니다.<br>· 역전세 지표는 동일 계약 추적이 아닌 집계 근사다 — 갱신·신규가 섞인다.<br>

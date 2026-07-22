@@ -199,7 +199,29 @@
         개별 지역 판정은 원자료 확인이 먼저다.`;
     }
 
-    /* Ⅴ 방법론 수치 */
+    /* Ⅴ 시차지도 */
+    const L = B.lag;
+    if (L && L.grid && L.grid.length) {
+      $("lag-map").innerHTML = `<table class="sheet"><thead><tr>
+        <th>선행 → 반응</th><th class="num">최적 시차</th><th class="num">r</th>
+        <th class="num">n</th><th>안정</th><th>비고</th></tr></thead><tbody>` +
+        L.grid.map(g => {
+          const near = g.lag_near != null
+            ? `6개월 내 피크 +${g.lag_near}M (r=${g.r_near})` : "";
+          const warn = g.n <= 24 ? (near ? near + " · 짧은 표본" : "짧은 표본") : near;
+          return `<tr><td><b>${g.x}</b> → ${g.y}</td>
+            <td class="num"><b>+${g.lag}개월</b></td>
+            <td class="num" style="color:${g.r < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</td>
+            <td class="num">${g.n}</td>
+            <td>${g.stable ? '<span class="eye-tag blue">안정</span>' : '<span class="eye-tag" style="color:var(--ink-3)">불안정</span>'}</td>
+            <td style="font-size:12px;color:var(--ink-2)">${warn}</td></tr>`;
+        }).join("") + "</tbody></table>";
+    }
+
+    /* Ⅵ 시차실험실 */
+    if (L && L.series) initLab(L);
+
+    /* Ⅶ 방법론 수치 */
     const src = [];
     src.push(`<tr><td>국토부 RTMS 매매</td><td>아파트 매매 실거래(수지 공유 원천)</td>
       <td>${M.sgg_names ? Object.keys(M.sgg_names).length : "—"}개 시군구 · 36개월</td>
@@ -211,6 +233,93 @@
     $("m-src-rows").innerHTML = src.join("");
     $("m-src-n").textContent = `매매 ${(M.n_sale || 0).toLocaleString()} · 전월세 ${(M.n_rent || 0).toLocaleString()}`;
     if (M.n_skip != null) $("m-skip").textContent = M.n_skip;
+  }
+
+  /* ── 시차실험실 — 슬라이더로 파형 정렬 ─────────── */
+  let labInit = false;
+  function initLab(L) {
+    const names = Object.keys(L.series);
+    const sx = $("lab-x"), sy = $("lab-y"), sk = $("lab-k");
+    if (!labInit) {
+      labInit = true;
+      sx.innerHTML = names.map(n => `<option>${n}</option>`).join("");
+      sy.innerHTML = names.map(n => `<option>${n}</option>`).join("");
+      sx.value = names.includes("기준금리") ? "기준금리" : names[0];
+      sy.value = names.includes("거래량") ? "거래량" : names[1] || names[0];
+      [sx, sy].forEach(el => el.addEventListener("change", () => { presetK(); drawLab(); }));
+      sk.addEventListener("input", drawLab);
+      presetK();
+    }
+    drawLab();
+
+    function presetK() {  // 사전계산된 최적 시차(저시차 피크 우선)로 슬라이더 초기화
+      const g = (L.grid || []).find(g2 => g2.x === sx.value && g2.y === sy.value);
+      sk.value = g ? (g.lag_near != null ? g.lag_near : Math.min(g.lag, 24)) : 0;
+    }
+
+    function toMap(rows) { const m = new Map(); rows.forEach(r => m.set(r.ym, r.v)); return m; }
+    function shift(ym, k) {
+      let y = +ym.slice(0, 4), mo = +ym.slice(4, 6) + k;
+      y += Math.floor((mo - 1) / 12); mo = (mo - 1) % 12 + 1;
+      return String(y) + String(mo).padStart(2, "0");
+    }
+    function corrAt(xm, ym_, k) {
+      const px = [], py = [];
+      xm.forEach((v, t) => { const u = ym_.get(shift(t, k)); if (u != null) { px.push(v); py.push(u); } });
+      const n = px.length;
+      if (n < 20) return { r: null, n };
+      const mx = px.reduce((a, b) => a + b, 0) / n, my = py.reduce((a, b) => a + b, 0) / n;
+      let sxx = 0, syy = 0, sxy = 0;
+      for (let i = 0; i < n; i++) { const a = px[i] - mx, b = py[i] - my; sxx += a * a; syy += b * b; sxy += a * b; }
+      return { r: sxx && syy ? sxy / Math.sqrt(sxx * syy) : null, n };
+    }
+
+    function drawLab() {
+      const nx = sx.value, ny = sy.value, k = +sk.value;
+      const xm = toMap(L.series[nx]), ym_ = toMap(L.series[ny]);
+      const isRate = n => (L.rate_vars || []).includes(n);
+      const unit = n => isRate(n) ? "12개월 차분(pp)" : "전년동월비(%)";
+      // 파형: x 그대로, y는 k개월 앞당김(t-k의 값을 t 위치에)
+      let labels = [...xm.keys()].sort();
+      // 두 계열의 겹침 구간 중심으로 줌 — 짧은 계열이 구석에 몰리지 않게 (±8개월 여유)
+      const hasY = labels.map(t => ym_.has(shift(t, k)));
+      const fi = hasY.indexOf(true), li = hasY.lastIndexOf(true);
+      if (fi >= 0 && li - fi + 1 < labels.length - 16) {
+        labels = labels.slice(Math.max(0, fi - 8), Math.min(labels.length, li + 9));
+      }
+      const mk = t => t.slice(0, 4) + "." + t.slice(4, 6);
+      // 표준화(z) — 단위가 다른 두 파형의 '모양'을 정렬해 비교 (상관은 원값과 동일)
+      const zfn = vals => {
+        const fin = vals.filter(Number.isFinite);
+        const m = fin.reduce((a, b) => a + b, 0) / (fin.length || 1);
+        const sd = Math.sqrt(fin.reduce((a, b) => a + (b - m) ** 2, 0) / (fin.length || 1)) || 1;
+        return v => Number.isFinite(v) ? (v - m) / sd : NaN;
+      };
+      const xv = labels.map(t => xm.has(t) ? xm.get(t) : NaN);
+      const yv = labels.map(t => ym_.has(shift(t, k)) ? ym_.get(shift(t, k)) : NaN);
+      const zx = zfn(xv), zy = zfn(yv);
+      Charts.line($("lab-wave"), [
+        { name: nx + " — " + unit(nx) + "·z", color: "--s1",
+          points: labels.map((t, i) => ({ label: mk(t), y: zx(xv[i]) })) },
+        { name: ny + (k ? ` (+${k}개월 앞당김)` : "") + " — " + unit(ny) + "·z", color: "--s2",
+          points: labels.map((t, i) => ({ label: mk(t), y: zy(yv[i]) })) },
+      ], { height: 320, interactive: false, aria: "두 변수의 파형 정렬(표준화)" });
+      const cur = corrAt(xm, ym_, k);
+      $("lab-read").innerHTML = cur.r == null
+        ? `시차 +${k}개월 · 겹침 ${cur.n}개월 — 표본 부족`
+        : `시차 <b>+${k}개월</b> · r = <b style="color:${cur.r < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">${cur.r > 0 ? "+" : ""}${cur.r.toFixed(2)}</b> · 겹침 ${cur.n}개월`;
+      // 시차별 곡선
+      const pts = [];
+      for (let kk = 0; kk <= (L.max_lag || 24); kk++) {
+        const c = corrAt(xm, ym_, kk);
+        if (c.r != null) pts.push({ x: kk, y: c.r, label: "+" + kk + "M", group: kk === k ? "현재" : "곡선" });
+      }
+      Charts.scatter($("lab-curve"), pts, { width: 560, height: 300, yRef: 0,
+        groups: { "현재": "--s2", "곡선": "--ink-3" },
+        xName: "시차(개월)", yName: "r",
+        xFmt: v => "+" + Math.round(v), yFmt: v => v.toFixed(1),
+        aria: "시차별 상관 곡선" });
+    }
   }
 
   render();
