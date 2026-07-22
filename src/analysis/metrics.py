@@ -219,6 +219,44 @@ def realization(gongsi, sales):
     }
 
 
+# ── 단지 해부 — 동일 단지 전세(세입자의 눈) ────────────────────────
+
+def anatomy(real, rents, sales):
+    """해부 대상(현실화 관측 최다 단지)의 동일 단지·면적대(±10%) 전세·매매 중앙값.
+
+    세입자의 눈을 시군구 폴백이 아니라 '같은 단지'에서 직접 읽는다 — apt명 정확 일치.
+    전세 표본 5건 이상이면 대표값(전세 중앙값·전세가율)을, 미만이면 표본 수만 반환한다.
+    선택은 app.js와 동일: apt|sgg 그룹 중 관측 최다 → 최신 연도 기록의 전용면적을 기준.
+    """
+    by_apt = defaultdict(list)
+    for c in real.get("by_complex", []):
+        by_apt[(c["apt"], c["sgg"])].append(c)
+    if not by_apt:
+        return None
+    (apt, sgg), recs = max(by_apt.items(), key=lambda kv: len(kv[1]))
+    tgt = sorted(recs, key=lambda c: c["year"])[-1]  # 최신 연도 = app.js의 b0
+    ar = tgt["ar"]
+    deps = [r["deposit"]
+            for rows in rents.get(sgg, {}).values()
+            for r in jeonse_only(rows)
+            if r["apt"] == apt and band_match(r["ar"], ar)]
+    prices = [t["price"]
+              for rows in sales.get(sgg, {}).values()
+              for t in rows
+              if t["apt"] == apt and band_match(t["ar"], ar)]
+    out = {"apt": apt, "sgg": sgg, "sggNm": tgt["sggNm"], "ar": ar,
+           "n_jeonse": len(deps)}
+    if len(deps) >= 5:
+        jm = median(deps)
+        out["jeonse_eok"] = round(jm / 10_000, 2)  # 보증금(만원) → 억
+        if prices:
+            mm = median(prices)
+            out["market_eok"] = round(mm / 10_000, 2)
+            out["n_market"] = len(prices)
+            out["jeonse_ratio"] = round(jm / mm * 100, 1)  # 동일 단지 전세가율(%)
+    return out
+
+
 def main():
     sales, sales_names = load_sales()
     n_sale = sum(len(r) for s in sales.values() for r in s.values())
@@ -259,6 +297,13 @@ def main():
                                  "rr": rr["med"], "n": rr["n"]})
             bundle["quad"] = quad
             print(f"사분면: {len(quad)}시군구")
+            an = anatomy(bundle["real"], rents, sales)
+            if an:
+                bundle["anatomy"] = an
+                rt = (f"전세 {an['jeonse_eok']}억·전세가율 {an.get('jeonse_ratio')}%"
+                      if an["n_jeonse"] >= 5 else "표본 부족(대표값 미표시)")
+                print(f"단지 해부: {an['sggNm']} {an['apt']} {an['ar']}㎡ · "
+                      f"동일 단지 전세 {an['n_jeonse']}건 — {rt}")
     else:
         print("전세 데이터 없음 — rent.json 수집 후 재실행")
 

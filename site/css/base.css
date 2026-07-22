@@ -2,6 +2,8 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 [hidden] { display: none !important; }
+/* 모바일 목차가 열리면 배경 스크롤을 잠근다(오버레이 뒤가 밀리지 않게) */
+body.scroll-lock { overflow: hidden; }
 
 html { scroll-behavior: smooth; }
 body {

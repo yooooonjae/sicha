@@ -148,6 +148,10 @@ table.sheet th {
 }
 table.sheet td { padding: 8px 10px; border-bottom: 1px solid var(--hairline); }
 table.sheet td.num, table.sheet th.num { text-align: right; font-family: var(--font-num); }
+/* 지역 참고값 행 — 동일 단지 전세 표본이 부족할 때 강등되는 시군구 폴백(옅은 색·참고 배지) */
+table.sheet tr.ref-row td { color: var(--ink-3); background: var(--surface-2); font-size: 12.5px; }
+.ref-badge { display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--ink-3);
+  border: 1px solid var(--hairline-2); border-radius: 5px; padding: 0 6px; margin-left: 5px; vertical-align: 1px; }
 
 /* 방법론 접힘 */
 details.method { border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); margin-bottom: 12px; }
@@ -226,6 +230,10 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 /* 계측 활자(.num) 안의 한글 단위는 고딕으로 — Plex Mono엔 한글이 없어 폭·기준선이 어긋나던 혼용 해소 */
 .u { font-family: var(--font-body); font-variant-numeric: normal; }
 .pt-edge.supply .pt-lag { color: var(--eye-red-deep); background: var(--wash-red); }
+/* 공간 범위 불일치 = 탐색적 — 회색 점선·회색 라벨(수요/공급색보다 우선) */
+.pt-edge.mismatch .pt-arrow { color: var(--ink-3); }
+.pt-edge.mismatch .pt-dash { border-top-style: dotted; border-top-color: var(--ink-3); }
+.pt-lag.mismatch { color: var(--ink-3); background: var(--surface-2); border: 1px dashed var(--hairline-2); }
 .pt-edge .pt-dash { flex: 1; border-top: 1.5px dashed var(--rule); }
 .pt-inline { margin: 5px 0 7px 14px; padding: 14px 16px; border: 1px solid var(--hairline); border-left: 3px solid var(--eye-blue); border-radius: 8px; background: var(--surface-2); }
 

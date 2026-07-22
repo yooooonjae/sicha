@@ -35,11 +35,43 @@
     render(); // 차트 색 재계산
   });
 
-  /* ── 모바일 목차 ──────────────────────────────── */
+  /* ── 모바일 목차 (접근성: aria·Esc·포커스 트랩·스크롤 잠금) ──── */
   const ov = $("tocOverlay");
-  $("tocBtn").addEventListener("click", () => { ov.hidden = false; });
-  $("tocClose").addEventListener("click", () => { ov.hidden = true; });
-  ov.querySelectorAll("a").forEach(a => a.addEventListener("click", () => { ov.hidden = true; }));
+  const tocBtn = $("tocBtn"), tocClose = $("tocClose");
+  tocBtn.setAttribute("aria-expanded", "false");
+  tocBtn.setAttribute("aria-controls", "tocOverlay");
+  const tocFocusables = () => [...ov.querySelectorAll("a, button")]
+    .filter(el => !el.disabled && el.offsetParent !== null);
+  function openToc() {
+    ov.hidden = false;
+    document.body.classList.add("scroll-lock");     // 배경 스크롤 잠금
+    tocBtn.setAttribute("aria-expanded", "true");
+    const first = ov.querySelector("a");            // 열 때 첫 링크로 포커스
+    if (first) first.focus();
+  }
+  function closeToc(returnFocus) {
+    if (ov.hidden) return;
+    ov.hidden = true;
+    document.body.classList.remove("scroll-lock");
+    tocBtn.setAttribute("aria-expanded", "false");
+    if (returnFocus !== false) tocBtn.focus();       // 닫을 때 버튼으로 복귀
+  }
+  tocBtn.addEventListener("click", openToc);
+  tocClose.addEventListener("click", () => closeToc());
+  ov.addEventListener("click", e => { if (e.target === ov) closeToc(); }); // 오버레이 배경 클릭 닫기
+  ov.querySelectorAll("a").forEach(a =>
+    a.addEventListener("click", () => closeToc(false)));  // 링크 이동 시 포커스 복귀 생략
+  document.addEventListener("keydown", e => {
+    if (ov.hidden) return;
+    if (e.key === "Escape") { e.preventDefault(); closeToc(); }     // Esc 닫기·포커스 복귀
+    else if (e.key === "Tab") {                                     // 포커스 트랩(Tab 순환)
+      const f = tocFocusables();
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
 
   /* ── 스크롤 등장 ──────────────────────────────── */
   const io = new IntersectionObserver(es => es.forEach(e => {
@@ -133,10 +165,22 @@
         .sort((a, b) => a.year - b.year);
       const b0 = best[best.length - 1];
       $("c1-title").textContent = `단지 해부 — ${b0.sggNm} ${b0.apt} (전용 ${b0.ar}㎡대)`;
-      let jrCell = "—";
-      if (J && J.by_sgg[b0.sgg]) {
-        const s = J.by_sgg[b0.sgg][J.by_sgg[b0.sgg].length - 1];
-        jrCell = s.ratio + "% <span style='color:var(--ink-3)'>(" + s.q + " 시군구)</span>";
+      // 세입자의 눈 — 동일 단지·면적대(±10%) 전세 표본이 5건 이상이면 그 단지에서 직접 읽고,
+      // 미만이면 대표값을 감추고 시군구 전세가율을 '지역 참고값'으로 강등(옅은 색·참고 배지)한다.
+      const AN = B.anatomy;
+      const sg = (J && J.by_sgg[b0.sgg]) ? J.by_sgg[b0.sgg][J.by_sgg[b0.sgg].length - 1] : null;
+      let tenantRows;
+      if (AN && AN.n_jeonse >= 5 && AN.jeonse_ratio != null) {
+        tenantRows = `<tr><td colspan="3" style="color:var(--ink-2)">세입자의 눈 — 동일 단지·면적대 전세 중앙값
+          <b style="color:var(--eye-blue)">${AN.jeonse_eok.toFixed(1)}<span class="u">억</span></b>
+          <span style="color:var(--ink-3)">· 표본 ${AN.n_jeonse}건</span></td>
+          <td class="num" style="color:var(--eye-blue)"><b>${AN.jeonse_ratio}%</b></td></tr>`;
+      } else {
+        const n = AN ? AN.n_jeonse : 0;
+        tenantRows = `<tr><td colspan="3" style="color:var(--ink-2)">세입자의 눈 — 동일 단지 전세 표본 <b class="num">${n}</b>건 · 대표값 미표시</td>
+          <td class="num" style="color:var(--ink-3)">—</td></tr>`;
+        if (sg) tenantRows += `<tr class="ref-row"><td colspan="3">지역 참고값 — 이 시군구 최신 전세가율 <span class="ref-badge">참고</span></td>
+          <td class="num">${sg.ratio}% <span style="color:var(--ink-3)">(${sg.q} 시군구)</span></td></tr>`;
       }
       $("c1-table").innerHTML = `<table class="sheet"><thead><tr>
         <th>연도</th><th class="num">시장의 눈 — 매매 중앙값</th><th class="num">행정의 눈 — 공시가격</th>
@@ -145,8 +189,7 @@
           <td class="num">${c.market_eok.toFixed(1)}<span class="u">억</span></td>
           <td class="num" style="color:var(--eye-red)">${c.gongsi_eok.toFixed(1)}<span class="u">억</span></td>
           <td class="num"><b>${c.ratio}%</b></td></tr>`).join("") +
-        `<tr><td colspan="3" style="color:var(--ink-2)">세입자의 눈 — 이 시군구의 최신 전세가율</td>
-        <td class="num" style="color:var(--eye-blue)"><b>${jrCell}</b></td></tr></tbody></table>`;
+        tenantRows + `</tbody></table>`;
     }
 
     /* Ⅱ 전세가율 */
@@ -295,11 +338,13 @@
             h += `<div class="pt-node${SUPPLY_NODE.has(nd) ? " supply" : ""}" data-node="${i}"><span class="pt-dot"></span>${nd}</div>`;
             if (i < ch.nodes.length - 1) {
               const a = nd, b = ch.nodes[i + 1], lag = findLag(a, b);
+              const gg = gridResolve(a, b);
+              const mmE = !!(gg && gg.scope_mismatch);  // 공간 범위 불일치 = 탐색적(회색 점선)
               const supE = SUPPLY_EDGE.has(a + "|" + b);
               const txt = lag == null ? "—" : lag === 0 ? "0M 동행" : "+" + lag + "M";
-              h += `<div class="pt-edge${supE ? " supply" : ""}${lag === 0 ? " zero" : ""}" data-edge="${i}">
+              h += `<div class="pt-edge${mmE ? " mismatch" : supE ? " supply" : ""}${lag === 0 ? " zero" : ""}" data-edge="${i}">
                 <span class="pt-arrow">↓</span>
-                <button class="pt-lag${lag === 0 ? " zero" : ""}" data-x="${a}" data-y="${b}">${txt}</button>
+                <button class="pt-lag${mmE ? " mismatch" : ""}${lag === 0 ? " zero" : ""}" data-x="${a}" data-y="${b}">${txt}</button>
                 <span class="pt-dash"></span></div>`;
             }
           });
@@ -339,16 +384,20 @@
         EDGES.forEach(([a, b], ei) => {
           const [x1, y1] = NODES[a], [x2, y2] = NODES[b];
           const lag = findLag(a, b);
+          const g0 = gridResolve(a, b);
+          const mismatch = !!(g0 && g0.scope_mismatch);  // 공간 범위 불일치 = 탐색적(경로는 유지)
           const supply = SUPPLY_EDGE.has(a + "|" + b);
           const zero = lag === 0;
-          // 색 의미화: 금융·수요 = 청(실선), 공급 피드백 = 적갈(점선), 동행 = 회색(정지)
-          const col = zero ? "var(--axis)" : supply ? "var(--eye-red)" : "var(--eye-blue)";
-          const mk = zero ? "arrow-mute" : supply ? "arrow-supply" : "arrow-demand";
+          // 색 의미화: 공간 범위 불일치 = 회색 점선(탐색적, 우선) · 금융·수요 = 청 실선 ·
+          //           공급 피드백 = 적갈 점선 · 동행(0M) = 회색 실선(펄스 없음)
+          const col = mismatch ? "var(--ink-3)" : zero ? "var(--axis)" : supply ? "var(--eye-red)" : "var(--eye-blue)";
+          const mk = mismatch || zero ? "arrow-mute" : supply ? "arrow-supply" : "arrow-demand";
+          const dashed = mismatch || supply;
           let d;
           if (y1 === y2) d = `M ${x1 + R0} ${y1} L ${x2 - R0 - 8} ${y2}`;
           else d = `M ${x1 - 14} ${y1 + R0 - 6} L ${x2 + 26} ${y2 - R0 + 2}`;
-          svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="${col}" stroke-width="1.8" opacity="${zero ? .55 : .8}"${supply ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#${mk})"/>`;
-          if (lag) {  // 동행(0M)은 펄스를 그리지 않는다 — 순서를 판정할 수 없으므로
+          svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="${col}" stroke-width="1.8" opacity="${mismatch ? .5 : zero ? .55 : .8}"${dashed ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#${mk})"/>`;
+          if (lag && !mismatch) {  // 동행(0M)·불일치(탐색적)는 확정 펄스를 그리지 않는다
             const dur = Math.max(1.4, lag * 0.55);
             svg += `<circle r="4.5" fill="${supply ? "var(--eye-red)" : "var(--eye-blue)"}" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
           }
@@ -356,12 +405,12 @@
             const mx = (x1 + x2) / 2, my = y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2;
             const txt = zero ? "0M 동행" : "+" + lag + "M";
             const w3 = zero ? 80 : 62;
-            const pillBg = zero ? "var(--surface-2)" : supply ? "var(--wash-red)" : "var(--wash-blue)";
-            const pillFg = zero ? "var(--ink-2)" : supply ? "var(--eye-red-deep)" : "var(--eye-blue-deep)";
-            svg += `<g class="path-lag" data-x="${a}" data-y="${b}" style="cursor:pointer">
-              <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="23" rx="11.5" fill="${pillBg}"/>
+            const pillBg = mismatch || zero ? "var(--surface-2)" : supply ? "var(--wash-red)" : "var(--wash-blue)";
+            const pillFg = mismatch ? "var(--ink-3)" : zero ? "var(--ink-2)" : supply ? "var(--eye-red-deep)" : "var(--eye-blue-deep)";
+            svg += `<g class="path-lag${mismatch ? " mismatch" : ""}" data-x="${a}" data-y="${b}" style="cursor:pointer">
+              <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="23" rx="11.5" fill="${pillBg}"${mismatch ? ' stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 2"' : ""}/>
               <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="14" font-weight="700" fill="${pillFg}" font-family="${zero ? "var(--font-body)" : "var(--font-num)"}">${txt}</text>
-              <title>${a} → ${b}${zero ? " — 월간 자료에서는 선후를 구분할 수 없다" : ""} — 우측에 상세</title></g>`;
+              <title>${a} → ${b}${mismatch ? ` · 공간 범위 불일치(${g0.x_scope} → ${g0.y_scope}) — 탐색적, 경로 유지` : zero ? " — 월간 자료에서는 선후를 구분할 수 없다" : ""} — 우측에 상세</title></g>`;
           }
         });
         for (const [nm2, [x, y]] of Object.entries(NODES)) {

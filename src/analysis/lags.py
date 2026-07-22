@@ -13,6 +13,8 @@ import re
 from pathlib import Path
 from statistics import median
 
+from src.analysis.metrics import jeonse_only
+
 ROOT = Path(__file__).resolve().parents[2]
 SUJI = Path(os.environ.get("SUJI_DIR", str(Path.home() / "개발"))) / "data"
 SUN = Path(os.environ.get("SUNHWAN_DIR", str(Path.home() / "순환"))) / "data"
@@ -74,9 +76,11 @@ def load_series():
             if not sgg.startswith("11"):
                 continue  # 서울 표본
             for ym, rows2 in months.items():
+                # 전세 표본 정의는 metrics.jeonse_only로 공통화 —
+                # 전세가율 장(metrics)과 시차 장(lags)이 같은 엄격판 표본 위에 서게 한다
+                # (rent 결측·월세>0·보증금 0·면적 0/결측 제외).
                 jm.setdefault(ym, []).extend(
-                    r2["deposit"] / r2["ar"] for r2 in rows2
-                    if r2.get("rent", 0) == 0 and r2.get("ar"))
+                    r2["deposit"] / r2["ar"] for r2 in jeonse_only(rows2))
         S["전세가"] = {ym: median(v) for ym, v in jm.items() if len(v) >= 30}
     return S
 
@@ -85,9 +89,13 @@ RATE_VARS = {"기준금리", "주담대금리", "국고10년"}
 
 
 # ── 공간 범위 계약 (SERIES) — 각 시계열의 {scope, freq, unit, agg} ──────
-# scope ∈ {"전국", "서울 표본", "대표 시군구 표본"}. PAIRS scope 일치 검사의 근거.
-# 거래량·매매가는 전국 대표 표본이라 KOSIS 전국 계열과 같은 '전국'으로 취급하되,
-# 전세가(서울 표본)와 짝지을 때만 서울 하위 계열로 범위를 맞춘다.
+# scope ∈ {"전국", "전국 표본", "서울 표본", "대표 시군구 표본"}. PAIRS scope 일치 검사의 근거.
+# 총량 vs 표본 구분: KOSIS 계열(미분양·착공·준공·준공후미분양)은 '전국'(행정 총량),
+#   거래량·매매가는 수지 표본 시군구를 집계한 값이라 '전국 표본'으로 구분한다.
+#   → 표본↔총량 쌍(예: 매매가→미분양, 기준금리→거래량)은 scope_mismatch가 되어
+#     A등급이 막히고 카드·전달경로에서 '탐색적'(회색 점선)으로 낮춰 표시된다
+#     — 대표 시군구 인허가 → 전국 착공과 동일한 처리다.
+# 전세가(서울 표본)와 짝지을 때만 거래량·매매가의 서울 하위 계열로 범위를 맞춘다.
 SERIES_META = {
     "기준금리":     {"scope": "전국", "freq": "월", "unit": "% (연)", "agg": "월말 정책금리"},
     "주담대금리":   {"scope": "전국", "freq": "월", "unit": "% (연)", "agg": "신규취급 가중평균"},
@@ -97,8 +105,8 @@ SERIES_META = {
     "착공":         {"scope": "전국", "freq": "월", "unit": "호", "agg": "전국 합계"},
     "준공":         {"scope": "전국", "freq": "월", "unit": "호", "agg": "전국 합계"},
     "인허가":       {"scope": "대표 시군구 표본", "freq": "월", "unit": "세대", "agg": "시도 대표 시군구 세대수 합"},
-    "거래량":       {"scope": "전국", "freq": "월", "unit": "건", "agg": "표본 시군구 거래건수 합"},
-    "매매가":       {"scope": "전국", "freq": "월", "unit": "원/㎡", "agg": "표본 시군구 ㎡당 중앙값"},
+    "거래량":       {"scope": "전국 표본", "freq": "월", "unit": "건", "agg": "표본 시군구 거래건수 합"},
+    "매매가":       {"scope": "전국 표본", "freq": "월", "unit": "원/㎡", "agg": "표본 시군구 ㎡당 중앙값"},
     "거래량(서울)": {"scope": "서울 표본", "freq": "월", "unit": "건", "agg": "서울 표본 거래건수 합"},
     "매매가(서울)": {"scope": "서울 표본", "freq": "월", "unit": "원/㎡", "agg": "서울 표본 ㎡당 중앙값"},
     "전세가":       {"scope": "서울 표본", "freq": "월", "unit": "원/㎡", "agg": "서울 표본 전세 ㎡당 중앙값"},
