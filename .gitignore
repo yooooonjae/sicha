@@ -4,3 +4,4 @@ out/
 web/
 web.tmp/
 __pycache__/
+site/fonts/*.ttf

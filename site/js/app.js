@@ -203,6 +203,63 @@
         개별 지역 판정은 원자료 확인이 먼저다.`;
     }
 
+    /* Ⅴ 전달경로 — 인터랙티브 허브 */
+    const LG = B.lag;
+    if (LG && LG.grid) {
+      const findLag = (x, y) => {
+        const g = LG.grid.find(g2 => g2.x === x && g2.y === y);
+        return g ? (g.lag_near != null ? g.lag_near : g.lag) : null;
+      };
+      const NODES = {
+        "기준금리": [95, 95], "주담대금리": [305, 95], "거래량": [515, 95],
+        "매매가": [725, 95], "전세가": [945, 95],
+        "미분양": [515, 275], "착공": [725, 275], "준공": [945, 275],
+      };
+      const EDGES = [
+        ["기준금리", "주담대금리"], ["주담대금리", "거래량"], ["거래량", "매매가"],
+        ["매매가", "전세가"], ["매매가", "미분양"], ["미분양", "착공"],
+        ["착공", "준공"], ["준공", "미분양"],
+      ];
+      const R0 = 34;
+      let svg = `<svg viewBox="0 0 1120 370" role="img" aria-label="신호 전달경로" style="width:100%;height:auto;display:block">`;
+      EDGES.forEach(([a, b], ei) => {
+        const [x1, y1] = NODES[a], [x2, y2] = NODES[b];
+        const lag = findLag(a, b);
+        const loop = a === "준공" && b === "미분양";
+        let d;
+        if (loop) d = `M ${x2 - 6} ${y2 + R0 - 8} C 860 356, 620 356, ${NODES["미분양"][0] + 10} ${NODES["미분양"][1] + R0 - 4}`;
+        else if (y1 === y2) d = `M ${x1 + R0} ${y1} L ${x2 - R0 - 8} ${y2}`;
+        else d = `M ${x1 - 14} ${y1 + R0 - 6} L ${x2 + 26} ${y2 - R0 + 2}`;
+        const dur = Math.max(1.4, (lag == null ? 2 : Math.max(lag, 0.5)) * 0.55);
+        svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="var(--rule)" stroke-width="1.6" marker-end="url(#pm)"/>`;
+        svg += `<circle r="4.5" fill="var(--ink)"><animateMotion dur="${dur}s" repeatCount="indefinite" begin="${(ei * 0.4).toFixed(1)}s"><mpath href="#pe${ei}"/></animateMotion></circle>`;
+        if (lag != null) {
+          const mx = loop ? 720 : (x1 + x2) / 2, my = loop ? 352 : (y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2);
+          svg += `<g class="path-lag" data-x="${a}" data-y="${b}" style="cursor:pointer">
+            <rect x="${mx - 30}" y="${my - 15}" width="60" height="22" rx="11" fill="var(--wash-blue)"/>
+            <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--eye-blue-deep)" font-family="var(--font-num)">+${lag}M</text>
+            <title>${a} → ${b} — 실험실에서 열기</title></g>`;
+        }
+      });
+      for (const [nm2, [x, y]] of Object.entries(NODES)) {
+        const supply = ["미분양", "착공", "준공"].includes(nm2);
+        svg += `<circle cx="${x}" cy="${y}" r="${R0 - 8}" fill="var(--surface)" stroke="${supply ? "var(--eye-red)" : "var(--eye-blue)"}" stroke-width="1.8"/>
+          <text x="${x}" y="${y + 4}" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--ink)">${nm2}</text>`;
+      }
+      svg += `<defs><marker id="pm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--rule)"/></marker></defs></svg>`;
+      const pp = $("path-svg");
+      if (pp) {
+        pp.innerHTML = svg;
+        pp.querySelectorAll(".path-lag").forEach(g2 => g2.addEventListener("click", () => {
+          const sx2 = $("lab-x"), sy2 = $("lab-y");
+          if (!sx2) return;
+          sx2.value = g2.dataset.x; sy2.value = g2.dataset.y;
+          sx2.dispatchEvent(new Event("change"));
+          document.getElementById("ch6").scrollIntoView({ behavior: "smooth" });
+        }));
+      }
+    }
+
     /* Ⅴ 연구 카드 */
     const L = B.lag;
     if (L && L.grid && L.grid.length) {
@@ -224,7 +281,19 @@
           ${ws.map((w, i) => `<circle cx="${x2(i).toFixed(1)}" cy="${y2(w.lag).toFixed(1)}" r="2" fill="var(--eye-blue)"/>`).join("")}
         </svg>`;
       };
-      $("lag-map").innerHTML = L.grid.map(g => {
+      const GROUPS = [
+        ["금융 → 수요·가격", ["기준금리|주담대금리", "기준금리|거래량", "기준금리|매매가", "주담대금리|거래량", "주담대금리|매매가", "국고10년|매매가"]],
+        ["수요 → 가격", ["거래량|매매가", "거래량|전세가", "매매가|전세가"]],
+        ["가격·공급 → 재고", ["매매가|미분양", "미분양|착공", "인허가|착공", "착공|준공", "준공|미분양"]],
+      ];
+      const groupOf = g => { const k2 = g.x + "|" + g.y;
+        const f = GROUPS.find(([, ks]) => ks.includes(k2)); return f ? f[0] : "기타"; };
+      const ordered = [];
+      GROUPS.forEach(([gn]) => { L.grid.filter(g => groupOf(g) === gn)
+        .forEach((g, i) => ordered.push({ g, head: i === 0 ? gn : null })); });
+      L.grid.filter(g => groupOf(g) === "기타").forEach((g, i) => ordered.push({ g, head: i === 0 ? "기타" : null }));
+      $("lag-map").innerHTML = ordered.map(({ g, head }) => (head ?
+        `<div style="grid-column:1/-1;font-size:13px;letter-spacing:.14em;color:var(--ink-2);font-weight:700;margin-top:10px">${head}</div>` : "") + (g2 => {
         const [gd, gc] = grade(g);
         const ag = agreeShow(g);
         const rg = (t, o) => o ? `${t} <b class="num">+${o.lag}M</b> <span class="num" style="color:${rC(o.r)}">${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}</span>` : `${t} <span style="color:var(--ink-3)">표본 부족</span>`;
@@ -242,7 +311,7 @@
           <div style="display:flex;align-items:center;gap:8px">${spark(g.windows)}
             <span style="font-size:11.5px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~24M</span></div>
         </div>`;
-      }).join("");
+      })(g)).join("");
     }
 
     /* 홈 현재 신호 */
@@ -277,7 +346,8 @@
           <line x1="${x2(0)}" x2="${x2(0)}" y1="4" y2="${H2-4}" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="3 3"/>
           ${[1,-1].map(v => `<line x1="8" x2="${W2-8}" y1="${y2(v)}" y2="${y2(v)}" stroke="var(--hairline-2)" stroke-width="1"/>`).join("")}
           <path d="${d}" fill="none" stroke="var(--eye-blue)" stroke-width="1.8"/>
-          ${peakK != null ? `<circle cx="${x2(peakK)}" cy="${y2(zp.find(p=>p.k===peakK).z)}" r="3.2" fill="var(--eye-red)"/>` : ""}
+          ${zp.filter(p => p.z != null).map(p => `<circle cx="${x2(p.k)}" cy="${y2(p.z)}" r="4.5" fill="transparent" style="cursor:crosshair"><title>T${p.k >= 0 ? "+" : ""}${p.k}M · z=${p.z > 0 ? "+" : ""}${p.z}</title></circle>`).join("")}
+          ${peakK != null ? `<circle cx="${x2(peakK)}" cy="${y2(zp.find(p=>p.k===peakK).z)}" r="3.2" fill="var(--eye-red)" pointer-events="none"/>` : ""}
         </svg>`;
       };
       $("event-cards").innerHTML = B.events.map(ev => `
@@ -353,6 +423,17 @@
       [sx, sy].forEach(el => el.addEventListener("change", () => { presetK(); drawLab(); }));
       sk.addEventListener("input", drawLab);
       sr.addEventListener("change", drawLab);
+      const play = $("lab-play");
+      let sweep = null;
+      play.addEventListener("click", () => {
+        if (sweep) { clearInterval(sweep); sweep = null; play.textContent = "▶"; return; }
+        sk.value = 0; drawLab(); play.textContent = "⏸";
+        sweep = setInterval(() => {
+          const nk = +sk.value + 1;
+          if (nk > 24) { clearInterval(sweep); sweep = null; play.textContent = "▶"; return; }
+          sk.value = nk; drawLab();
+        }, 340);
+      });
       presetK();
     }
     drawLab();
