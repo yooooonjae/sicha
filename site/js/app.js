@@ -7,6 +7,15 @@
   const NAMES = (B.meta && B.meta.sgg_names) || {};
   const nm = sgg => NAMES[sgg] || sgg;
 
+  /* 실험실 로드 — 전달경로 라벨·시차지도 셀·모바일 카드가 공유 (선택 후 옵션 스크롤) */
+  function loadLab(x, y, scroll) {
+    const sx = $("lab-x"), sy = $("lab-y");
+    if (!sx || !sy) return;
+    sx.value = x; sy.value = y;
+    sx.dispatchEvent(new Event("change"));
+    if (scroll) { const t = document.getElementById("ch6"); if (t) t.scrollIntoView({ behavior: "smooth" }); }
+  }
+
   /* ── 테마 ─────────────────────────────────────── */
   const root = document.documentElement;
   const themeBtn = $("themeBtn");
@@ -123,8 +132,8 @@
         <th>연도</th><th class="num">시장의 눈 — 매매 중앙값</th><th class="num">행정의 눈 — 공시가격</th>
         <th class="num">현실화율</th></tr></thead><tbody>` +
         best.map(c => `<tr><td class="num">${c.year}</td>
-          <td class="num">${c.market_eok.toFixed(1)}억</td>
-          <td class="num" style="color:var(--eye-red)">${c.gongsi_eok.toFixed(1)}억</td>
+          <td class="num">${c.market_eok.toFixed(1)}<span class="u">억</span></td>
+          <td class="num" style="color:var(--eye-red)">${c.gongsi_eok.toFixed(1)}<span class="u">억</span></td>
           <td class="num"><b>${c.ratio}%</b></td></tr>`).join("") +
         `<tr><td colspan="3" style="color:var(--ink-2)">세입자의 눈 — 이 시군구의 최신 전세가율</td>
         <td class="num" style="color:var(--eye-blue)"><b>${jrCell}</b></td></tr></tbody></table>`;
@@ -162,11 +171,11 @@
       const OF = R.official || {};
       const years = [...new Set(Object.keys(R.by_year).concat(Object.keys(OF)))].sort();
       Charts.line($("r-year"), [
-        { name: "정부 발표 평균(공동주택 전체)", color: "--ink-3",
+        { name: "정부 발표 평균", color: "--ink-3",
           points: years.map(y => ({ label: y + ".01", y: OF[y] != null ? OF[y] : NaN })) },
         { name: "이 표본 중앙값", color: "--s2", emph: true,
           points: years.map(y => ({ label: y + ".01", y: R.by_year[y] ? R.by_year[y].med : NaN })) },
-      ], { width: MOB ? 560 : 1160, height: 300, interactive: false, aria: "연도별 현실화율 — 표본과 정부 발표 대조" });
+      ], { width: MOB ? 560 : 1160, height: 300, rightPad: MOB ? 88 : 96, interactive: false, aria: "연도별 현실화율 — 표본과 정부 발표 대조" });
 
       const pts = R.by_complex.filter(c => c.year >= 2024).map(c => ({
         x: c.market_eok, y: c.ratio, label: c.apt,
@@ -203,7 +212,7 @@
         개별 지역 판정은 원자료 확인이 먼저다.`;
     }
 
-    /* Ⅴ 전달경로 — 인터랙티브 허브 */
+    /* Ⅴ 전달경로 — 데스크톱: 네트워크+우측 상세 · 모바일: 세로 타임라인 */
     const LG = B.lag;
     if (LG && LG.grid) {
       const findLag = (x, y) => {
@@ -221,63 +230,162 @@
         ["착공", "준공"], ["준공", "준공후미분양"],
       ];
       const SUPPLY_EDGE = new Set(["매매가|미분양", "미분양|착공", "착공|준공", "준공|준공후미분양"]);
-      const R0 = 34;
-      let svg = `<svg viewBox="0 0 1120 370" role="img" aria-label="신호 전달경로" style="width:100%;height:auto;display:block">`;
-      EDGES.forEach(([a, b], ei) => {
-        const [x1, y1] = NODES[a], [x2, y2] = NODES[b];
-        const lag = findLag(a, b);
-        const supply = SUPPLY_EDGE.has(a + "|" + b);
-        let d;
-        if (y1 === y2) d = `M ${x1 + R0} ${y1} L ${x2 - R0 - 8} ${y2}`;
-        else d = `M ${x1 - 14} ${y1 + R0 - 6} L ${x2 + 26} ${y2 - R0 + 2}`;
-        svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="var(--rule)" stroke-width="1.6"${supply ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#pm)"/>`;
-        if (lag) {  // 동행(0M)은 펄스를 그리지 않는다 — 순서를 판정할 수 없으므로
-          const dur = Math.max(1.4, lag * 0.55);
-          svg += `<circle r="4.5" fill="var(--ink)" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
-        }
-        if (lag != null) {
-          const mx = (x1 + x2) / 2, my = y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2;
-          const txt = lag === 0 ? "0M 동행" : "+" + lag + "M";
-          const w3 = lag === 0 ? 76 : 60;
-          svg += `<g class="path-lag" data-x="${a}" data-y="${b}" style="cursor:pointer">
-            <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="22" rx="11" fill="var(--wash-blue)"/>
-            <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--eye-blue-deep)" font-family="var(--font-num)">${txt}</text>
-            <title>${a} → ${b}${lag === 0 ? " — 월간 자료에서는 선후를 구분할 수 없다" : ""} — 실험실에서 열기</title></g>`;
-        }
-      });
-      for (const [nm2, [x, y]] of Object.entries(NODES)) {
-        const supply = ["미분양", "착공", "준공"].includes(nm2);
-        svg += `<circle cx="${x}" cy="${y}" r="${R0 - 8}" fill="var(--surface)" stroke="${supply ? "var(--eye-red)" : "var(--eye-blue)"}" stroke-width="1.8"/>
-          <text x="${x}" y="${y + 4}" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--ink)">${nm2}</text>`;
-      }
-      svg += `<defs><marker id="pm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--rule)"/></marker></defs></svg>`;
+      const SUPPLY_NODE = new Set(["미분양", "착공", "준공"]);
+      const rCol = v => v < 0 ? "var(--eye-red)" : "var(--eye-blue)";
+      // 관계 상세(우측 패널·모바일 인라인 공유) — grid 항목을 판독표로
+      const detailHTML = (x, y) => {
+        const g = LG.grid.find(g2 => g2.x === x && g2.y === y);
+        if (!g) return `<p class="pd-empty">${x} → ${y} — 시차 표에 없는 관계다.</p>`;
+        const agr = g.agree == null ? null : (g.r < 0 ? 100 - g.agree : g.agree);
+        const rg = o => o ? `+${o.lag}M · r ${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}` : "표본 부족";
+        const row = (t, v) => `<div><dt>${t}</dt><dd class="num">${v}</dd></div>`;
+        return `<div class="pd-head">${x} <span style="color:var(--ink-3)">→</span> ${y}</div>
+          <div class="pd-big num">+${g.lag}<span class="pd-unit">개월</span><span style="color:${rCol(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span></div>
+          <dl class="pd-list">
+            ${row("표본", "n=" + g.n)}
+            ${row("방향 일치", agr != null ? agr + "%" + (g.r < 0 ? " <span style='color:var(--ink-3)'>(역)</span>" : "") : "—")}
+            ${row("인상기", rg(g.regime_up))}
+            ${row("인하기", rg(g.regime_down))}
+            ${g.lag_near != null ? row("6M내 피크", "+" + g.lag_near + "M (" + g.r_near + ")") : ""}
+            ${g.at_bound ? `<div><dt>주의</dt><dd style="color:var(--eye-red)">상한(${g.max_lag}M)에서 최대 — 미확정</dd></div>` : ""}
+          </dl>
+          <button class="btn-sm pd-open" data-x="${x}" data-y="${y}">실험실에서 열기 →</button>`;
+      };
+      const bindOpen = scope => scope.querySelectorAll(".pd-open").forEach(b =>
+        b.addEventListener("click", () => loadLab(b.dataset.x, b.dataset.y, true)));
+
       const pp = $("path-svg");
-      if (pp) {
+      const detail = $("path-detail");
+      const playBtn = $("pp-play");
+      if (!pp) { /* 컨테이너 없음 */ }
+      else if (MOB) {
+        // ── 모바일: 세로 타임라인 (금융·수요 / 공급 피드백 2탭) ──
+        if (playBtn) playBtn.style.display = "none";
+        if (detail) detail.hidden = true;
+        const CHAINS = [
+          { name: "금융·수요", nodes: ["기준금리", "주담대금리", "거래량", "매매가", "전세가"] },
+          { name: "공급 피드백", nodes: ["매매가", "미분양", "착공", "준공", "준공후미분양"] },
+        ];
+        let ci = 0;
+        pp.innerHTML = `<div class="pt-tabs">${CHAINS.map((c, i) =>
+          `<button class="pt-tab${i === 0 ? " on" : ""}" data-c="${i}">${c.name}</button>`).join("")}</div><div class="pt-flow" id="pt-flow"></div>`;
+        const drawFlow = () => {
+          const ch = CHAINS[ci];
+          let h = "";
+          ch.nodes.forEach((nd, i) => {
+            h += `<div class="pt-node${SUPPLY_NODE.has(nd) ? " supply" : ""}" data-node="${i}"><span class="pt-dot"></span>${nd}</div>`;
+            if (i < ch.nodes.length - 1) {
+              const a = nd, b = ch.nodes[i + 1], lag = findLag(a, b);
+              const supE = SUPPLY_EDGE.has(a + "|" + b);
+              const txt = lag == null ? "—" : lag === 0 ? "0M 동행" : "+" + lag + "M";
+              h += `<div class="pt-edge${supE ? " supply" : ""}" data-edge="${i}">
+                <span class="pt-arrow">↓</span>
+                <button class="pt-lag${lag === 0 ? " zero" : ""}" data-x="${a}" data-y="${b}">${txt}</button>
+                <span class="pt-dash"></span></div>`;
+            }
+          });
+          const flow = $("pt-flow");
+          flow.innerHTML = h;
+          const sel = (a, b, afterEl) => {
+            const ex = flow.querySelector(".pt-inline");
+            const same = ex && ex.dataset.x === a && ex.dataset.y === b;
+            if (ex) ex.remove();
+            if (same) return;
+            const card = document.createElement("div");
+            card.className = "pt-inline"; card.dataset.x = a; card.dataset.y = b;
+            card.innerHTML = detailHTML(a, b);
+            afterEl.insertAdjacentElement("afterend", card);
+            bindOpen(card);
+          };
+          flow.querySelectorAll(".pt-lag").forEach(bt => bt.addEventListener("click", e => {
+            e.stopPropagation(); sel(bt.dataset.x, bt.dataset.y, bt.closest(".pt-edge"));
+          }));
+          flow.querySelectorAll(".pt-node").forEach(ndEl => ndEl.addEventListener("click", () => {
+            const i = +ndEl.dataset.node, ei = Math.min(i, ch.nodes.length - 2);
+            const edgeEl = flow.querySelector(`.pt-edge[data-edge="${ei}"]`);
+            sel(ch.nodes[ei], ch.nodes[ei + 1], edgeEl || ndEl);
+          }));
+        };
+        pp.querySelectorAll(".pt-tab").forEach(bt => bt.addEventListener("click", () => {
+          pp.querySelectorAll(".pt-tab").forEach(b2 => b2.classList.remove("on"));
+          bt.classList.add("on"); ci = +bt.dataset.c; drawFlow();
+        }));
+        drawFlow();
+      } else {
+        // ── 데스크톱: 네트워크 SVG(좌 70%) + 상세 패널(우 30%) ──
+        if (playBtn) playBtn.style.display = "";
+        if (detail) detail.hidden = false;
+        const R0 = 34;
+        let svg = `<svg viewBox="0 0 1120 370" role="img" aria-label="신호 전달경로" style="width:100%;height:auto;display:block">`;
+        EDGES.forEach(([a, b], ei) => {
+          const [x1, y1] = NODES[a], [x2, y2] = NODES[b];
+          const lag = findLag(a, b);
+          const supply = SUPPLY_EDGE.has(a + "|" + b);
+          let d;
+          if (y1 === y2) d = `M ${x1 + R0} ${y1} L ${x2 - R0 - 8} ${y2}`;
+          else d = `M ${x1 - 14} ${y1 + R0 - 6} L ${x2 + 26} ${y2 - R0 + 2}`;
+          svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="var(--rule)" stroke-width="1.6"${supply ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#pm)"/>`;
+          if (lag) {  // 동행(0M)은 펄스를 그리지 않는다 — 순서를 판정할 수 없으므로
+            const dur = Math.max(1.4, lag * 0.55);
+            svg += `<circle r="4.5" fill="var(--ink)" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
+          }
+          if (lag != null) {
+            const mx = (x1 + x2) / 2, my = y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2;
+            const txt = lag === 0 ? "0M 동행" : "+" + lag + "M";
+            const w3 = lag === 0 ? 80 : 62;
+            svg += `<g class="path-lag" data-x="${a}" data-y="${b}" style="cursor:pointer">
+              <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="23" rx="11.5" fill="var(--wash-blue)"/>
+              <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--eye-blue-deep)" font-family="${lag === 0 ? "var(--font-body)" : "var(--font-num)"}">${txt}</text>
+              <title>${a} → ${b}${lag === 0 ? " — 월간 자료에서는 선후를 구분할 수 없다" : ""} — 우측에 상세</title></g>`;
+          }
+        });
+        for (const [nm2, [x, y]] of Object.entries(NODES)) {
+          const supply = SUPPLY_NODE.has(nm2);
+          svg += `<circle cx="${x}" cy="${y}" r="${R0 - 6}" fill="var(--surface)" stroke="${supply ? "var(--eye-red)" : "var(--eye-blue)"}" stroke-width="2"/>
+            <text x="${x}" y="${y + 4.5}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${nm2}</text>`;
+        }
+        svg += `<defs><marker id="pm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--rule)"/></marker></defs></svg>`;
         pp.innerHTML = svg;
-        const playBtn = $("pp-play");
         if (playBtn && !playBtn.dataset.bound) {
           playBtn.dataset.bound = "1";
           playBtn.addEventListener("click", () => {
-            pp.querySelectorAll(".path-anim").forEach((an, i2) => {
-              try { an.beginElementAt(i2 * 0.4); } catch (e) {}
-            });
-            playBtn.textContent = "재생 중";
-            playBtn.disabled = true;
+            pp.querySelectorAll(".path-anim").forEach((an, i2) => { try { an.beginElementAt(i2 * 0.4); } catch (e) {} });
+            playBtn.textContent = "재생 중"; playBtn.disabled = true;
           });
         }
-        pp.querySelectorAll(".path-lag").forEach(g2 => g2.addEventListener("click", () => {
-          const sx2 = $("lab-x"), sy2 = $("lab-y");
-          if (!sx2) return;
-          sx2.value = g2.dataset.x; sy2.value = g2.dataset.y;
-          sx2.dispatchEvent(new Event("change"));
-          document.getElementById("ch6").scrollIntoView({ behavior: "smooth" });
-        }));
+        const showDetail = (x, y, gEl) => {
+          if (!detail) return;
+          detail.innerHTML = detailHTML(x, y);
+          bindOpen(detail);
+          pp.querySelectorAll(".path-lag").forEach(o => o.classList.remove("on"));
+          if (gEl) gEl.classList.add("on");
+        };
+        pp.querySelectorAll(".path-lag").forEach(g2 => g2.addEventListener("click", () =>
+          showDetail(g2.dataset.x, g2.dataset.y, g2)));
       }
     }
 
-    /* Ⅴ 연구 카드 */
+    /* Ⅴ 연구 카드 (아래) — 그 위 시차지도 히트맵이 장의 대표 화면 */
     const L = B.lag;
     if (L && L.grid && L.grid.length) {
+      /* 시차지도 — 선행(행) × 반응(열) 전수표. 셀=최적 시차 · 농도=|r| · 클릭=실험실 */
+      if ($("lag-heat")) {
+        const XORD = ["기준금리", "국고10년", "주담대금리", "거래량", "매매가", "미분양", "인허가", "착공", "준공"];
+        const YORD = ["주담대금리", "거래량", "매매가", "전세가", "미분양", "착공", "준공", "준공후미분양"];
+        const rowsH = XORD.filter(x => L.grid.some(g => g.x === x));
+        const colsH = YORD.filter(y => L.grid.some(g => g.y === y));
+        const gAt = (x, y) => L.grid.find(g => g.x === x && g.y === y);
+        const lagAt = (x, y) => { const g = gAt(x, y); return g ? (g.lag_near != null ? g.lag_near : g.lag) : null; };
+        const cellsH = rowsH.map(x => colsH.map(y => { const g = gAt(x, y); return g ? Math.abs(g.r) : NaN; }));
+        Charts.heatmap($("lag-heat"), { xs: colsH, ys: rowsH, cells: cellsH }, {
+          width: MOB ? 660 : 1120, cellH: MOB ? 32 : 38, labelW: 84,
+          cellText: true, xName: "반응", yName: "선행", vLabel: "|r|",
+          cellFmt: (v, r, c) => { const lg = lagAt(rowsH[r], colsH[c]); return lg == null ? "" : lg === 0 ? "0M" : "+" + lg + "M"; },
+          tipFmt: (v, r, c) => { const g = gAt(rowsH[r], colsH[c]); return g ? `+${lagAt(rowsH[r], colsH[c])}M · r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)} · n=${g.n}` : "관측 쌍 아님"; },
+          legend: "행(선행) → 열(반응) · 셀 = 최적 시차 · 농도 = |r| · 빈칸 = 관측 쌍 아님",
+          aria: "선행×반응 시차 전수표", onCell: (colV, rowV) => loadLab(rowV, colV, true),
+        });
+      }
       const grade = g => g.n <= 24 ? ["짧은 표본", "var(--ink-3)"]
         : (g.stable && Math.abs(g.r) >= 0.4) ? ["A", "var(--eye-blue)"]
         : g.stable ? ["B", "var(--eye-blue)"] : ["C", "var(--ink-3)"];
@@ -302,27 +410,30 @@
         ["수요 → 가격", ["거래량|매매가", "거래량|전세가", "매매가|전세가"]],
         ["가격·재고 → 공급", ["매매가|미분양", "미분양|착공", "인허가|착공", "착공|준공", "준공|준공후미분양"]],
       ];
+      const GRP_TONE = ["--seq-600", "--seq-500", "--seq-400", "--seq-300"]; // A~D 청색 계열 농도 (좌측 3px 그룹선)
       const groupOf = g => { const k2 = g.x + "|" + g.y;
         const f = GROUPS.find(([, ks]) => ks.includes(k2)); return f ? f[0] : "기타"; };
       const ordered = [];
-      GROUPS.forEach(([gn]) => { L.grid.filter(g => groupOf(g) === gn)
-        .forEach((g, i, arr) => ordered.push({ g, head: i === 0 ? gn : null, rest: i > 0, restN: arr.length - 1 })); });
-      L.grid.filter(g => groupOf(g) === "기타").forEach((g, i) => ordered.push({ g, head: i === 0 ? "기타" : null }));
-      $("lag-map").innerHTML = ordered.map(({ g, head, rest, restN }) => (head ?
-        `<div style="grid-column:1/-1;display:flex;align-items:baseline;gap:12px;margin-top:10px">
-          <span style="font-size:13px;letter-spacing:.14em;color:var(--ink-2);font-weight:700">${head}</span>
-          ${restN ? `<button class="btn lag-more" data-grp="${head}" style="padding:4px 12px;font-size:12px">나머지 ${restN}개 보기 ▾</button>` : ""}</div>` : "") + (g2 => {
+      GROUPS.forEach(([gn], gi) => { const arr = L.grid.filter(g => groupOf(g) === gn);
+        arr.forEach((g, i) => ordered.push({ g, head: i === 0 ? gn : null, gi, cnt: arr.length, rest: i > 0, restN: arr.length - 1 })); });
+      { const arr = L.grid.filter(g => groupOf(g) === "기타");
+        arr.forEach((g, i) => ordered.push({ g, head: i === 0 ? "기타" : null, gi: -1, cnt: arr.length })); }
+      $("lag-map").innerHTML = ordered.map(({ g, head, gi, cnt, rest, restN }) => (head ?
+        `<div class="lag-grphead" style="grid-column:1/-1">
+          ${gi >= 0 ? `<span class="lag-badge">${String.fromCharCode(65 + gi)}</span>` : ""}
+          <span class="lag-grpname">${head}</span><span class="lag-grpcnt">· ${cnt}개 관계</span>
+          ${restN ? `<button class="btn-sm lag-more" data-grp="${head}" style="margin-left:auto">나머지 ${restN}개 보기 ▾</button>` : ""}</div>` : "") + (g2 => {
         const [gd, gc] = grade(g);
         const ag = agreeShow(g);
         const rg = (t, o) => o ? `${t} <b class="num">+${o.lag}M</b> <span class="num" style="color:${rC(o.r)}">${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}</span>` : `${t} <span style="color:var(--ink-3)">표본 부족</span>`;
-        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0">
+        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0;border-left:3px solid ${css(gi >= 0 && gi < GRP_TONE.length ? GRP_TONE[gi] : "--rule")}">
           <div style="display:flex;align-items:baseline;gap:10px">
             <div class="viz-title">${g.x} → ${g.y}</div>
             <span class="num" style="margin-left:auto;font-weight:800;color:${gc}">${gd}</span>
           </div>
-          <div style="font-size:20px;margin:6px 0 2px" class="num"><b>+${g.lag}개월</b>
-            <span style="color:${rC(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span>
-            <span style="font-size:12.5px;color:var(--ink-3)"> n=${g.n}${g.lag_near != null ? ` · 6M내 피크 +${g.lag_near}M(${g.r_near})` : ""}${g.at_bound ? ` · <b style="color:var(--eye-red)">탐색 상한(${g.max_lag}M)에서 최대 — 미확정</b>` : ""}</span></div>
+          <div style="font-size:20px;margin:6px 0 2px"><b class="num">+${g.lag}</b>개월
+            <span class="num" style="color:${rC(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span>
+            <span style="font-size:12.5px;color:var(--ink-3)"> n=<span class="num">${g.n}</span>${g.lag_near != null ? ` · 6M내 피크 <span class="num">+${g.lag_near}M(${g.r_near})</span>` : ""}${g.at_bound ? ` · <b style="color:var(--eye-red)">탐색 상한(<span class="num">${g.max_lag}M</span>)에서 최대 — 미확정</b>` : ""}</span></div>
           <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">
             ${ag != null ? `방향 일치 <b class="num">${ag}%</b>${g.r < 0 ? " (역방향 기준)" : ""}` : "방향 일치 표본 부족"}
             &nbsp;·&nbsp; ${rg("인상기", g.regime_up)} &nbsp;·&nbsp; ${rg("인하기", g.regime_down)}</div>
@@ -344,11 +455,11 @@
     if (B.signals && B.signals.length) {
       $("home-signals").innerHTML = B.signals.map(sg => {
         const dirTxt = sg.dir === "-" ? "하락 전환" : "상승 전환";
-        const el2 = sg.elapsed != null ? `${sg.elapsed}개월 경과` : "전환 미탐지";
+        const el2 = sg.elapsed != null ? `<span class="num">${sg.elapsed}</span>개월 경과` : "전환 미탐지";
         const ag = sg.agree != null ? Math.max(sg.agree, 100 - sg.agree) : null;
         return `<div class="kpi"><div class="v" style="font-size:17px">${sg.x} ${dirTxt}</div>
-          <div class="l">→ <b>${sg.y}</b> 반응 관측 구간 <b class="num">+${sg.lag}개월</b> · 현재
-          <b class="num">${el2}</b>${ag != null ? ` · 과거 방향 일치 ${ag}%` : ""} · 기준 ${sg.latest.slice(0,4)}.${sg.latest.slice(4)}</div></div>`;
+          <div class="l">→ <b>${sg.y}</b> 반응 관측 구간 <b class="num">+${sg.lag}</b>개월 · 현재
+          <b>${el2}</b>${ag != null ? ` · 과거 방향 일치 <span class="num">${ag}%</span>` : ""} · 기준 <span class="num">${sg.latest.slice(0,4)}.${sg.latest.slice(4)}</span></div></div>`;
       }).join("");
     } else { const sp = $("signal-plate"); if (sp) sp.hidden = true; }
 
@@ -372,8 +483,9 @@
           <line x1="${x2(0)}" x2="${x2(0)}" y1="4" y2="${H2-4}" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="3 3"/>
           ${[1,-1].map(v => `<line x1="8" x2="${W2-8}" y1="${y2(v)}" y2="${y2(v)}" stroke="var(--hairline-2)" stroke-width="1"/>`).join("")}
           <path d="${d}" fill="none" stroke="var(--eye-blue)" stroke-width="1.8"/>
-          ${zp.filter(p => p.z != null).map(p => `<circle cx="${x2(p.k)}" cy="${y2(p.z)}" r="4.5" fill="transparent" style="cursor:crosshair"><title>T${p.k >= 0 ? "+" : ""}${p.k}M · z=${p.z > 0 ? "+" : ""}${p.z}</title></circle>`).join("")}
-          ${peakK != null ? `<circle cx="${x2(peakK)}" cy="${y2(zp.find(p=>p.k===peakK).z)}" r="3.2" fill="var(--eye-red)" pointer-events="none"/>` : ""}
+          ${(() => { const z0 = zp.find(p => p.k === 0 && p.z != null); return z0 ? `<circle cx="${x2(0)}" cy="${y2(z0.z)}" r="3" fill="var(--ink)" stroke="var(--surface)" stroke-width="1" pointer-events="none"/>` : ""; })()}
+          ${zp.filter(p => p.z != null).map(p => `<circle class="ev-hit" cx="${x2(p.k)}" cy="${y2(p.z)}" r="4.5" fill="transparent" style="cursor:crosshair"><title>T${p.k >= 0 ? "+" : ""}${p.k}M · z=${p.z > 0 ? "+" : ""}${p.z}</title></circle>`).join("")}
+          ${peakK != null ? `<circle cx="${x2(peakK)}" cy="${y2(zp.find(p=>p.k===peakK).z)}" r="3.6" fill="var(--eye-red)" stroke="var(--surface)" stroke-width="1" pointer-events="none"/>` : ""}
         </svg>`;
       };
       const evCard = ev => `
@@ -381,7 +493,7 @@
           <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
             <div class="viz-title">${ev.name}</div>
             <span class="eye-tag ${ev.type === "통화" ? "blue" : ev.type === "규제" ? "red" : "black"}">${ev.type}</span>
-            <span style="margin-left:auto;font-size:12.5px;color:var(--ink-2)" class="num">발표 ${ev.announce} · 시행 ${ev.effective}</span>
+            <span style="margin-left:auto;font-size:12.5px;color:var(--ink-2)">발표 <span class="num">${ev.announce}</span> · 시행 <span class="num">${ev.effective}</span></span>
           </div>
           <div class="viz-q" style="margin-bottom:10px">${ev.note}</div>
           ${ev.rows.length ? `<table class="sheet"><thead><tr><th>지표</th><th>T−12 ~ T+12 이탈 경로(z)</th>
@@ -395,46 +507,110 @@
           거래량·매매가는 2023-08 이후 표본이라 그 이전 사건에는 나타나지 않는다.</p>
         </div>`;
       const tabs = B.events.map((ev, i) =>
-        `<button class="btn ev-tab" data-i="${i}" style="padding:8px 14px;font-size:13px${i === 0 ? ";background:var(--ink);color:var(--paper);border-color:var(--ink)" : ""}">${ev.name.split(" ")[0].slice(0, 10)}</button>`).join("");
-      $("event-cards").innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${tabs}</div><div id="ev-panel">${evCard(B.events[0])}</div>`;
-      const bindEvDots = () => $("ev-panel").querySelectorAll("circle[style]").forEach(c =>
+        `<button class="btn-sm ev-tab${i === 0 ? " on" : ""}" data-i="${i}">${ev.name.split(" ")[0].slice(0, 10)}</button>`).join("");
+      $("event-cards").innerHTML = `<div class="tab-row">${tabs}</div><div id="ev-panel">${evCard(B.events[0])}</div>`;
+      const bindEvDots = () => $("ev-panel").querySelectorAll("circle.ev-hit").forEach(c =>
         c.addEventListener("pointerdown", () => {
-          const t = c.querySelector("title");
-          const rd = c.closest(".plate").querySelector(".ev-read");
+          const t = c.querySelector("title"), plate = c.closest(".plate");
+          plate.querySelectorAll("circle.ev-hit.on").forEach(o => o.classList.remove("on"));
+          c.classList.add("on");
+          const rd = plate.querySelector(".ev-read");
           if (t && rd) rd.textContent = "판독: " + t.textContent + " · ";
         }));
       bindEvDots();
       $("event-cards").querySelectorAll(".ev-tab").forEach(btn => btn.addEventListener("click", () => {
-        $("event-cards").querySelectorAll(".ev-tab").forEach(b2 => b2.removeAttribute("style"));
-        $("event-cards").querySelectorAll(".ev-tab").forEach(b2 => b2.setAttribute("style", "padding:8px 14px;font-size:13px"));
-        btn.setAttribute("style", "padding:8px 14px;font-size:13px;background:var(--ink);color:var(--paper);border-color:var(--ink)");
+        $("event-cards").querySelectorAll(".ev-tab").forEach(b2 => b2.classList.remove("on"));
+        btn.classList.add("on");
         $("ev-panel").innerHTML = evCard(B.events[+btn.dataset.i]);
         bindEvDots();
       }));
     }
 
-    /* Ⅶ 지역확산 */
-    const SP = B.spread;
+    /* Ⅶ 지역확산 — 확산 지도(대표) + 발산 바 */
+    const SP = B.spread, KOREA = window.__KOREA__ || [];
     if (SP) {
       const wrap = $("spread-wrap");
-      wrap.innerHTML = "";
-      for (const [vn, rows] of Object.entries(SP)) {
-        if (!rows.length) continue;
-        const bars = rows.filter(r2 => r2.verdict !== "독립");
-        const indep = rows.filter(r2 => r2.verdict === "독립").map(r2 => r2.region);
-        const div = document.createElement("div");
-        div.className = "plate";
-        div.innerHTML = `<div class="viz-title">${vn} — 서울 대비 시차</div>
-          <div class="viz-q">양(청)=서울이 먼저 · 음(적)=그 지역이 먼저</div>
-          <div class="viz-unit">개월 · 양방향 최적 시차</div><div id="sp-${vn}"></div>
-          <p class="note">판정: ${rows.filter(r2=>r2.verdict==="서울 선행").length}곳 서울 선행 ·
-          ${rows.filter(r2=>r2.verdict==="지역 선행").length}곳 지역 선행 ·
-          ${rows.filter(r2=>r2.verdict==="동행").length}곳 동행${indep.length ? " · 독립(|r|<0.3): " + indep.join("·") : ""}.
-          |r| 최대 기준이며 예측적 선후관계다 — 전달 경로의 증명이 아니다.</p>`;
-        wrap.appendChild(div);
-        divergeBars($("sp-" + vn), bars.map(r2 => ({ name: r2.region, value: r2.k })),
-          { posColor: "--s1", negColor: "--s2", zeroLabel: "동시",
-            fmt: v => (v > 0 ? "+" : "") + v + "M", aria: vn + " 지역확산 시차" });
+      const vars = Object.entries(SP).filter(([, rows]) => rows.length);
+      if (!vars.length) { wrap.innerHTML = ""; }
+      else {
+        wrap.innerHTML = `<div class="plate">
+          <div class="tab-row">${vars.map(([vn], i) =>
+            `<button class="btn-sm sp-tab${i === 0 ? " on" : ""}" data-vn="${vn}">${vn}</button>`).join("")}</div>
+          <div class="viz-title" id="sp-title"></div>
+          <div class="viz-q">서울과 각 시도의 양방향 최적 시차 —
+            <b style="color:var(--eye-blue)">■ 청</b> 서울이 먼저 ·
+            <b style="color:var(--eye-red)">■ 적</b> 그 지역이 먼저 ·
+            <b style="color:var(--ink-3)">■ 회</b> 동행 · <b style="color:var(--ink-3)">□ 옅음</b> 독립·자료없음</div>
+          <div id="sp-read" class="sp-read"></div>
+          <div class="spread-split">
+            <div id="sp-map"></div>
+            <div><div class="viz-unit" style="margin:0 0 4px">개월 · 양방향 최적 시차(발산 바)</div><div id="sp-panel"></div></div>
+          </div>
+          <p class="note" id="sp-note"></p></div>`;
+        const seqBlue = ["--seq-300", "--seq-400", "--seq-500", "--seq-600", "--seq-700"];
+        const fillFor = rec => {
+          if (!rec || rec.verdict === "독립") return { f: css("--surface-2"), s: css("--hairline-2"), w: 1 };
+          if (rec.verdict === "동행") return { f: css("--seq-200"), s: css("--hairline"), w: 1 };
+          if (rec.verdict === "서울 선행") return { f: css(seqBlue[Math.min(4, Math.floor(Math.abs(rec.k) / 3))]), s: css("--hairline"), w: 1 };
+          const pct = 30 + Math.min(58, Math.abs(rec.k) * 6); // 지역 선행 — 적색 농도
+          return { f: `color-mix(in srgb, ${css("--eye-red")} ${pct}%, ${css("--surface")})`, s: css("--hairline"), w: 1 };
+        };
+        const strokeOf = (name, byRegion) => name === "서울" ? css("--ink")
+          : (byRegion[name] && byRegion[name].verdict === "독립") || !byRegion[name] ? css("--hairline-2") : css("--hairline");
+        const drawSp = vn => {
+          const rows = SP[vn], byRegion = {};
+          rows.forEach(r => byRegion[r.region] = r);
+          const bars = rows.filter(r2 => r2.verdict !== "독립");
+          const indep = rows.filter(r2 => r2.verdict === "독립").map(r2 => r2.region);
+          $("sp-title").textContent = `${vn} — 서울 대비 지역 시차 지도`;
+          $("sp-note").innerHTML = `판정: <span class="num">${rows.filter(r2 => r2.verdict === "서울 선행").length}</span>곳 서울 선행 · ` +
+            `<span class="num">${rows.filter(r2 => r2.verdict === "지역 선행").length}</span>곳 지역 선행 · ` +
+            `<span class="num">${rows.filter(r2 => r2.verdict === "동행").length}</span>곳 동행${indep.length ? " · 독립(|r|<0.3): " + indep.join("·") : ""}. ` +
+            `|r| 최대 기준이며 <b>예측적 선후관계다 — 전달 경로의 증명이 아니다.</b>`;
+          // 지도
+          let msvg = `<svg viewBox="0 0 520 690" role="img" aria-label="${vn} 지역확산 지도" style="width:100%;height:auto;display:block">`;
+          KOREA.forEach(sd => {
+            const isSeoul = sd.name === "서울";
+            const st = isSeoul ? { f: css("--wash-blue"), s: css("--ink"), w: 2.2 } : fillFor(byRegion[sd.name]);
+            msvg += `<path class="kmap-region" data-region="${sd.name}" d="${sd.d}" fill="${st.f}" stroke="${st.s}" stroke-width="${st.w}"/>`;
+          });
+          msvg += `</svg>`;
+          $("sp-map").innerHTML = msvg;
+          // 판독
+          const rr = rec => `r=<span class="num">${rec.r > 0 ? "+" : ""}${rec.r.toFixed(2)}</span> · n=<span class="num">${rec.n}</span>`;
+          const readout = name => {
+            const rec = byRegion[name];
+            if (name === "서울") return `<b>서울</b> — 기준 지역(비교 대상)`;
+            if (!rec) return `<b>${name}</b> — 이 변수 표본 없음`;
+            if (rec.verdict === "독립") return `<b>${name}</b> — 독립(|r|&lt;0.3) · ${rr(rec)}`;
+            if (rec.verdict === "동행") return `<b>${name}</b> — 서울과 동행(±1개월) · ${rr(rec)}`;
+            if (rec.verdict === "서울 선행") return `<b>${name}</b> — 서울이 <span class="num">+${rec.k}</span>개월 선행 · ${rr(rec)}`;
+            return `<b>${name}</b> — ${name}가 <span class="num">+${Math.abs(rec.k)}</span>개월 선행 · ${rr(rec)}`;
+          };
+          const readEl = $("sp-read");
+          readEl.innerHTML = `<span style="color:var(--ink-3)">지역에 마우스를 올리거나 탭하면 상세가 뜬다 · 서울(굵은 테두리)이 기준</span>`;
+          const paths = [...$("sp-map").querySelectorAll(".kmap-region")];
+          const show = p => {
+            paths.forEach(o => { o.setAttribute("stroke", strokeOf(o.dataset.region, byRegion)); o.setAttribute("stroke-width", o.dataset.region === "서울" ? 2.2 : 1); });
+            p.setAttribute("stroke", css("--ink")); p.setAttribute("stroke-width", 2.6);
+            p.parentNode.appendChild(p); // 선택 외곽선을 위로
+            readEl.innerHTML = readout(p.dataset.region);
+          };
+          paths.forEach(p => {
+            p.style.cursor = "pointer";
+            p.addEventListener("pointerenter", () => show(p));
+            p.addEventListener("click", () => show(p));
+          });
+          // 발산 바(우)
+          divergeBars($("sp-panel"), bars.map(r2 => ({ name: r2.region, value: r2.k })),
+            { width: MOB ? 560 : 720, posColor: "--s1", negColor: "--s2", zeroLabel: "동시",
+              fmt: v => (v > 0 ? "+" : "") + v + "M", aria: vn + " 지역확산 시차" });
+        };
+        drawSp(vars[0][0]);
+        wrap.querySelectorAll(".sp-tab").forEach(btn => btn.addEventListener("click", () => {
+          wrap.querySelectorAll(".sp-tab").forEach(b2 => b2.classList.remove("on"));
+          btn.classList.add("on"); drawSp(btn.dataset.vn);
+        }));
       }
     }
 
@@ -442,11 +618,11 @@
     const src = [];
     src.push(`<tr><td>국토부 RTMS 매매</td><td>아파트 매매 실거래(수지 공유 원천)</td>
       <td>${M.sgg_names ? Object.keys(M.sgg_names).length : "—"}개 시군구 · 36개월</td>
-      <td class="num">${(M.n_sale || 0).toLocaleString()}건</td></tr>`);
+      <td class="num">${(M.n_sale || 0).toLocaleString()}<span class="u">건</span></td></tr>`);
     src.push(`<tr><td>국토부 RTMS 전월세</td><td>아파트 전월세 실거래 — 동일 시군구·월 범위</td>
-      <td>동일</td><td class="num">${(M.n_rent || 0).toLocaleString()}행</td></tr>`);
+      <td>동일</td><td class="num">${(M.n_rent || 0).toLocaleString()}<span class="u">행</span></td></tr>`);
     if (R) src.push(`<tr><td>VWorld NED 공시</td><td>공동주택 공시가격 — 지오코더→지적→공시 3단 체인</td>
-      <td>2021~2025 · 표본단지</td><td class="num">${R.by_complex.length}관측</td></tr>`);
+      <td>2021~2025 · 표본단지</td><td class="num">${R.by_complex.length}<span class="u">관측</span></td></tr>`);
     $("m-src-rows").innerHTML = src.join("");
     $("m-src-n").textContent = `매매 ${(M.n_sale || 0).toLocaleString()} · 전월세 ${(M.n_rent || 0).toLocaleString()}`;
     if (M.n_skip != null) $("m-skip").textContent = M.n_skip;
@@ -536,15 +712,15 @@
       const yv = labels.map(t => ym_.has(shift(t, k)) ? ym_.get(shift(t, k)) : NaN);
       const zx = zfn(xv), zy = zfn(yv);
       Charts.line($("lab-wave"), [
-        { name: nx + " — " + unit(nx) + "·z", color: "--s1",
+        { name: nx + "·z", color: "--s1",
           points: labels.map((t, i) => ({ label: mk(t), y: zx(xv[i]) })) },
-        { name: ny + (k ? ` (+${k}개월 앞당김)` : "") + " — " + unit(ny) + "·z", color: "--s2",
+        { name: ny + (k ? ` +${k}M` : "") + "·z", color: "--s2",
           points: labels.map((t, i) => ({ label: mk(t), y: zy(yv[i]) })) },
-      ], { width: MOB ? 560 : 1160, height: MOB ? 340 : 320, interactive: false, aria: "두 변수의 파형 정렬(표준화)" });
+      ], { width: MOB ? 560 : 1160, height: MOB ? 340 : 320, rightPad: MOB ? 96 : 116, interactive: false, aria: "두 변수의 파형 정렬(표준화)" });
       const cur = corrAt(xm, ym_, k);
       $("lab-read").innerHTML = cur.r == null
-        ? `시차 +${k}개월 · 겹침 ${cur.n}개월 — 표본 부족`
-        : `시차 <b>+${k}개월</b> · r = <b style="color:${cur.r < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">${cur.r > 0 ? "+" : ""}${cur.r.toFixed(2)}</b> · 겹침 ${cur.n}개월`;
+        ? `시차 <span class="num">+${k}</span>개월 · 겹침 <span class="num">${cur.n}</span>개월 — 표본 부족`
+        : `시차 <b class="num">+${k}</b>개월 · r = <b class="num" style="color:${cur.r < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">${cur.r > 0 ? "+" : ""}${cur.r.toFixed(2)}</b> · 겹침 <span class="num">${cur.n}</span>개월`;
       // 시차별 곡선
       const pts = [];
       for (let kk = 0; kk <= (L.max_lag || 24); kk++) {

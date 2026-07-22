@@ -246,12 +246,23 @@
     <div class="viz-title">전달경로 — 신호가 시장을 통과하는 순서</div>
     <div class="viz-q" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span>화살표 위 숫자는 실측 시차. <b>시차 라벨 클릭 = 실험실에 로드.</b></span>
-      <button class="btn" id="pp-play" style="padding:6px 14px;font-size:12.5px;margin-left:auto">경로 재생 ▶</button></div>
-    <div id="path-svg"></div>
+      <button class="btn-sm" id="pp-play" style="margin-left:auto">경로 재생 ▶</button></div>
+    <div class="path-split">
+      <div id="path-svg"></div>
+      <aside id="path-detail" class="path-detail"><p class="pd-empty">화살표 위 <b>시차 라벨</b>을 누르면 두 변수 관계의 상세 — 시차·상관·국면·방향 일치율 — 가 여기 표시된다.</p></aside>
+    </div>
     <p class="note">시차는 6개월 내 국소 피크 우선(없으면 전역 최적). 실선 = 금융·수요 관측경로,
     점선 = 공급 피드백 경로. <b>각 화살표의 시차는 두 변수 사이에서 따로 추정한 값이라 경로 전체의
     시차로 합산할 수 없다.</b> "0M 동행"은 월간 자료에서 선후를 구분할 수 없다는 뜻이며(펄스 없음),
     경로는 가설의 배열이지 인과 증명이 아니다.</p>
+  </div>
+  <div class="plate" id="lag-heat-plate">
+    <div class="viz-title">시차지도 — 선행 × 반응 전수표</div>
+    <div class="viz-q">행(선행)이 열(반응)보다 몇 개월 앞서 움직였나 · 셀 클릭 = 실험실에서 열기</div>
+    <div class="viz-unit">셀 = 최적 시차 · 농도 = |r|</div>
+    <div id="lag-heat"></div>
+    <p class="note">빈칸 = 이 사이트가 재는 관측 쌍이 아니다(경로 가설에 없는 조합). 색이 짙을수록 상관이 강하다(|r|).
+    시차·상관은 <b>예측적 선후관계이며 인과가 아니다.</b> 아래 카드는 각 관계의 국면·이동창 상세다.</p>
   </div>
   <div id="lag-map" class="grid2"></div>
   <p class="note" style="margin-bottom:24px">등급: A = 표본 60개월+·전/후반 안정·|r|≥0.4 · B = 표본·안정 충족 ·
@@ -270,17 +281,17 @@
   겹치는 지점의 시차가 곧 전달 시간의 후보다. 오른쪽 곡선은 시차별 상관을 전부 훑은
   결과로, 슬라이더 위치의 r가 점으로 찍힌다.</p>
   <div class="plate">
-    <div class="viz-title" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <select id="lab-x" class="btn" style="padding:8px 12px;font-weight:600"></select>
+    <div class="viz-title lab-controls">
+      <select id="lab-x" class="btn-sm"></select>
       <span style="color:var(--ink-3)">→</span>
-      <select id="lab-y" class="btn" style="padding:8px 12px;font-weight:600"></select>
-      <select id="lab-regime" class="btn" style="padding:8px 12px" aria-label="국면 선택">
+      <select id="lab-y" class="btn-sm"></select>
+      <select id="lab-regime" class="btn-sm" aria-label="국면 선택">
         <option value="all">전체 기간</option><option value="up">금리 인상기</option><option value="down">금리 인하기</option>
       </select>
-      <span id="lab-read" class="num" style="margin-left:auto;font-size:15px"></span>
+      <span id="lab-read" style="margin-left:auto;font-size:15px"></span>
     </div>
-    <div style="display:flex;align-items:center;gap:14px;margin:12px 0 4px">
-      <button class="btn" id="lab-play" aria-label="시차 자동 스윕" style="padding:6px 13px">▶</button>
+    <div style="display:flex;align-items:center;gap:14px;margin:14px 0 4px">
+      <button class="btn-sm" id="lab-play" aria-label="시차 자동 스윕">▶</button>
       <span class="num" style="font-size:12px;color:var(--ink-3)">0</span>
       <input id="lab-k" type="range" min="0" max="24" value="0" step="1" style="flex:1;accent-color:var(--eye-blue)" aria-label="시차 개월">
       <span class="num" style="font-size:12px;color:var(--ink-3)">+24개월</span>
@@ -316,7 +327,7 @@
   시차를 <b>양방향으로</b> 재서, 서울 선행·지역 선행·동행·독립을 데이터로 판정한다.
   실제로 <b>미분양은 서울이 대부분 지역에 앞서지만, 착공은 지역이 서울에 앞서는 곳이 더 많다</b> —
   공급의 신호는 수도가 아니라 지방에서 먼저 꺾인다.</p>
-  <div class="grid2" id="spread-wrap"></div>
+  <div id="spread-wrap"></div>
 </section>
 
 <!-- Ⅷ 사건연구 ────────────────────────────────────── -->
@@ -394,5 +405,6 @@
 </footer>
 
 <script>window.__BUNDLE__ = {{DATA}};</script>
+<script>window.__KOREA__ = {{KOREA}};</script>
 <script>{{JS:charts.js}}</script>
 <script>{{JS:app.js}}</script>

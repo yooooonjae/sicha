@@ -178,3 +178,75 @@ footer .sig { font-family: var(--font-display); font-size: 15px; color: var(--in
   .rise { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
   .rise.in { opacity: 1; transform: none; }
 }
+
+/* ── 차트 도구용 소형 버튼 (13·14차: 차트 위 버튼 통일) ─────────────── */
+.btn-sm {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 34px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; line-height: 1;
+  border-radius: var(--radius-sm); border: 1px solid var(--rule);
+  background: var(--surface); color: var(--ink-2); cursor: pointer; white-space: nowrap;
+}
+.btn-sm:hover { border-color: var(--ink-3); color: var(--ink); text-decoration: none; }
+.btn-sm.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn-sm:disabled { opacity: .55; cursor: default; }
+select.btn-sm { color: var(--ink); font-weight: 600; }
+.tab-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+/* 실험실 조작줄 — 셀렉트·슬라이더 수직 중앙 정렬 */
+.lab-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* ── Ⅴ 전달경로: 데스크톱 우측 상세 + 모바일 세로 타임라인 ──────────── */
+.path-split { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 3fr); gap: 22px; align-items: start; }
+.path-detail { border-left: 1px solid var(--hairline); padding-left: 20px; align-self: stretch; }
+.path-detail .pd-empty { font-size: 12.5px; color: var(--ink-3); line-height: 1.7; margin: 4px 0; }
+.pd-head { font-weight: 700; font-size: 14.5px; }
+.pd-big { font-size: 25px; font-weight: 700; margin: 6px 0 12px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pd-big .pd-unit { font-size: 13px; color: var(--ink-3); font-weight: 600; margin-left: 1px; font-family: var(--font-body); }
+.pd-list { margin: 0 0 14px; }
+.pd-list > div { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; padding: 6px 0; border-bottom: 1px dashed var(--hairline); }
+.pd-list dt { color: var(--ink-2); margin: 0; } .pd-list dd { color: var(--ink); margin: 0; text-align: right; }
+.pd-open { width: 100%; }
+
+.pt-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.pt-tab { padding: 7px 14px; font-size: 13px; border: 1px solid var(--rule); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.pt-tab.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.pt-flow { display: flex; flex-direction: column; }
+.pt-node { display: flex; align-items: center; gap: 10px; border: 1.6px solid var(--eye-blue); border-radius: 10px; background: var(--surface); padding: 12px 15px; font-weight: 700; font-size: 14.5px; color: var(--ink); cursor: pointer; }
+.pt-node.supply { border-color: var(--eye-red); }
+.pt-node .pt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--eye-blue); flex: none; }
+.pt-node.supply .pt-dot { background: var(--eye-red); }
+.pt-edge { display: flex; align-items: center; gap: 10px; padding: 7px 0 7px 14px; }
+.pt-edge .pt-arrow { color: var(--ink-3); font-size: 18px; line-height: 1; }
+.pt-lag { font-family: var(--font-num); font-weight: 700; font-size: 12.5px; color: var(--eye-blue-deep); background: var(--wash-blue); border: 0; border-radius: 12px; padding: 5px 13px; cursor: pointer; }
+.pt-lag.zero { color: var(--ink-2); background: var(--surface-2); font-family: var(--font-body); }
+/* 계측 활자(.num) 안의 한글 단위는 고딕으로 — Plex Mono엔 한글이 없어 폭·기준선이 어긋나던 혼용 해소 */
+.u { font-family: var(--font-body); font-variant-numeric: normal; }
+.pt-edge.supply .pt-lag { color: var(--eye-red-deep); background: var(--wash-red); }
+.pt-edge .pt-dash { flex: 1; border-top: 1.5px dashed var(--rule); }
+.pt-inline { margin: 5px 0 7px 14px; padding: 14px 16px; border: 1px solid var(--hairline); border-left: 3px solid var(--eye-blue); border-radius: 8px; background: var(--surface-2); }
+
+/* Ⅴ 연구 카드 그룹 헤더·배지 */
+.lag-grphead { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.lag-badge { font-family: var(--font-num); font-weight: 800; font-size: 11.5px; letter-spacing: .02em; color: var(--paper); background: var(--ink); border-radius: 5px; padding: 2px 7px; }
+.lag-grpname { font-size: 13px; letter-spacing: .08em; color: var(--ink-2); font-weight: 700; }
+.lag-grpcnt { font-size: 12px; color: var(--ink-3); }
+
+/* Ⅷ 사건 z-스파크 점 위계 — 기본 선+정점(T=0·최대), 나머지는 hover/tap 노출 */
+#ev-panel .ev-hit { transition: fill .12s ease; }
+#ev-panel .ev-hit:hover { fill: var(--ink-2); }
+#ev-panel .ev-hit.on { fill: var(--eye-blue); }
+
+/* Ⅶ 지역확산 — 확산 지도 + 발산 바 */
+.spread-split { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 24px; align-items: start; }
+#sp-map { align-self: start; }
+#sp-map svg { width: 100%; height: auto; display: block; }
+.kmap-region { transition: fill .16s ease; }
+.sp-read { min-height: 22px; font-size: 13.5px; color: var(--ink-2); margin: 8px 0 16px; line-height: 1.55; }
+
+/* 시차지도 히트맵 — 모바일 가로 스크롤 · 좁은 화면 세로 재배치 */
+@media (max-width: 640px) {
+  #lag-heat { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #lag-heat svg { min-width: 620px; }
+  .path-split { grid-template-columns: 1fr; gap: 0; }
+  .path-detail { display: none; }
+  .spread-split { grid-template-columns: 1fr; gap: 10px; }
+}

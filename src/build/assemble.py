@@ -31,6 +31,7 @@ def main():
     tpl = re.sub(r"\{\{CSS:([\w.\-]+)\}\}", lambda m: (SITE / "css" / m.group(1)).read_text(), tpl)
     tpl = re.sub(r"\{\{JS:([\w.\-]+)\}\}", lambda m: (SITE / "js" / m.group(1)).read_text(), tpl)
     tpl = tpl.replace("{{DATA}}", minify_json(BUNDLE))
+    tpl = tpl.replace("{{KOREA}}", minify_json(SITE / "assets_korea.json"))
     tpl = tpl.replace("{{BUILT_AT}}", datetime.date.today().isoformat())
     tpl = tpl.replace("{{ROBOTS}}", robots())
 

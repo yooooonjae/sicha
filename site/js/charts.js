@@ -491,10 +491,17 @@
           const strong = Math.abs(v) / maxAbs > 0.5; // 진한 배경에만 흰 글자 (연한 셀은 먹색 — 대비 확보)
           el("text", { x: M.l + c * cw + cw / 2, y: M.t + r * cellH + cellH / 2 + 4, "text-anchor": "middle",
             "font-size": 11.5, "font-weight": 700, "font-family": "var(--font-num)", "pointer-events": "none",
-            fill: strong ? "#fff" : css("--ink-2") }, svg).textContent = (opts.cellFmt || vFmt)(v);
+            fill: strong ? "#fff" : css("--ink-2") }, svg).textContent = (opts.cellFmt || vFmt)(v, r, c);
+        }
+        if (opts.onCell) { // 셀 클릭 → 콜백(선행·반응 축 값). 결측 셀은 위 return으로 제외됨.
+          rect.style.cursor = "pointer";
+          rect.setAttribute("role", "button"); rect.setAttribute("tabindex", "0");
+          const fire = () => opts.onCell(xv, yv, r, c);
+          rect.addEventListener("click", fire);
+          rect.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); fire(); } });
         }
         bindTip(rect, () =>
-          `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>${opts.vLabel || "이익"} <b class="num">${vFmt(v)}</b>`);
+          `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>${opts.vLabel || "이익"} <b class="num">${(opts.tipFmt || vFmt)(v, r, c)}</b>`);
       });
       el("text", { x: M.l - 8, y: M.t + r * cellH + cellH / 2 + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-2"), "font-family": "var(--font-num)" }, svg).textContent = yv;
     });

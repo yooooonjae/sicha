@@ -11,7 +11,7 @@ import glob
 import json
 import re
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import median
 
@@ -48,8 +48,13 @@ def reverse_change(now_med, back_med):
 # ── 매매 원거래 로드 (수지 raw XML) ────────────────────────────────
 
 def load_sales():
-    """sale_*.xml → {sgg: {ym: [{apt, ar, price(만원), umd, jibun}]}}"""
+    """sale_*.xml → ({sgg: {ym: [{apt, ar, price(만원), umd, jibun}]}}, {sgg: 시군구명}).
+
+    시군구명은 estateAgentSggNm(중개소 소재지)의 최빈 토큰에서 시도 접두를 떼어 만든다 —
+    공시 표본(gongsi)에 이름이 없는 시군구(예: 성북 11290)의 라벨 결손을 메운다.
+    """
     out = defaultdict(lambda: defaultdict(list))
+    name_cnt = defaultdict(Counter)
     for f in glob.glob(str(SUJI_RAW / "sale_*_p*.xml")):
         m = re.match(r"sale_(\d{5})_(\d{6})_p", Path(f).name)
         if not m:
@@ -60,6 +65,10 @@ def load_sales():
             def tag(t):
                 mm = re.search(rf"<{t}>(.*?)</{t}>", it)
                 return mm.group(1).strip() if mm else ""
+            for tok in tag("estateAgentSggNm").split(","):
+                tok = tok.strip()
+                if tok:
+                    name_cnt[sgg][tok] += 1
             try:
                 out[sgg][ym].append({
                     "apt": tag("aptNm"), "ar": float(tag("excluUseAr")),
@@ -67,7 +76,12 @@ def load_sales():
                     "umd": tag("umdNm"), "jibun": tag("jibun")})
             except ValueError:
                 continue
-    return out
+    names = {}
+    for sgg, cnt in name_cnt.items():
+        top = cnt.most_common(1)
+        if top:  # "서울 성북구" → "성북구" (시도 접두 제거)
+            names[sgg] = re.sub(r"^\S+\s+", "", top[0][0]) or sgg
+    return out, names
 
 
 def q_of(ym):
@@ -166,17 +180,20 @@ def realization(gongsi, sales):
 
 
 def main():
-    sales = load_sales()
+    sales, sales_names = load_sales()
     n_sale = sum(len(r) for s in sales.values() for r in s.values())
-    print(f"매매 로드: {len(sales)}시군구 · {n_sale:,}건")
+    print(f"매매 로드: {len(sales)}시군구 · {n_sale:,}건 · 이름 파생 {len(sales_names)}개")
 
-    bundle = {"meta": {"built_at": time.strftime("%Y-%m-%d"), "n_sale": n_sale}}
+    bundle = {"meta": {"built_at": time.strftime("%Y-%m-%d"), "n_sale": n_sale,
+                       "sgg_names": dict(sales_names)}}
 
     gp = ROOT / "data" / "gongsi.json"
     if gp.exists():
         gongsi = json.load(open(gp))
-        bundle["meta"]["sgg_names"] = {s["sgg"]: s["sggNm"].replace("서울 ", "").replace("경기 ", "")
-                                       or s["sgg"] for s in gongsi["samples"]}
+        # 공시 큐레이션 이름이 있으면 우선(기존 라벨 불변) · 없는 시군구는 매매 파생 이름 유지
+        for s in gongsi["samples"]:
+            bundle["meta"]["sgg_names"][s["sgg"]] = (
+                s["sggNm"].replace("서울 ", "").replace("경기 ", "") or s["sgg"])
         bundle["meta"]["sgg_full"] = {s["sgg"]: s["sggNm"] for s in gongsi["samples"]}
         bundle["real"] = realization(gongsi, sales)
         print(f"현실화율: 단지·연도 관측 {len(bundle['real']['by_complex'])}개 · "

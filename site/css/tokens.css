@@ -58,7 +58,7 @@
   /* 타이포 */
   --font-display: "MaruBuri Sub", "Songti SC", "AppleMyungjo", "Noto Serif KR", serif; /* 시차 고유 — 마루부리 서브셋 1순위 (14차: 그릇만 통일, 활자는 정체성) */
   --font-body: "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", -apple-system, sans-serif;
-  --font-num: "Plex Num", "IBM Plex Mono", "SF Mono", ui-monospace, monospace; /* 시차 고유 계측 활자 복원 */
+  --font-num: "Plex Num", "IBM Plex Mono", "SF Mono", ui-monospace, monospace; /* 시차 고유 계측 활자 (3부작 방침) */
 
   --maxw: 1180px;
   --radius: 12px;          /* 시리즈 공통 — 애플 곡률 */
