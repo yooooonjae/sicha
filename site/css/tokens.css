@@ -56,13 +56,14 @@
   --seq-700: #1d43ae;
 
   /* 타이포 */
-  --font-display: "MaruBuri Sub", "Noto Serif KR", "Nanum Myeongjo", serif;   /* 백서의 명조 */
-  --font-body: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-  --font-num: "Plex Num", "SF Mono", "IBM Plex Mono", ui-monospace, monospace; /* 계측값 */
+  --font-display: "Songti SC", "Songti TC", "AppleMyungjo", "MaruBuri Sub", "Noto Serif KR", serif; /* 순환과 동일 명조 계열 · 미설치 기기는 서브셋 폴백 */
+  --font-body: "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", -apple-system, sans-serif;
+  --font-num: "Avenir Next", "Helvetica Neue", "Plex Num", -apple-system, sans-serif; /* 순환과 동일 수치 활자 · 서브셋 폴백 */
 
   --maxw: 1180px;
-  --radius: 3px;           /* 계측 기기의 각 — 거의 직각 */
-  --shadow-card: 0 1px 2px rgba(22,24,29,.05), 0 8px 28px rgba(22,24,29,.05);
+  --radius: 12px;          /* 시리즈 공통 — 애플 곡률 */
+  --radius-sm: 8px;
+  --shadow-card: 0 1px 2px rgba(22, 24, 29, .08), 0 12px 36px rgba(22, 24, 29, .10); /* 순환과 동일 깊이 */
 }
 
 :root[data-theme="dark"] {
@@ -97,5 +98,5 @@
   --seq-600: #5b82dd;
   --seq-700: #86a7f2;
 
-  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 40px rgba(0, 0, 0, .35);
 }
