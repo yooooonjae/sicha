@@ -9,6 +9,7 @@
 
 import glob
 import json
+import os
 import re
 import time
 from collections import Counter, defaultdict
@@ -16,7 +17,7 @@ from pathlib import Path
 from statistics import median
 
 ROOT = Path(__file__).resolve().parents[2]
-SUJI_RAW = Path("/Users/iseul/개발/data/raw/rtms")
+SUJI_RAW = Path(os.environ.get("SUJI_DIR", str(Path.home() / "개발"))) / "data" / "raw" / "rtms"
 
 
 def band_match(ar, target, tol=0.10):

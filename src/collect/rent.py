@@ -10,6 +10,7 @@
 
 import glob
 import json
+import os
 import re
 import sys
 import time
@@ -18,7 +19,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SUJI_RAW = Path("/Users/iseul/개발/data/raw/rtms")
+SUJI_RAW = Path(os.environ.get("SUJI_DIR", str(Path.home() / "개발"))) / "data" / "raw" / "rtms"
 URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptRent/getRTMSDataSvcAptRent"
 
 FIELDS = {  # 응답 태그 → 저장 키

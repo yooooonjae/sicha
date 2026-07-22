@@ -8,13 +8,14 @@
 """
 
 import json
+import os
 import re
 from pathlib import Path
 from statistics import median
 
 ROOT = Path(__file__).resolve().parents[2]
-SUJI = Path("/Users/iseul/개발/data")
-SUN = Path("/Users/iseul/순환/data")
+SUJI = Path(os.environ.get("SUJI_DIR", str(Path.home() / "개발"))) / "data"
+SUN = Path(os.environ.get("SUNHWAN_DIR", str(Path.home() / "순환"))) / "data"
 MAX_LAG = 24
 
 
@@ -243,9 +244,13 @@ def main():
             y1, m1 = int(yms[-1][:4]), int(yms[-1][4:6])
             elapsed = (y1 - y0) * 12 + (m1 - m0)
         lag_show = g.get("lag_near", g["lag"])
+        # 방향 일치율은 관계의 부호를 반영해 저장한다 — 음의 관계는 100-agree(역방향 기준).
+        # (app.js에서 max(agree,100-agree)로 뒤집던 왜곡 제거 — 양의 관계 40%가 60%로 둔갑하던 버그)
+        agr = g["agree"]
+        agree_dir = None if agr is None else (100 - agr if g["r"] < 0 else agr)
         signals.append({"x": a, "y": b, "dir": "+" if cur > 0 else "-",
                         "turn": turn, "elapsed": elapsed, "lag": lag_show,
-                        "agree": g["agree"], "latest": yms[-1]})
+                        "agree": agree_dir, "r": g["r"], "latest": yms[-1]})
     bundle_signals = signals
 
     bp = ROOT / "out" / "site_bundle.json"

@@ -11,6 +11,7 @@ VWorld 지오코더(parcel) → 연속지적(PNU) → NED 공동주택가격(202
 
 import glob
 import json
+import os
 import re
 import sys
 import time
@@ -21,7 +22,7 @@ from pathlib import Path
 from statistics import median
 
 ROOT = Path(__file__).resolve().parents[2]
-SUJI_RAW = Path("/Users/iseul/개발/data/raw/rtms")
+SUJI_RAW = Path(os.environ.get("SUJI_DIR", str(Path.home() / "개발"))) / "data" / "raw" / "rtms"
 YEARS = ["2021", "2022", "2023", "2024", "2025"]
 
 SIDO = {"11": "서울", "26": "부산", "27": "대구", "28": "인천", "29": "광주",

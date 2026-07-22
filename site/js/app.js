@@ -89,13 +89,21 @@
     const MOB = mobQ.matches;  // 모바일 — 좁은 viewBox로 세로 판독 확보
     const J = B.jeonse, R = B.real, M = B.meta || {};
 
+    /* 전세가율 기준분기 — 각 시군구 최신 분기의 최빈값(전역 최신 q)으로 고정해 분기 혼용을 막는다 */
+    let refQ = null, atRef = null;
+    if (J) {
+      const qc = {};
+      Object.values(J.by_sgg).forEach(s => { const q = s[s.length - 1].q; qc[q] = (qc[q] || 0) + 1; });
+      refQ = Object.keys(qc).sort((a, b) => qc[b] - qc[a] || (a > b ? -1 : 1))[0];
+      atRef = s => { const p = s.find(x => x.q === refQ); return p ? p.ratio : null; };
+    }
+
     /* 홈 KPI */
     const kp = [];
     if (J) {
-      const latest = Object.values(J.by_sgg).map(s => s[s.length - 1].ratio);
-      const med = latest.sort((a, b) => a - b)[Math.floor(latest.length / 2)];
-      kp.push({ v: med.toFixed(1) + "%", l: "전세가율 중앙값 — 최신 분기 · " +
-        Object.keys(J.by_sgg).length + "개 시군구", c: "blue" });
+      const ref = Object.values(J.by_sgg).map(atRef).filter(v => v != null);
+      const med = ref.sort((a, b) => a - b)[Math.floor(ref.length / 2)];
+      kp.push({ v: med.toFixed(1) + "%", l: `전세가율 중앙값 — ${refQ} 기준 · ${ref.length}개 시군구`, c: "blue" });
       const revs = Object.values(J.reverse || {}).map(r => r.chg_pct);
       const negN = revs.filter(v => v < 0).length;
       kp.push({ v: negN + "/" + revs.length, l: "역전세권 시군구 — 8분기 전보다 전세 하락", c: "blue" });
@@ -149,10 +157,12 @@
       })), { width: MOB ? 560 : 1160, height: MOB ? 300 : 330, aria: "시군구별 전세가율 분기 추이" });
 
       const latest = Object.entries(J.by_sgg)
-        .map(([sgg, s]) => ({ name: nm(sgg), value: s[s.length - 1].ratio }))
+        .map(([sgg, s]) => ({ name: nm(sgg), value: atRef(s) }))
+        .filter(d => d.value != null)
         .sort((a, b) => b.value - a.value);
       Charts.hbars($("j-rank"), latest, { width: 560, labelW: 118, rowH: 36,
-        color: "--s1", fmt: v => v.toFixed(1) + "%", aria: "최신 분기 시군구 전세가율" });
+        color: "--s1", fmt: v => v.toFixed(1) + "%", aria: refQ + " 기준 시군구 전세가율" });
+      const jru = $("j-rank-unit"); if (jru) jru.textContent = `% · ${refQ} 기준 · ${latest.length}개 시군구`;
 
       const rev = Object.entries(J.reverse || {})
         .map(([sgg, r]) => ({ name: nm(sgg), value: r.chg_pct }))
@@ -230,7 +240,7 @@
         ["착공", "준공"], ["준공", "준공후미분양"],
       ];
       const SUPPLY_EDGE = new Set(["매매가|미분양", "미분양|착공", "착공|준공", "준공|준공후미분양"]);
-      const SUPPLY_NODE = new Set(["미분양", "착공", "준공"]);
+      const SUPPLY_NODE = new Set(["미분양", "착공", "준공", "준공후미분양"]);
       const rCol = v => v < 0 ? "var(--eye-red)" : "var(--eye-blue)";
       // 관계 상세(우측 패널·모바일 인라인 공유) — grid 항목을 판독표로
       const detailHTML = (x, y) => {
@@ -386,17 +396,19 @@
           aria: "선행×반응 시차 전수표", onCell: (colV, rowV) => loadLab(rowV, colV, true),
         });
       }
-      const grade = g => g.n <= 24 ? ["짧은 표본", "var(--ink-3)"]
+      const grade = g => g.n < 25 ? ["짧은 표본", "var(--ink-3)"]
+        : g.n < 60 ? (g.stable ? ["B−(중간)", "var(--ink-2)"] : ["C(중간)", "var(--ink-3)"])
         : (g.stable && Math.abs(g.r) >= 0.4) ? ["A", "var(--eye-blue)"]
         : g.stable ? ["B", "var(--eye-blue)"] : ["C", "var(--ink-3)"];
       const rC = v => v < 0 ? "var(--eye-red)" : "var(--eye-blue)";
       const agreeShow = g => g.agree == null ? null
         : (g.r < 0 ? 100 - g.agree : g.agree);
-      const spark = ws => {
+      const spark = (ws, maxLag) => {
         if (!ws || ws.length < 3) return '<span style="font-size:12px;color:var(--ink-3)">이동창 표본 부족</span>';
+        const ML = maxLag || 24;
         const W2 = 190, H2 = 40, n2 = ws.length;
         const x2 = i => 6 + i * (W2 - 12) / (n2 - 1);
-        const y2 = l => 4 + (1 - l / 24) * (H2 - 12);
+        const y2 = l => 4 + (1 - l / ML) * (H2 - 12);
         const pl = ws.map((w, i) => `${x2(i).toFixed(1)},${y2(w.lag).toFixed(1)}`).join(" ");
         return `<svg viewBox="0 0 ${W2} ${H2}" style="width:${W2}px;height:${H2}px;vertical-align:middle">
           <line x1="6" x2="${W2-6}" y1="${y2(0)}" y2="${y2(0)}" stroke="var(--hairline)" stroke-width="1"/>
@@ -437,8 +449,8 @@
           <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">
             ${ag != null ? `방향 일치 <b class="num">${ag}%</b>${g.r < 0 ? " (역방향 기준)" : ""}` : "방향 일치 표본 부족"}
             &nbsp;·&nbsp; ${rg("인상기", g.regime_up)} &nbsp;·&nbsp; ${rg("인하기", g.regime_down)}</div>
-          <div style="display:flex;align-items:center;gap:8px">${spark(g.windows)}
-            <span style="font-size:11.5px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~24M</span></div>
+          <div style="display:flex;align-items:center;gap:8px">${spark(g.windows, g.max_lag)}
+            <span style="font-size:11.5px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~${g.max_lag || 24}M</span></div>
         </div>`;
       })(g)).join("");
       $("lag-map").querySelectorAll(".lag-more").forEach(btn => btn.addEventListener("click", () => {
@@ -456,10 +468,10 @@
       $("home-signals").innerHTML = B.signals.map(sg => {
         const dirTxt = sg.dir === "-" ? "하락 전환" : "상승 전환";
         const el2 = sg.elapsed != null ? `<span class="num">${sg.elapsed}</span>개월 경과` : "전환 미탐지";
-        const ag = sg.agree != null ? Math.max(sg.agree, 100 - sg.agree) : null;
+        const ag = sg.agree;
         return `<div class="kpi"><div class="v" style="font-size:17px">${sg.x} ${dirTxt}</div>
           <div class="l">→ <b>${sg.y}</b> 반응 관측 구간 <b class="num">+${sg.lag}</b>개월 · 현재
-          <b>${el2}</b>${ag != null ? ` · 과거 방향 일치 <span class="num">${ag}%</span>` : ""} · 기준 <span class="num">${sg.latest.slice(0,4)}.${sg.latest.slice(4)}</span></div></div>`;
+          <b>${el2}</b>${ag != null ? ` · 과거 방향 일치 <span class="num">${ag}%</span>${sg.r < 0 ? " <span style='color:var(--ink-3)'>(역)</span>" : ""}` : ""} · 기준 <span class="num">${sg.latest.slice(0,4)}.${sg.latest.slice(4)}</span></div></div>`;
       }).join("");
     } else { const sp = $("signal-plate"); if (sp) sp.hidden = true; }
 

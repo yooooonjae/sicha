@@ -22,6 +22,10 @@ tests/          지표 단위 테스트
 && python3 -m src.analysis.events && python3 src/build/assemble.py`
 (config.json의 API 키는 커밋하지 않는다 · 단일 파일 · 외부 요청 없음)
 
+원자료는 자매 리포(수지·순환)에서 참조한다 — 두 리포를 홈(`~/개발`·`~/순환`)에 클론하거나,
+다른 위치라면 `SUJI_DIR`·`SUNHWAN_DIR` 환경변수로 각 리포의 경로를 지정한다
+(예: `SUJI_DIR=/path/to/개발 SUNHWAN_DIR=/path/to/순환 python3 -m src.analysis.lags`).
+
 ## 방법의 태도
 
 모든 수치는 예측적 선후관계이며 인과 주장이 아니다. 국면 전환이 만드는 가짜
