@@ -203,24 +203,59 @@
         개별 지역 판정은 원자료 확인이 먼저다.`;
     }
 
-    /* Ⅴ 시차지도 */
+    /* Ⅴ 연구 카드 */
     const L = B.lag;
     if (L && L.grid && L.grid.length) {
-      $("lag-map").innerHTML = `<table class="sheet"><thead><tr>
-        <th>선행 → 반응</th><th class="num">최적 시차</th><th class="num">r</th>
-        <th class="num">n</th><th>안정</th><th>비고</th></tr></thead><tbody>` +
-        L.grid.map(g => {
-          const near = g.lag_near != null
-            ? `6개월 내 피크 +${g.lag_near}M (r=${g.r_near})` : "";
-          const warn = g.n <= 24 ? (near ? near + " · 짧은 표본" : "짧은 표본") : near;
-          return `<tr><td><b>${g.x}</b> → ${g.y}</td>
-            <td class="num"><b>+${g.lag}개월</b></td>
-            <td class="num" style="color:${g.r < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</td>
-            <td class="num">${g.n}</td>
-            <td>${g.stable ? '<span class="eye-tag blue">안정</span>' : '<span class="eye-tag" style="color:var(--ink-3)">불안정</span>'}</td>
-            <td style="font-size:12px;color:var(--ink-2)">${warn}</td></tr>`;
-        }).join("") + "</tbody></table>";
+      const grade = g => g.n <= 24 ? ["짧은 표본", "var(--ink-3)"]
+        : (g.stable && Math.abs(g.r) >= 0.4) ? ["A", "var(--eye-blue)"]
+        : g.stable ? ["B", "var(--eye-blue)"] : ["C", "var(--ink-3)"];
+      const rC = v => v < 0 ? "var(--eye-red)" : "var(--eye-blue)";
+      const agreeShow = g => g.agree == null ? null
+        : (g.r < 0 ? 100 - g.agree : g.agree);
+      const spark = ws => {
+        if (!ws || ws.length < 3) return '<span style="font-size:12px;color:var(--ink-3)">이동창 표본 부족</span>';
+        const W2 = 190, H2 = 40, n2 = ws.length;
+        const x2 = i => 6 + i * (W2 - 12) / (n2 - 1);
+        const y2 = l => 4 + (1 - l / 24) * (H2 - 12);
+        const pl = ws.map((w, i) => `${x2(i).toFixed(1)},${y2(w.lag).toFixed(1)}`).join(" ");
+        return `<svg viewBox="0 0 ${W2} ${H2}" style="width:${W2}px;height:${H2}px;vertical-align:middle">
+          <line x1="6" x2="${W2-6}" y1="${y2(0)}" y2="${y2(0)}" stroke="var(--hairline)" stroke-width="1"/>
+          <polyline points="${pl}" fill="none" stroke="var(--eye-blue)" stroke-width="1.6"/>
+          ${ws.map((w, i) => `<circle cx="${x2(i).toFixed(1)}" cy="${y2(w.lag).toFixed(1)}" r="2" fill="var(--eye-blue)"/>`).join("")}
+        </svg>`;
+      };
+      $("lag-map").innerHTML = L.grid.map(g => {
+        const [gd, gc] = grade(g);
+        const ag = agreeShow(g);
+        const rg = (t, o) => o ? `${t} <b class="num">+${o.lag}M</b> <span class="num" style="color:${rC(o.r)}">${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}</span>` : `${t} <span style="color:var(--ink-3)">표본 부족</span>`;
+        return `<div class="plate" style="margin-bottom:0">
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <div class="viz-title">${g.x} → ${g.y}</div>
+            <span class="num" style="margin-left:auto;font-weight:800;color:${gc}">${gd}</span>
+          </div>
+          <div style="font-size:20px;margin:6px 0 2px" class="num"><b>+${g.lag}개월</b>
+            <span style="color:${rC(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span>
+            <span style="font-size:12.5px;color:var(--ink-3)"> n=${g.n}${g.lag_near != null ? ` · 6M내 피크 +${g.lag_near}M(${g.r_near})` : ""}</span></div>
+          <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">
+            ${ag != null ? `방향 일치 <b class="num">${ag}%</b>${g.r < 0 ? " (역방향 기준)" : ""}` : "방향 일치 표본 부족"}
+            &nbsp;·&nbsp; ${rg("인상기", g.regime_up)} &nbsp;·&nbsp; ${rg("인하기", g.regime_down)}</div>
+          <div style="display:flex;align-items:center;gap:8px">${spark(g.windows)}
+            <span style="font-size:11.5px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~24M</span></div>
+        </div>`;
+      }).join("");
     }
+
+    /* 홈 현재 신호 */
+    if (B.signals && B.signals.length) {
+      $("home-signals").innerHTML = B.signals.map(sg => {
+        const dirTxt = sg.dir === "-" ? "하락 전환" : "상승 전환";
+        const el2 = sg.elapsed != null ? `${sg.elapsed}개월 경과` : "전환 미탐지";
+        const ag = sg.agree != null ? Math.max(sg.agree, 100 - sg.agree) : null;
+        return `<div class="kpi"><div class="v" style="font-size:17px">${sg.x} ${dirTxt}</div>
+          <div class="l">→ <b>${sg.y}</b> 반응 관측 구간 <b class="num">+${sg.lag}개월</b> · 현재
+          <b class="num">${el2}</b>${ag != null ? ` · 과거 방향 일치 ${ag}%` : ""} · 기준 ${sg.latest.slice(0,4)}.${sg.latest.slice(4)}</div></div>`;
+      }).join("");
+    } else { const sp = $("signal-plate"); if (sp) sp.hidden = true; }
 
     /* Ⅵ 시차실험실 */
     if (L && L.series) initLab(L);
@@ -268,7 +303,7 @@
   let labInit = false;
   function initLab(L) {
     const names = Object.keys(L.series);
-    const sx = $("lab-x"), sy = $("lab-y"), sk = $("lab-k");
+    const sx = $("lab-x"), sy = $("lab-y"), sk = $("lab-k"), sr = $("lab-regime");
     if (!labInit) {
       labInit = true;
       sx.innerHTML = names.map(n => `<option>${n}</option>`).join("");
@@ -277,6 +312,7 @@
       sy.value = names.includes("거래량") ? "거래량" : names[1] || names[0];
       [sx, sy].forEach(el => el.addEventListener("change", () => { presetK(); drawLab(); }));
       sk.addEventListener("input", drawLab);
+      sr.addEventListener("change", drawLab);
       presetK();
     }
     drawLab();
@@ -305,8 +341,14 @@
 
     function drawLab() {
       const MOB = matchMedia("(max-width: 640px)").matches;
-      const nx = sx.value, ny = sy.value, k = +sk.value;
-      const xm = toMap(L.series[nx]), ym_ = toMap(L.series[ny]);
+      const nx = sx.value, ny = sy.value, k = +sk.value, rgm = sr.value;
+      let xm = toMap(L.series[nx]);
+      const ym_ = toMap(L.series[ny]);
+      if (rgm !== "all" && L.series["기준금리"]) {
+        const base = toMap(L.series["기준금리"]);
+        const keep = t => { const v = base.get(t); return v != null && (rgm === "up" ? v > 0.1 : v < -0.1); };
+        xm = new Map([...xm].filter(([t]) => keep(t)));
+      }
       const isRate = n => (L.rate_vars || []).includes(n);
       const unit = n => isRate(n) ? "12개월 차분(pp)" : "전년동월비(%)";
       // 파형: x 그대로, y는 k개월 앞당김(t-k의 값을 t 위치에)

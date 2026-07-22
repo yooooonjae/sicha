@@ -36,8 +36,16 @@ def load_series():
                   if isinstance(r, dict) and r.get("ym")}
     k = json.load(open(SUJI / "kosis.json"))
     for name, key in [("미분양", "unsold"), ("준공후미분양", "unsold_completed"),
-                      ("인허가", "permits"), ("착공", "starts"), ("준공", "completions")]:
+                      ("착공", "starts"), ("준공", "completions")]:
         S[name] = to_map(k[key]["전국"])
+    # 인허가: KOSIS는 연간이라 사용 불가 — 건축HUB 월별(시도 대표 시군구 표본, 세대수 합)
+    a = json.load(open(SUJI / "archub.json"))
+    ih = {}
+    for sido, rows in a["permits_monthly"].items():
+        for r2 in rows:
+            if re.fullmatch(r"\d{6}", str(r2.get("ym") or "")) and r2.get("units") is not None:
+                ih[r2["ym"]] = ih.get(r2["ym"], 0) + r2["units"]
+    S["인허가"] = ih
     r = json.load(open(SUJI / "rtms.json"))
     vol, prc = {}, {}
     for sido, guns in r["trades"].items():
@@ -134,6 +142,43 @@ def best_lag(xm, ym_):
     return out
 
 
+def regime_months(base_diff):
+    """기준금리 12M 차분으로 국면 판정 — {ym: 'up'|'down'|None}."""
+    return {t: ("up" if v > 0.1 else "down" if v < -0.1 else None)
+            for t, v in base_diff.items()}
+
+
+def agree_pct(xm, ym_, k):
+    """최적 시차에서 부호 일치율(%) — 방향 예측력의 근사."""
+    hit = tot = 0
+    for t, xv in xm.items():
+        yv = ym_.get(_shift(t, k))
+        if yv is None or xv == 0 or yv == 0:
+            continue
+        tot += 1
+        if (xv > 0) == (yv > 0):
+            hit += 1
+    return round(hit / tot * 100) if tot >= 12 else None
+
+
+def rolling_lag(xm, ym_, win=60, step=6):
+    """이동창별 최적 시차 궤적 — [{end, lag, r}]."""
+    yms = sorted(xm)
+    out = []
+    i = win
+    while i <= len(yms):
+        sub = {t: xm[t] for t in yms[i - win:i]}
+        best = None
+        for k in range(MAX_LAG + 1):
+            r, n = xcorr(sub, ym_, k)
+            if r is not None and (best is None or abs(r) > abs(best[1])):
+                best = (k, r)
+        if best:
+            out.append({"end": yms[i - 1], "lag": best[0], "r": round(best[1], 2)})
+        i += step
+    return out
+
+
 PAIRS = [  # 시차지도 사전계산 — 전달경로 가설 순
     ("기준금리", "주담대금리"), ("기준금리", "거래량"), ("기준금리", "매매가"),
     ("주담대금리", "거래량"), ("주담대금리", "매매가"), ("국고10년", "매매가"),
@@ -149,18 +194,61 @@ def main():
     T = {n: m for n, m in T.items() if len(m) >= 24}
     print("변환 시계열:", {n: len(m) for n, m in T.items()})
 
+    reg = regime_months(T.get("기준금리", {}))
     grid = []
     for a, b in PAIRS:
         if a not in T or b not in T:
             continue
         res = best_lag(T[a], T[b])
-        if res:
-            grid.append({"x": a, "y": b, **{k2: v for k2, v in res.items() if k2 != "curve"}})
-            print(f"  {a} → {b}: 최적 +{res['lag']}개월 r={res['r']} "
-                  f"(n={res['n']}, 안정 {'O' if res['stable'] else 'X'})")
+        if not res:
+            continue
+        g = {"x": a, "y": b, **{k2: v for k2, v in res.items() if k2 != "curve"}}
+        g["agree"] = agree_pct(T[a], T[b], res["lag"])
+        for rg_name, rg_key in [("up", "up"), ("down", "down")]:
+            sub = {t: v for t, v in T[a].items() if reg.get(t) == rg_key}
+            best = None
+            for k in range(MAX_LAG + 1):
+                r, n = xcorr(sub, T[b], k)
+                if r is not None and (best is None or abs(r) > abs(best[1])):
+                    best = (k, r, n)
+            if best:
+                g["regime_" + rg_name] = {"lag": best[0], "r": round(best[1], 3), "n": best[2]}
+        g["windows"] = rolling_lag(T[a], T[b])
+        grid.append(g)
+        ru, rd = g.get("regime_up"), g.get("regime_down")
+        print(f"  {a} → {b}: +{res['lag']}M r={res['r']} 일치 {g['agree']}% "
+              f"| 인상 {ru and f'+{ru[chr(108)+chr(97)+chr(103)]}M {ru[chr(114)]}'} "
+              f"| 인하 {rd and f'+{rd[chr(108)+chr(97)+chr(103)]}M {rd[chr(114)]}'} "
+              f"| 창 {len(g['windows'])}")
+
+    # 홈 현재 신호 — 대표 쌍의 선행 변수 최근 방향 전환 + 경과
+    signals = []
+    for a, b in [("주담대금리", "거래량"), ("미분양", "착공"), ("기준금리", "주담대금리")]:
+        g = next((x for x in grid if x["x"] == a and x["y"] == b), None)
+        if not g or a not in T:
+            continue
+        yms = sorted(T[a])
+        vals = [T[a][t] for t in yms]
+        cur = vals[-1]
+        turn = None
+        for i in range(len(vals) - 2, max(len(vals) - 25, 0), -1):
+            if (vals[i] > 0) != (cur > 0):
+                turn = yms[i + 1]
+                break
+        elapsed = None
+        if turn:
+            y0, m0 = int(turn[:4]), int(turn[4:6])
+            y1, m1 = int(yms[-1][:4]), int(yms[-1][4:6])
+            elapsed = (y1 - y0) * 12 + (m1 - m0)
+        lag_show = g.get("lag_near", g["lag"])
+        signals.append({"x": a, "y": b, "dir": "+" if cur > 0 else "-",
+                        "turn": turn, "elapsed": elapsed, "lag": lag_show,
+                        "agree": g["agree"], "latest": yms[-1]})
+    bundle_signals = signals
 
     bp = ROOT / "out" / "site_bundle.json"
     bundle = json.load(open(bp))
+    bundle["signals"] = bundle_signals
     bundle["lag"] = {
         "series": {n: sorted(({"ym": t, "v": v} for t, v in m.items()),
                              key=lambda r: r["ym"]) for n, m in T.items()},

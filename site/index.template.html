@@ -80,6 +80,13 @@
   </div>
 
   <div class="kpi-row" id="home-kpis" style="margin-top:22px"></div>
+  <div class="plate" style="margin-top:14px" id="signal-plate">
+    <div class="viz-title">현재 신호 — 전달경로의 어디에 있는가</div>
+    <div class="viz-q">선행 변수의 최근 방향 전환과, 과거 시차로 본 예상 반응 구간</div>
+    <div class="kpi-row" id="home-signals" style="margin-top:10px"></div>
+    <p class="note">신호 = 선행 변수 변환값의 부호 전환. 예상 구간은 과거 최적 시차이며 보장이 아니다 —
+    방향 일치는 전 표본에서 그 시차의 부호 관계가 유지된 비율(음의 관계는 역방향 기준).</p>
+  </div>
 
   <div class="plate" style="margin-top:22px;padding:18px 24px 8px">
     <div class="viz-title">이 사이트의 두 계측 — 공간의 시차(視差), 시간의 시차(時差)</div>
@@ -229,17 +236,15 @@
   <div class="ch-head"><span class="no">Ⅴ</span><h2>시차지도 — 무엇이 먼저 움직이는가</h2>
     <div class="meta">방법 <b>교차상관 0~24개월 스캔</b><br>변환 <b>금리 12개월 차분 · 그 외 전년동월비</b></div></div>
   <div class="ch-rule"></div>
-  <p class="lede">여기서부터는 시간의 시차(時差)다. 금리·거래·가격·공급은 동시에 움직이지 않는다 —
-  선행 신호가 반응 지표에 도달하기까지의 <b>전달 시간</b>을, 두 시계열을 한 달씩 밀어가며
-  잰다. 아래 표의 모든 수치는 <b>예측적 선후관계이며 단독 인과효과가 아니다</b>.</p>
-  <div class="plate">
-    <div class="viz-title">전달 시차 일람 — 선행 → 반응</div>
-    <div class="viz-q">각 쌍에서 |r|가 최대가 되는 시차는 몇 개월인가</div>
-    <div id="lag-map"></div>
-    <p class="note">안정 = 표본 전/후반 분할에서 부호가 유지됨. n이 작은 쌍(거래·가격·전세 —
-    매매 원거래 3년 표본의 전년동월비라 24개월)은 참고 수준이다. 장주기 국면 전환(인상기→인하기)이
-    원거리 시차에 가짜 피크를 만들 수 있어, 6개월 내 국소 피크가 다르면 함께 표기한다.</p>
-  </div>
+  <p class="lede">여기서부터는 시간의 시차(時差)다. "최적 시차 +6개월"에서 끝내지 않는다 —
+  각 관계를 <b>언제(이동창), 어느 국면에서(인상기·인하기), 어느 방향으로(부호 일치율)</b>
+  성립했는지까지 내려간다. 모든 수치는 <b>예측적 선후관계이며 단독 인과효과가 아니다</b>.</p>
+  <div id="lag-map" class="grid2"></div>
+  <p class="note" style="margin-bottom:24px">등급: A = 표본 60개월+·전/후반 안정·|r|≥0.4 · B = 표본·안정 충족 ·
+  C = 장표본이나 불안정 · 짧은 표본 = 24개월 이하(참고 수준). 국면 = 기준금리 12개월 차분
+  +0.1pp 초과(인상기)/−0.1pp 미만(인하기). 이동창 = 60개월 창을 6개월씩 밀며 최적 시차를 재측정 —
+  궤적이 흔들리면 관계가 시기 의존적이라는 뜻이다. 장주기 국면 전환이 원거리 가짜 피크를 만들 수
+  있어 6개월 내 국소 피크가 다르면 병기한다.</p>
 </section>
 
 <!-- Ⅵ 시차실험실 ──────────────────────────────────── -->
@@ -255,6 +260,9 @@
       <select id="lab-x" class="btn" style="padding:8px 12px;font-weight:600"></select>
       <span style="color:var(--ink-3)">→</span>
       <select id="lab-y" class="btn" style="padding:8px 12px;font-weight:600"></select>
+      <select id="lab-regime" class="btn" style="padding:8px 12px" aria-label="국면 선택">
+        <option value="all">전체 기간</option><option value="up">금리 인상기</option><option value="down">금리 인하기</option>
+      </select>
       <span id="lab-read" class="num" style="margin-left:auto;font-size:15px"></span>
     </div>
     <div style="display:flex;align-items:center;gap:14px;margin:12px 0 4px">
@@ -326,6 +334,10 @@
     수준의 추세·계절성을 1차로 걷어낸다.<br>· 스캔: r(x_t, y_{t+k})를 k=0~24개월 전 구간
     탐색, |r| 최대 시차를 최적으로 보고하되 6개월 내 국소 피크가 다르면 병기한다.<br>
     · 안정성: 표본을 전/후반으로 갈라 같은 시차의 부호가 유지되는지 본다.<br>
+    · 방향 일치율: 최적 시차에서 두 변환값의 부호가 일치한 비율(음의 관계는 역방향 기준으로 읽는다).<br>
+    · 국면: 기준금리 12개월 차분 +0.1pp 초과 = 인상기, −0.1pp 미만 = 인하기 — 국면별 표본은 짧아진다.<br>
+    · 인허가는 KOSIS 월별이 없어(연간만 제공) 건축HUB 인허가의 시도 대표 시군구 표본(세대수 합)을 쓴다 —
+    전국 총량이 아닌 표본 신호다.<br>
     · 알려진 한계: 자기상관 미보정(유효 표본 과대), 다중검정 미보정(24개 시차 탐색),
     국면 전환(인상기→인하기)이 만드는 원거리 가짜 피크, 짧은 표본(거래·가격·전세 24개월).
     이는 1차 계측이며, 개선(프리화이트닝·블록 부트스트랩)은 로드맵에 있다.</p></div></details>
