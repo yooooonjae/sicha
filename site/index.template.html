@@ -239,14 +239,19 @@
   <div class="ch-rule"></div>
   <p class="lede">여기서부터는 시간의 시차(時差)다. "최적 시차 +6개월"에서 끝내지 않는다 —
   각 관계를 <b>언제(이동창), 어느 국면에서(인상기·인하기), 어느 방향으로(부호 일치율)</b>
-  성립했는지까지 내려간다. 모든 수치는 <b>예측적 선후관계이며 단독 인과효과가 아니다</b>.</p>
+  성립했는지까지 내려간다. 부호 규칙은 사이트 전역에서 하나다 —
+  <b>X → Y, +kM은 X의 변화가 Y의 변화보다 k개월 먼저 관측됐다는 뜻</b>(인공 시계열 자동 테스트로 고정).
+  모든 수치는 <b>예측적 선후관계이며 단독 인과효과가 아니다</b>.</p>
   <div class="plate" id="path-plate">
     <div class="viz-title">전달경로 — 신호가 시장을 통과하는 순서</div>
-    <div class="viz-q">화살표 위 숫자는 실측 시차 — 신호 점이 실제 시차에 비례한 속도로 흐른다.
-    <b>화살표의 시차 라벨을 클릭하면 아래 실험실에 그 쌍이 로드된다.</b></div>
+    <div class="viz-q" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span>화살표 위 숫자는 실측 시차. <b>시차 라벨 클릭 = 실험실에 로드.</b></span>
+      <button class="btn" id="pp-play" style="padding:6px 14px;font-size:12.5px;margin-left:auto">경로 재생 ▶</button></div>
     <div id="path-svg"></div>
-    <p class="note">시차는 6개월 내 국소 피크 우선(없으면 전역 최적). 준공 → 미분양의 되돌이 화살표가
-    공급의 순환 고리다. 경로는 가설의 배열이며 인과 증명이 아니다.</p>
+    <p class="note">시차는 6개월 내 국소 피크 우선(없으면 전역 최적). 실선 = 금융·수요 관측경로,
+    점선 = 공급 피드백 경로. <b>각 화살표의 시차는 두 변수 사이에서 따로 추정한 값이라 경로 전체의
+    시차로 합산할 수 없다.</b> "0M 동행"은 월간 자료에서 선후를 구분할 수 없다는 뜻이며(펄스 없음),
+    경로는 가설의 배열이지 인과 증명이 아니다.</p>
   </div>
   <div id="lag-map" class="grid2"></div>
   <p class="note" style="margin-bottom:24px">등급: A = 표본 60개월+·전/후반 안정·|r|≥0.4 · B = 표본·안정 충족 ·
@@ -361,7 +366,10 @@
     · 국면: 기준금리 12개월 차분 +0.1pp 초과 = 인상기, −0.1pp 미만 = 인하기 — 국면별 표본은 짧아진다.<br>
     · 인허가는 KOSIS 월별이 없어(연간만 제공) 건축HUB 인허가의 시도 대표 시군구 표본(세대수 합)을 쓴다 —
     전국 총량이 아닌 표본 신호다.<br>
-    · 알려진 한계: 자기상관 미보정(유효 표본 과대), 다중검정 미보정(24개 시차 탐색),
+    · 사건연구 z의 기준은 <b>사건 이전 12개월(T−12~T−1)만</b>으로 계산한다 — 사후 정보 누출 없음.
+    다만 발표 전 기대 효과가 기준창을 오염시킬 수 있는 완충 구간은 아직 분리하지 않았다(한계).<br>
+    · 지역확산은 쌍당 한 번의 양방향 스캔(−18~+18)이라 A→B·B→A 중복 판정이 없다.<br>
+    · 알려진 한계: 자기상관 미보정(유효 표본 과대), 다중검정 미보정(쌍별 상한까지 전 시차 탐색),
     국면 전환(인상기→인하기)이 만드는 원거리 가짜 피크, 짧은 표본(거래·가격·전세 24개월).
     이는 1차 계측이며, 개선(프리화이트닝·블록 부트스트랩)은 로드맵에 있다.</p></div></details>
   <details class="method"><summary>한계 — 이 지도가 말하지 않는 것</summary>
@@ -374,6 +382,12 @@
 </main>
 
 <footer>
+  <div class="wrap" style="text-align:left;padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--hairline)">
+    <p style="font-size:12px;letter-spacing:.16em;color:var(--ink-3);margin-bottom:6px">부동산 연구 시리즈</p>
+    <p style="font-size:13.5px"><a href="https://yoonjae.pages.dev" target="_blank" rel="noopener">收支 수지 — 개별 사업의 손익</a> ·
+    <a href="https://sunhwan.pages.dev" target="_blank" rel="noopener">循環 순환 — 시장과 자본의 구조</a> ·
+    <b>時差 시차 — 신호의 전달시간</b></p>
+  </div>
   <div class="sig anaglyph">視差</div>
   <p>시차 — 한 자산을 보는 세 개의 눈 · 개인 연구 포트폴리오</p>
   <p>수집·계산·조립 전 과정 재현 가능 · 본 페이지는 외부 네트워크 요청이 없는 정적 단일 파일이다</p>

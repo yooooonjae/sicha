@@ -40,6 +40,19 @@ def test_reverse_change_sign():
     assert reverse_change(45000, 0) is None
 
 
+
+def test_lag_sign_convention():
+    """X→Y +kM = X가 k개월 먼저. 임펄스 2개월 지연 인공 계열로 부호 고정 검증."""
+    from src.analysis.lags import best_lag
+    x = {f"20{20+i//12:02d}{i%12+1:02d}": (1.0 if i % 7 == 3 else 0.0) for i in range(60)}
+    y = {}
+    for i in range(60):
+        src = i - 2
+        y[f"20{20+i//12:02d}{i%12+1:02d}"] = (1.0 if src >= 0 and src % 7 == 3 else 0.0)
+    res = best_lag(x, y, max_lag=6)
+    assert res["lag"] == 2 and res["r"] > 0.9, f"부호 규칙 위반: {res['lag']}, {res['r']}"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

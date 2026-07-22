@@ -213,32 +213,36 @@
       const NODES = {
         "기준금리": [95, 95], "주담대금리": [305, 95], "거래량": [515, 95],
         "매매가": [725, 95], "전세가": [945, 95],
-        "미분양": [515, 275], "착공": [725, 275], "준공": [945, 275],
+        "미분양": [420, 275], "착공": [615, 275], "준공": [810, 275], "준공후미분양": [1010, 275],
       };
       const EDGES = [
         ["기준금리", "주담대금리"], ["주담대금리", "거래량"], ["거래량", "매매가"],
         ["매매가", "전세가"], ["매매가", "미분양"], ["미분양", "착공"],
-        ["착공", "준공"], ["준공", "미분양"],
+        ["착공", "준공"], ["준공", "준공후미분양"],
       ];
+      const SUPPLY_EDGE = new Set(["매매가|미분양", "미분양|착공", "착공|준공", "준공|준공후미분양"]);
       const R0 = 34;
       let svg = `<svg viewBox="0 0 1120 370" role="img" aria-label="신호 전달경로" style="width:100%;height:auto;display:block">`;
       EDGES.forEach(([a, b], ei) => {
         const [x1, y1] = NODES[a], [x2, y2] = NODES[b];
         const lag = findLag(a, b);
-        const loop = a === "준공" && b === "미분양";
+        const supply = SUPPLY_EDGE.has(a + "|" + b);
         let d;
-        if (loop) d = `M ${x2 - 6} ${y2 + R0 - 8} C 860 356, 620 356, ${NODES["미분양"][0] + 10} ${NODES["미분양"][1] + R0 - 4}`;
-        else if (y1 === y2) d = `M ${x1 + R0} ${y1} L ${x2 - R0 - 8} ${y2}`;
+        if (y1 === y2) d = `M ${x1 + R0} ${y1} L ${x2 - R0 - 8} ${y2}`;
         else d = `M ${x1 - 14} ${y1 + R0 - 6} L ${x2 + 26} ${y2 - R0 + 2}`;
-        const dur = Math.max(1.4, (lag == null ? 2 : Math.max(lag, 0.5)) * 0.55);
-        svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="var(--rule)" stroke-width="1.6" marker-end="url(#pm)"/>`;
-        svg += `<circle r="4.5" fill="var(--ink)"><animateMotion dur="${dur}s" repeatCount="indefinite" begin="${(ei * 0.4).toFixed(1)}s"><mpath href="#pe${ei}"/></animateMotion></circle>`;
+        svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="var(--rule)" stroke-width="1.6"${supply ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#pm)"/>`;
+        if (lag) {  // 동행(0M)은 펄스를 그리지 않는다 — 순서를 판정할 수 없으므로
+          const dur = Math.max(1.4, lag * 0.55);
+          svg += `<circle r="4.5" fill="var(--ink)" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
+        }
         if (lag != null) {
-          const mx = loop ? 720 : (x1 + x2) / 2, my = loop ? 352 : (y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2);
+          const mx = (x1 + x2) / 2, my = y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2;
+          const txt = lag === 0 ? "0M 동행" : "+" + lag + "M";
+          const w3 = lag === 0 ? 76 : 60;
           svg += `<g class="path-lag" data-x="${a}" data-y="${b}" style="cursor:pointer">
-            <rect x="${mx - 30}" y="${my - 15}" width="60" height="22" rx="11" fill="var(--wash-blue)"/>
-            <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--eye-blue-deep)" font-family="var(--font-num)">+${lag}M</text>
-            <title>${a} → ${b} — 실험실에서 열기</title></g>`;
+            <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="22" rx="11" fill="var(--wash-blue)"/>
+            <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--eye-blue-deep)" font-family="var(--font-num)">${txt}</text>
+            <title>${a} → ${b}${lag === 0 ? " — 월간 자료에서는 선후를 구분할 수 없다" : ""} — 실험실에서 열기</title></g>`;
         }
       });
       for (const [nm2, [x, y]] of Object.entries(NODES)) {
@@ -250,6 +254,17 @@
       const pp = $("path-svg");
       if (pp) {
         pp.innerHTML = svg;
+        const playBtn = $("pp-play");
+        if (playBtn && !playBtn.dataset.bound) {
+          playBtn.dataset.bound = "1";
+          playBtn.addEventListener("click", () => {
+            pp.querySelectorAll(".path-anim").forEach((an, i2) => {
+              try { an.beginElementAt(i2 * 0.4); } catch (e) {}
+            });
+            playBtn.textContent = "재생 중";
+            playBtn.disabled = true;
+          });
+        }
         pp.querySelectorAll(".path-lag").forEach(g2 => g2.addEventListener("click", () => {
           const sx2 = $("lab-x"), sy2 = $("lab-y");
           if (!sx2) return;
@@ -282,29 +297,32 @@
         </svg>`;
       };
       const GROUPS = [
-        ["금융 → 수요·가격", ["기준금리|주담대금리", "기준금리|거래량", "기준금리|매매가", "주담대금리|거래량", "주담대금리|매매가", "국고10년|매매가"]],
+        ["금융 → 신용", ["기준금리|주담대금리"]],
+        ["금융·신용 → 수요·가격", ["기준금리|거래량", "기준금리|매매가", "주담대금리|거래량", "주담대금리|매매가", "국고10년|매매가"]],
         ["수요 → 가격", ["거래량|매매가", "거래량|전세가", "매매가|전세가"]],
-        ["가격·공급 → 재고", ["매매가|미분양", "미분양|착공", "인허가|착공", "착공|준공", "준공|미분양"]],
+        ["가격·재고 → 공급", ["매매가|미분양", "미분양|착공", "인허가|착공", "착공|준공", "준공|준공후미분양"]],
       ];
       const groupOf = g => { const k2 = g.x + "|" + g.y;
         const f = GROUPS.find(([, ks]) => ks.includes(k2)); return f ? f[0] : "기타"; };
       const ordered = [];
       GROUPS.forEach(([gn]) => { L.grid.filter(g => groupOf(g) === gn)
-        .forEach((g, i) => ordered.push({ g, head: i === 0 ? gn : null })); });
+        .forEach((g, i, arr) => ordered.push({ g, head: i === 0 ? gn : null, rest: i > 0, restN: arr.length - 1 })); });
       L.grid.filter(g => groupOf(g) === "기타").forEach((g, i) => ordered.push({ g, head: i === 0 ? "기타" : null }));
-      $("lag-map").innerHTML = ordered.map(({ g, head }) => (head ?
-        `<div style="grid-column:1/-1;font-size:13px;letter-spacing:.14em;color:var(--ink-2);font-weight:700;margin-top:10px">${head}</div>` : "") + (g2 => {
+      $("lag-map").innerHTML = ordered.map(({ g, head, rest, restN }) => (head ?
+        `<div style="grid-column:1/-1;display:flex;align-items:baseline;gap:12px;margin-top:10px">
+          <span style="font-size:13px;letter-spacing:.14em;color:var(--ink-2);font-weight:700">${head}</span>
+          ${restN ? `<button class="btn lag-more" data-grp="${head}" style="padding:4px 12px;font-size:12px">나머지 ${restN}개 보기 ▾</button>` : ""}</div>` : "") + (g2 => {
         const [gd, gc] = grade(g);
         const ag = agreeShow(g);
         const rg = (t, o) => o ? `${t} <b class="num">+${o.lag}M</b> <span class="num" style="color:${rC(o.r)}">${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}</span>` : `${t} <span style="color:var(--ink-3)">표본 부족</span>`;
-        return `<div class="plate" style="margin-bottom:0">
+        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0">
           <div style="display:flex;align-items:baseline;gap:10px">
             <div class="viz-title">${g.x} → ${g.y}</div>
             <span class="num" style="margin-left:auto;font-weight:800;color:${gc}">${gd}</span>
           </div>
           <div style="font-size:20px;margin:6px 0 2px" class="num"><b>+${g.lag}개월</b>
             <span style="color:${rC(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span>
-            <span style="font-size:12.5px;color:var(--ink-3)"> n=${g.n}${g.lag_near != null ? ` · 6M내 피크 +${g.lag_near}M(${g.r_near})` : ""}</span></div>
+            <span style="font-size:12.5px;color:var(--ink-3)"> n=${g.n}${g.lag_near != null ? ` · 6M내 피크 +${g.lag_near}M(${g.r_near})` : ""}${g.at_bound ? ` · <b style="color:var(--eye-red)">탐색 상한(${g.max_lag}M)에서 최대 — 미확정</b>` : ""}</span></div>
           <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">
             ${ag != null ? `방향 일치 <b class="num">${ag}%</b>${g.r < 0 ? " (역방향 기준)" : ""}` : "방향 일치 표본 부족"}
             &nbsp;·&nbsp; ${rg("인상기", g.regime_up)} &nbsp;·&nbsp; ${rg("인하기", g.regime_down)}</div>
@@ -312,6 +330,14 @@
             <span style="font-size:11.5px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~24M</span></div>
         </div>`;
       })(g)).join("");
+      $("lag-map").querySelectorAll(".lag-more").forEach(btn => btn.addEventListener("click", () => {
+        const open = btn.dataset.open === "1";
+        $("lag-map").querySelectorAll(`.lag-rest[data-grp2="${btn.dataset.grp}"]`)
+          .forEach(el2 => { el2.hidden = open; });
+        btn.dataset.open = open ? "0" : "1";
+        btn.textContent = open ? btn.textContent.replace("접기 ▴", "").replace(/나머지 (\d+)개 보기 ▾|접기 ▴/, "") || btn.textContent : "접기 ▴";
+        if (open) btn.textContent = "나머지 " + $("lag-map").querySelectorAll(`.lag-rest[data-grp2="${btn.dataset.grp}"]`).length + "개 보기 ▾";
+      }));
     }
 
     /* 홈 현재 신호 */
@@ -350,7 +376,7 @@
           ${peakK != null ? `<circle cx="${x2(peakK)}" cy="${y2(zp.find(p=>p.k===peakK).z)}" r="3.2" fill="var(--eye-red)" pointer-events="none"/>` : ""}
         </svg>`;
       };
-      $("event-cards").innerHTML = B.events.map(ev => `
+      const evCard = ev => `
         <div class="plate">
           <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
             <div class="viz-title">${ev.name}</div>
@@ -365,9 +391,26 @@
               <td class="num">${r.first != null ? "+" + r.first + "M" : "없음"}</td>
               <td class="num">+${r.peak_k}M <span style="color:${r.peak_z < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">z=${r.peak_z > 0 ? "+" : ""}${r.peak_z}</span></td></tr>`).join("") +
             "</tbody></table>" : '<p class="note">이 사건 시점을 덮는 관측 지표가 없다(표본 기간 밖).</p>'}
-          <p class="note">동시 사건: ${ev.concurrent}. 점선 = 사건월(T=0), 가는 선 = ±1z.
+          <p class="note"><span class="ev-read num" style="color:var(--eye-blue-deep)"></span>동시 사건: ${ev.concurrent}. 점선 = 사건월(T=0), 가는 선 = ±1z.
           거래량·매매가는 2023-08 이후 표본이라 그 이전 사건에는 나타나지 않는다.</p>
-        </div>`).join("");
+        </div>`;
+      const tabs = B.events.map((ev, i) =>
+        `<button class="btn ev-tab" data-i="${i}" style="padding:8px 14px;font-size:13px${i === 0 ? ";background:var(--ink);color:var(--paper);border-color:var(--ink)" : ""}">${ev.name.split(" ")[0].slice(0, 10)}</button>`).join("");
+      $("event-cards").innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${tabs}</div><div id="ev-panel">${evCard(B.events[0])}</div>`;
+      const bindEvDots = () => $("ev-panel").querySelectorAll("circle[style]").forEach(c =>
+        c.addEventListener("pointerdown", () => {
+          const t = c.querySelector("title");
+          const rd = c.closest(".plate").querySelector(".ev-read");
+          if (t && rd) rd.textContent = "판독: " + t.textContent + " · ";
+        }));
+      bindEvDots();
+      $("event-cards").querySelectorAll(".ev-tab").forEach(btn => btn.addEventListener("click", () => {
+        $("event-cards").querySelectorAll(".ev-tab").forEach(b2 => b2.removeAttribute("style"));
+        $("event-cards").querySelectorAll(".ev-tab").forEach(b2 => b2.setAttribute("style", "padding:8px 14px;font-size:13px"));
+        btn.setAttribute("style", "padding:8px 14px;font-size:13px;background:var(--ink);color:var(--paper);border-color:var(--ink)");
+        $("ev-panel").innerHTML = evCard(B.events[+btn.dataset.i]);
+        bindEvDots();
+      }));
     }
 
     /* Ⅶ 지역확산 */
@@ -420,11 +463,12 @@
       sy.innerHTML = names.map(n => `<option>${n}</option>`).join("");
       sx.value = names.includes("기준금리") ? "기준금리" : names[0];
       sy.value = names.includes("거래량") ? "거래량" : names[1] || names[0];
-      [sx, sy].forEach(el => el.addEventListener("change", () => { presetK(); drawLab(); }));
-      sk.addEventListener("input", drawLab);
-      sr.addEventListener("change", drawLab);
-      const play = $("lab-play");
       let sweep = null;
+      const stopSweep = () => { if (sweep) { clearInterval(sweep); sweep = null; $("lab-play").textContent = "▶"; } };
+      [sx, sy].forEach(el => el.addEventListener("change", () => { stopSweep(); presetK(); drawLab(); }));
+      sk.addEventListener("input", drawLab);
+      sr.addEventListener("change", () => { stopSweep(); drawLab(); });
+      const play = $("lab-play");
       play.addEventListener("click", () => {
         if (sweep) { clearInterval(sweep); sweep = null; play.textContent = "▶"; return; }
         sk.value = 0; drawLab(); play.textContent = "⏸";

@@ -114,10 +114,10 @@ def _shift(ym, k):
     return f"{y}{m:02d}"
 
 
-def best_lag(xm, ym_):
-    """0..24 스캔 → {lag, r, n, curve, stable}."""
+def best_lag(xm, ym_, max_lag=MAX_LAG):
+    """0..max_lag 스캔 → {lag, r, n, curve, stable, at_bound}."""
     curve = []
-    for k in range(MAX_LAG+1):
+    for k in range(max_lag+1):
         r, n = xcorr(xm, ym_, k)
         curve.append({"k": k, "r": r, "n": n})
     valid = [c for c in curve if c["r"] is not None]
@@ -136,7 +136,8 @@ def best_lag(xm, ym_):
     stable = (ra is not None and rb is not None
               and (ra > 0) == (top["r"] > 0) == (rb > 0))
     out = {"lag": top["k"], "r": top["r"], "n": top["n"],
-           "r_early": ra, "r_late": rb, "stable": stable, "curve": curve}
+           "r_early": ra, "r_late": rb, "stable": stable, "curve": curve,
+           "max_lag": max_lag, "at_bound": top["k"] >= max_lag - 1}
     if top_near and top_near["k"] != top["k"]:
         out["lag_near"], out["r_near"] = top_near["k"], top_near["r"]
     return out
@@ -161,7 +162,7 @@ def agree_pct(xm, ym_, k):
     return round(hit / tot * 100) if tot >= 12 else None
 
 
-def rolling_lag(xm, ym_, win=60, step=6):
+def rolling_lag(xm, ym_, win=60, step=6, max_lag=MAX_LAG):
     """이동창별 최적 시차 궤적 — [{end, lag, r}]."""
     yms = sorted(xm)
     out = []
@@ -169,7 +170,7 @@ def rolling_lag(xm, ym_, win=60, step=6):
     while i <= len(yms):
         sub = {t: xm[t] for t in yms[i - win:i]}
         best = None
-        for k in range(MAX_LAG + 1):
+        for k in range(max_lag + 1):
             r, n = xcorr(sub, ym_, k)
             if r is not None and (best is None or abs(r) > abs(best[1])):
                 best = (k, r)
@@ -179,12 +180,13 @@ def rolling_lag(xm, ym_, win=60, step=6):
     return out
 
 
-PAIRS = [  # 시차지도 사전계산 — 전달경로 가설 순
-    ("기준금리", "주담대금리"), ("기준금리", "거래량"), ("기준금리", "매매가"),
-    ("주담대금리", "거래량"), ("주담대금리", "매매가"), ("국고10년", "매매가"),
-    ("거래량", "매매가"), ("거래량", "전세가"), ("매매가", "전세가"),
-    ("매매가", "미분양"), ("미분양", "착공"), ("인허가", "착공"),
-    ("착공", "준공"), ("준공", "미분양"),
+# 쌍별 탐색 상한 — 24 고정은 착공→준공(20개월+)류에서 우측 경계 절단을 만든다 (12차 리뷰)
+PAIRS = [  # (선행, 반응, 최대 탐색 시차)
+    ("기준금리", "주담대금리", 18), ("기준금리", "거래량", 18), ("기준금리", "매매가", 18),
+    ("주담대금리", "거래량", 18), ("주담대금리", "매매가", 18), ("국고10년", "매매가", 18),
+    ("거래량", "매매가", 18), ("거래량", "전세가", 18), ("매매가", "전세가", 18),
+    ("매매가", "미분양", 30), ("미분양", "착공", 30), ("인허가", "착공", 30),
+    ("착공", "준공", 48), ("준공", "준공후미분양", 30),
 ]
 
 
@@ -196,10 +198,10 @@ def main():
 
     reg = regime_months(T.get("기준금리", {}))
     grid = []
-    for a, b in PAIRS:
+    for a, b, ml in PAIRS:
         if a not in T or b not in T:
             continue
-        res = best_lag(T[a], T[b])
+        res = best_lag(T[a], T[b], ml)
         if not res:
             continue
         g = {"x": a, "y": b, **{k2: v for k2, v in res.items() if k2 != "curve"}}
@@ -207,13 +209,13 @@ def main():
         for rg_name, rg_key in [("up", "up"), ("down", "down")]:
             sub = {t: v for t, v in T[a].items() if reg.get(t) == rg_key}
             best = None
-            for k in range(MAX_LAG + 1):
+            for k in range(ml + 1):
                 r, n = xcorr(sub, T[b], k)
                 if r is not None and (best is None or abs(r) > abs(best[1])):
                     best = (k, r, n)
             if best:
                 g["regime_" + rg_name] = {"lag": best[0], "r": round(best[1], 3), "n": best[2]}
-        g["windows"] = rolling_lag(T[a], T[b])
+        g["windows"] = rolling_lag(T[a], T[b], max_lag=ml)
         grid.append(g)
         ru, rd = g.get("regime_up"), g.get("regime_down")
         print(f"  {a} → {b}: +{res['lag']}M r={res['r']} 일치 {g['agree']}% "
