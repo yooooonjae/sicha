@@ -1,0 +1,91 @@
+/* 시차(視差) 디자인 토큰 — 계측실의 백서.
+   순백 위에 세 개의 눈: 흑(시장·실거래) · 청(세입자·전세) · 적(행정·공시).
+   charts.js 계약 변수(--ink*, --blueprint*, --s1/2, --seq-*, --pos/neg, --surface*, --axis, --grid, --hairline-2)를 반드시 정의한다. */
+
+:root {
+  /* 종이와 잉크 */
+  --paper: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #fafbfc;
+  --ink: #16181d;          /* 흑 — 시장의 눈(기준선) */
+  --ink-2: #4b5563;        /* 본문 보조 (4.5:1+) */
+  --ink-3: #6b7280;        /* 캡션 최저 대비선 */
+
+  /* 두 눈 */
+  --eye-blue: #1547c8;     /* 청 — 세입자의 눈(전세) */
+  --eye-blue-deep: #0f3aa8;
+  --eye-red: #d3232e;      /* 적 — 행정의 눈(공시) */
+  --eye-red-deep: #b31b25;
+  --wash-blue: #eef3ff;
+  --wash-red: #fdeeee;
+
+  /* charts.js 계약 — blueprint = 이 사이트의 주 계열(청) */
+  --blueprint: var(--eye-blue);
+  --blueprint-2: var(--eye-red);
+  --blueprint-wash: var(--wash-blue);
+  --s1: var(--eye-blue);
+  --s2: var(--eye-red);
+  --pos: #0e7a4a;          /* 상승·양(+) */
+  --neg: var(--eye-red);   /* 하락·음(−) — 역전세의 색 */
+
+  /* 괘선·격자 — 계측지 */
+  --rule: #d9dde3;
+  --hairline: #e7eaee;
+  --hairline-2: #eef0f3;
+  --grid: #eef0f3;
+  --axis: #8a94a3;
+  --cross: #d3d8e0;        /* 모눈 교차 십자 */
+
+  /* 히트맵 청 램프 (라이트) */
+  --seq-100: #f2f6ff;
+  --seq-200: #dbe6fd;
+  --seq-300: #b9cdfa;
+  --seq-400: #8fabf3;
+  --seq-500: #5f83e6;
+  --seq-600: #3560d4;
+  --seq-700: #1d43ae;
+
+  /* 타이포 */
+  --font-display: "Noto Serif KR", "Nanum Myeongjo", serif;   /* 백서의 명조 */
+  --font-body: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-num: "SF Mono", "IBM Plex Mono", ui-monospace, monospace; /* 계측값 */
+
+  --maxw: 1180px;
+  --radius: 3px;           /* 계측 기기의 각 — 거의 직각 */
+  --shadow-card: 0 1px 2px rgba(22,24,29,.05), 0 8px 28px rgba(22,24,29,.05);
+}
+
+:root[data-theme="dark"] {
+  --paper: #101216;
+  --surface: #14161b;
+  --surface-2: #191c22;
+  --ink: #e9ebef;
+  --ink-2: #b3bac4;
+  --ink-3: #99a1ad;
+
+  --eye-blue: #6f96ff;
+  --eye-blue-deep: #8babff;
+  --eye-red: #ff7a80;
+  --eye-red-deep: #ff959a;
+  --wash-blue: #17203a;
+  --wash-red: #331a1e;
+
+  --pos: #4fd396;
+
+  --rule: #2c313a;
+  --hairline: #23272f;
+  --hairline-2: #1e222a;
+  --grid: #1e222a;
+  --axis: #7a828e;
+  --cross: #2a2f38;
+
+  --seq-100: #151b2c;
+  --seq-200: #1b2742;
+  --seq-300: #24365e;
+  --seq-400: #2f4a85;
+  --seq-500: #3f63b4;
+  --seq-600: #5b82dd;
+  --seq-700: #86a7f2;
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+}

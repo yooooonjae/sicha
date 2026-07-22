@@ -1,0 +1,176 @@
+/* 시차(視差) 컴포넌트 — 계측 기기의 문법. */
+
+/* ── 앱바 ─────────────────────────────────────────── */
+nav.appbar {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--hairline);
+}
+nav.appbar .row { display: flex; align-items: center; gap: 20px; height: 56px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 19px; color: var(--ink); white-space: nowrap; }
+.brand .hanja { letter-spacing: .04em; }
+.brand:hover { text-decoration: none; }
+nav.appbar .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+nav.appbar .tabs::-webkit-scrollbar { display: none; }
+nav.appbar .tabs a {
+  padding: 6px 12px; font-size: 13.5px; color: var(--ink-2);
+  border-radius: var(--radius); white-space: nowrap;
+}
+nav.appbar .tabs a:hover { background: var(--surface-2); text-decoration: none; }
+nav.appbar .tabs a.on { color: var(--paper); background: var(--ink); }
+
+.theme-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid var(--rule); background: var(--surface);
+  color: var(--ink); font-size: 15px; cursor: pointer; flex: none;
+  display: grid; place-items: center;
+}
+.theme-btn:hover { border-color: var(--ink-3); }
+
+.toc-btn { display: none; }
+@media (max-width: 720px) {
+  nav.appbar .tabs { display: none; }
+  .toc-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-left: auto; padding: 7px 14px; font-size: 13.5px;
+    border: 1px solid var(--rule); border-radius: var(--radius);
+    background: var(--surface); color: var(--ink); cursor: pointer;
+  }
+}
+.toc-overlay {
+  position: fixed; inset: 0; z-index: 90; background: var(--paper);
+  padding: 24px; display: flex; flex-direction: column;
+}
+.toc-overlay a {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 16px 8px; min-height: 44px; color: var(--ink);
+  border-bottom: 1px solid var(--hairline); font-size: 17px;
+}
+.toc-overlay a .no { font-family: var(--font-display); color: var(--eye-blue); width: 30px; }
+.toc-close { align-self: flex-end; margin-bottom: 8px; }
+
+/* ── 히어로 ───────────────────────────────────────── */
+.hero { padding: 96px 0 56px; }
+.hero .eyebrow {
+  font-size: 12.5px; letter-spacing: .22em; color: var(--ink-2);
+  text-transform: uppercase; margin-bottom: 22px;
+}
+.hero h1 {
+  font-size: clamp(38px, 5.4vw, 62px); line-height: 1.22; margin-bottom: 26px;
+}
+.hero h1 .hanja { color: var(--ink); }
+.hero .sub { max-width: 640px; color: var(--ink-2); font-size: 16.5px; margin-bottom: 30px; }
+.hero .sub b { color: var(--ink); font-weight: 600; }
+
+.cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 44px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 22px; font-size: 14.5px; font-weight: 600;
+  border-radius: var(--radius); border: 1px solid var(--rule);
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-3); text-decoration: none; }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn.primary:hover { opacity: .9; }
+@media (max-width: 600px) {
+  .cta-row { display: grid; grid-template-columns: 1fr 1fr; }
+  .cta-row .btn.primary { grid-column: 1 / -1; }
+  .hero { padding: 56px 0 40px; }
+}
+
+/* ── KPI — 계측값 판독 ───────────────────────────── */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.kpi {
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+  background: var(--surface); padding: 18px 20px 15px;
+  box-shadow: var(--shadow-card);
+}
+.kpi .v { font-family: var(--font-num); font-size: 27px; font-weight: 600; letter-spacing: -.01em; }
+.kpi .v.blue { color: var(--eye-blue); }
+.kpi .v.red { color: var(--eye-red); }
+.kpi .l { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+
+/* ── 장(章) 골격 ─────────────────────────────────── */
+section.ch { padding-block: clamp(64px, 7vw, 104px); }
+section.ch + section.ch { border-top: 1px solid var(--hairline); }
+.ch-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 10px; flex-wrap: wrap; }
+.ch-head .no {
+  font-family: var(--font-display); font-size: 30px; color: var(--eye-blue);
+  min-width: 40px;
+}
+.ch-head h2 { font-size: clamp(24px, 3vw, 32px); }
+.ch-head .meta { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.ch-rule { height: 2px; background: var(--ink); margin-bottom: 26px; position: relative; }
+.ch-rule::after {
+  content: ""; position: absolute; right: 0; top: -3px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--eye-red);
+}
+.lede { max-width: 760px; color: var(--ink-2); font-size: 16px; margin-bottom: 30px; }
+.lede b, .lede strong { color: var(--ink); }
+
+/* ── 카드·차트 도판 ──────────────────────────────── */
+.plate {
+  position: relative;
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+  background: var(--surface); box-shadow: var(--shadow-card);
+  padding: 22px 24px 18px; margin-bottom: 20px;
+}
+.plate .viz-title { font-weight: 700; font-size: 15.5px; }
+.plate .viz-q { font-size: 13px; color: var(--ink-2); margin: 2px 0 4px; }
+.plate .viz-unit { font-size: 12px; color: var(--ink-3); text-align: right; margin-top: -20px; }
+.plate .note { font-size: 12.5px; color: var(--ink-2); margin-top: 12px; line-height: 1.65; border-top: 1px dashed var(--hairline); padding-top: 10px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 880px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* 눈 배지 — 세 시선의 서명 */
+.eye-tag {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 600; padding: 4px 10px;
+  border-radius: 99px; border: 1px solid var(--hairline);
+}
+.eye-tag::before { content: ""; width: 8px; height: 8px; border-radius: 50%; }
+.eye-tag.black { color: var(--ink); } .eye-tag.black::before { background: var(--ink); }
+.eye-tag.blue { color: var(--eye-blue-deep); background: var(--wash-blue); border-color: transparent; }
+.eye-tag.blue::before { background: var(--eye-blue); }
+.eye-tag.red { color: var(--eye-red-deep); background: var(--wash-red); border-color: transparent; }
+.eye-tag.red::before { background: var(--eye-red); }
+
+/* 표 */
+table.sheet { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.sheet th {
+  text-align: left; font-size: 12px; letter-spacing: .06em; color: var(--ink-2);
+  border-bottom: 2px solid var(--ink); padding: 8px 10px; white-space: nowrap;
+}
+table.sheet td { padding: 8px 10px; border-bottom: 1px solid var(--hairline); }
+table.sheet td.num, table.sheet th.num { text-align: right; font-family: var(--font-num); }
+
+/* 방법론 접힘 */
+details.method { border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); margin-bottom: 12px; }
+details.method summary {
+  cursor: pointer; padding: 14px 18px; font-weight: 600; font-size: 14.5px;
+  list-style: none; display: flex; align-items: center; gap: 10px;
+}
+details.method summary::before { content: "＋"; color: var(--eye-blue); font-weight: 400; }
+details.method[open] summary::before { content: "−"; }
+details.method .body { padding: 0 18px 16px; font-size: 13.5px; color: var(--ink-2); }
+
+/* 푸터 */
+footer { border-top: 1px solid var(--hairline); padding: 36px 0 48px; text-align: center; font-size: 13px; color: var(--ink-2); }
+footer .sig { font-family: var(--font-display); font-size: 15px; color: var(--ink); margin-bottom: 8px; }
+
+/* 자매 연구 카드 */
+.sister {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+  background: var(--surface-2); padding: 16px 20px; margin-top: 34px;
+}
+.sister .t { font-size: 12px; letter-spacing: .18em; color: var(--ink-3); text-transform: uppercase; }
+.sister .n { font-weight: 600; }
+.sister a.btn { margin-left: auto; padding: 8px 16px; font-size: 13px; }
+
+/* 스크롤 등장 */
+@media (prefers-reduced-motion: no-preference) {
+  .rise { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+  .rise.in { opacity: 1; transform: none; }
+}

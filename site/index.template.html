@@ -1,0 +1,248 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시차(視差) — 한 자산을 보는 세 개의 눈</title>
+<meta name="description" content="같은 아파트에 매겨진 세 개의 가격 — 실거래가·전세가·공시가격. 그 사이의 거리와 시간을 공공 데이터로 계측한다.">
+{{ROBOTS}}
+<style>{{CSS:tokens.css}}{{CSS:base.css}}{{CSS:components.css}}</style>
+<nav class="appbar" aria-label="장 탐색">
+  <div class="wrap row">
+    <a class="brand" href="#top"><span class="hanja">視差</span> 시차</a>
+    <div class="tabs">
+      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 방법론</a>
+    </div>
+    <button class="toc-btn" id="tocBtn" aria-label="목차 열기">목차</button>
+    <button class="theme-btn" id="themeBtn" aria-label="테마 전환">☀</button>
+  </div>
+</nav>
+<div class="toc-overlay" id="tocOverlay" hidden>
+  <button class="toc-close btn" id="tocClose" aria-label="목차 닫기">닫기 ✕</button>
+  <a href="#ch1"><span class="no">Ⅰ</span> 세 개의 가격</a>
+  <a href="#ch2"><span class="no">Ⅱ</span> 세입자의 눈 — 전세가율</a>
+  <a href="#ch3"><span class="no">Ⅲ</span> 행정의 눈 — 현실화율</a>
+  <a href="#ch4"><span class="no">Ⅳ</span> 겹침 — 이중 시차</a>
+  <a href="#ch5"><span class="no">Ⅴ</span> 방법론</a>
+</div>
+
+<main id="top">
+<header class="hero wrap">
+  <p class="eyebrow">부동산 가격의 시차 관측 · {{BUILT_AT}} 기준</p>
+  <h1><span class="hanja anaglyph">視差</span> —<br>한 자산을 보는<br>세 개의 눈</h1>
+  <p class="sub">같은 아파트에 세 개의 가격이 동시에 존재한다. <b>시장의 눈(실거래가)</b>,
+  <b>세입자의 눈(전세가)</b>, <b>행정의 눈(공시가격)</b>. 천문학이 시차(視差)로 별까지의
+  거리를 재듯, 세 시선의 각도차를 재면 자산의 리스크가 보인다 — 세 가격은 같은 시각을
+  살지 않으므로(공시는 연 1회, 전세는 2년 주기) 이것은 시간의 차(時差)이기도 하다.</p>
+  <div class="cta-row">
+    <a class="btn primary" href="#ch4">이중 시차 지도 보기 →</a>
+    <a class="btn" href="#ch2">전세가율 관측</a>
+    <a class="btn" href="#ch3">현실화율 관측</a>
+  </div>
+
+  <!-- 세 시선 다이어그램 — 세 눈이 한 자산에 수렴한다 -->
+  <div class="plate" style="padding:10px 8px 4px">
+    <svg viewBox="0 0 1120 300" role="img" aria-label="세 개의 눈이 한 자산을 바라보는 시차 다이어그램" style="width:100%;height:auto;display:block">
+      <defs>
+        <marker id="mB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--eye-blue)"/></marker>
+        <marker id="mR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--eye-red)"/></marker>
+        <marker id="mK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker>
+      </defs>
+      <line x1="60" y1="150" x2="1060" y2="150" stroke="var(--hairline)" stroke-width="1"/>
+      <line x1="560" y1="20" x2="560" y2="280" stroke="var(--hairline)" stroke-width="1"/>
+      <!-- 자산: 중앙의 관측 대상 -->
+      <rect x="545" y="135" width="30" height="30" fill="none" stroke="var(--ink)" stroke-width="2" transform="rotate(45 560 150)"/>
+      <circle cx="560" cy="150" r="3" fill="var(--ink)"/>
+      <text x="560" y="205" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">자산</text>
+      <text x="560" y="224" text-anchor="middle" font-size="11.5" fill="var(--ink-3)">같은 집, 세 개의 가격</text>
+      <!-- 청안: 세입자 -->
+      <circle cx="150" cy="60" r="17" fill="none" stroke="var(--eye-blue)" stroke-width="2"/>
+      <circle cx="150" cy="60" r="6" fill="var(--eye-blue)"/>
+      <line x1="176" y1="68" x2="528" y2="141" stroke="var(--eye-blue)" stroke-width="1.7" marker-end="url(#mB)"/>
+      <text x="150" y="30" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--eye-blue)">세입자의 눈</text>
+      <text x="252" y="82" font-size="12" fill="var(--eye-blue)" transform="rotate(11 252 82)">전세가 — 사용의 값</text>
+      <!-- 적안: 행정 -->
+      <circle cx="150" cy="243" r="17" fill="none" stroke="var(--eye-red)" stroke-width="2"/>
+      <circle cx="150" cy="243" r="6" fill="var(--eye-red)"/>
+      <line x1="176" y1="235" x2="528" y2="159" stroke="var(--eye-red)" stroke-width="1.7" marker-end="url(#mR)"/>
+      <text x="150" y="285" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--eye-red)">행정의 눈</text>
+      <text x="252" y="230" font-size="12" fill="var(--eye-red)" transform="rotate(-11 252 230)">공시가 — 과세·담보의 기준</text>
+      <!-- 흑안: 시장 (우측) -->
+      <circle cx="970" cy="150" r="17" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <circle cx="970" cy="150" r="6" fill="var(--ink)"/>
+      <line x1="944" y1="150" x2="596" y2="150" stroke="var(--ink)" stroke-width="1.7" marker-end="url(#mK)"/>
+      <text x="970" y="120" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--ink)">시장의 눈</text>
+      <text x="760" y="140" font-size="12" fill="var(--ink-2)">실거래가 — 오늘의 합의</text>
+      <!-- 시차각 호 -->
+      <path d="M 500 137 A 62 62 0 0 1 500 163" fill="none" stroke="var(--axis)" stroke-width="1.2" stroke-dasharray="3 3"/>
+      <text x="470" y="155" text-anchor="end" font-size="11.5" fill="var(--ink-2)" font-style="italic">시차각 = 리스크</text>
+    </svg>
+  </div>
+
+  <div class="kpi-row" id="home-kpis" style="margin-top:22px"></div>
+
+  <div class="sister">
+    <span class="t">자매 연구</span>
+    <span class="n">수지(收支) — 개별 사업의 손익 · 순환(循環) — 시장의 생애주기</span>
+    <a class="btn" href="https://yoonjae.pages.dev" target="_blank" rel="noopener">수지 열기 →</a>
+    <a class="btn" href="https://sunhwan.pages.dev" target="_blank" rel="noopener" style="margin-left:0">순환 열기 →</a>
+  </div>
+</header>
+
+<!-- Ⅰ 세 개의 가격 ─────────────────────────────────── -->
+<section class="ch wrap" id="ch1">
+  <div class="ch-head"><span class="no">Ⅰ</span><h2>세 개의 가격 — 정의와 원료</h2>
+    <div class="meta">원천 <b>국토부 실거래(매매·전월세) · VWorld 공시</b><br>표본 <b id="m-scope">—</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">추상의 이야기가 아니다 — 실제 단지 하나에서 세 가격이 어떻게 관측되는지부터
+  해부한다. 아래 표는 이 사이트의 전 표본에서 매매 거래가 가장 많았던 단지의 기록이다.
+  세 숫자가 다른 것은 오류가 아니라, <b>각 눈이 다른 것을 재고 있기 때문</b>이다 —
+  시장은 오늘의 합의를, 세입자는 사용의 값을, 행정은 과세의 기준을 잰다.</p>
+  <div class="plate">
+    <div class="viz-title" id="c1-title">단지 해부 — 관측 대장</div>
+    <div class="viz-q">같은 단지·같은 전용면적대에서 세 눈은 각각 얼마를 읽는가</div>
+    <div id="c1-table"></div>
+    <p class="note">전세가율 = 전세 중앙값 ÷ 매매 중앙값 · 현실화율 = 공시가격 ÷ 직전 1년 매매 중앙값.
+    관측창이 서로 달라(실거래 상시 · 공시 연 1회) 비율은 근사다. 개별 호가 아닌 단지·면적대 중앙값 기준.</p>
+  </div>
+  <div class="plate">
+    <div class="viz-title">데이터 계보 — 세 눈의 원천</div>
+    <table class="sheet">
+      <thead><tr><th>눈</th><th>가격</th><th>원천</th><th>주기</th><th class="num">이 사이트의 표본</th></tr></thead>
+      <tbody>
+        <tr><td><span class="eye-tag black">시장</span></td><td>아파트 매매 실거래가</td><td>국토교통부 RTMS</td><td>상시 (신고 기준)</td><td class="num" id="lin-sale">—</td></tr>
+        <tr><td><span class="eye-tag blue">세입자</span></td><td>아파트 전세 실거래가</td><td>국토교통부 RTMS 전월세</td><td>상시 (월세 0 계약만)</td><td class="num" id="lin-rent">—</td></tr>
+        <tr><td><span class="eye-tag red">행정</span></td><td>공동주택 공시가격</td><td>VWorld NED (부동산공시)</td><td>연 1회 (1월 1일 기준)</td><td class="num" id="lin-gongsi">—</td></tr>
+      </tbody>
+    </table>
+    <p class="note">매매·전세는 동일한 시군구 집합·동일한 월 범위에서 수집해 분자와 분모가 같은 표본 위에 선다.
+    공시 표본은 시군구별 거래 최다 단지 상위 3곳 — 전수가 아닌 <b>거래 상위 단지 표본</b>이다(Ⅴ장).</p>
+  </div>
+</section>
+
+<!-- Ⅱ 세입자의 눈 ─────────────────────────────────── -->
+<section class="ch wrap" id="ch2">
+  <div class="ch-head"><span class="no">Ⅱ</span><h2>세입자의 눈 — 전세가율</h2>
+    <div class="meta">지표 <b>전세 중앙값 ÷ 매매 중앙값</b><br>집계 <b>시군구 · 분기</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">전세가율은 <b>사용의 값이 소유의 값에서 차지하는 비중</b>이다. 높을수록 갭이
+  좁아 적은 자본으로 소유가 가능해지고 — 같은 이유로, 가격이 내리면 보증금이 매매가에
+  먼저 부딪힌다. 세입자의 눈은 그래서 리스크의 최전선이다.</p>
+  <div class="plate">
+    <div class="viz-title">시군구별 전세가율 — 분기 추이</div>
+    <div class="viz-q">사용의 값은 소유의 값 어디까지 올라와 있는가</div>
+    <div class="viz-unit">% · 분기 중앙값 비율 · 드래그로 구간 확대</div>
+    <div id="j-line"></div>
+    <p class="note" id="j-line-note">단지·전용면적대(±10%) 매칭 표본이 5건 이상인 분기는 매칭 비율,
+    미만이면 ㎡당 중앙값 비율로 폴백한다 — 두 방식이 섞임을 감안해 추세로 읽어야 한다.</p>
+  </div>
+  <div class="grid2">
+    <div class="plate">
+      <div class="viz-title">최신 분기 전세가율 — 시군구 비교</div>
+      <div class="viz-unit">%</div>
+      <div id="j-rank"></div>
+    </div>
+    <div class="plate">
+      <div class="viz-title">역전세 관측 — 8분기 전 대비 전세 중앙값</div>
+      <div class="viz-q">2년 전 계약이 지금 갱신된다면, 보증금은 얼마나 움직이는가</div>
+      <div class="viz-unit">% · ㎡당 전세 중앙값 변화</div>
+      <div id="j-rev"></div>
+      <p class="note">음수(적색)는 2년 전보다 전세 시세가 낮다는 뜻 — 임대인이 차액을 돌려줘야
+      하는 <b>역전세 압력</b>의 근사다. 동일 계약 추적이 아닌 집계 비교(Ⅴ장 한계).</p>
+    </div>
+  </div>
+</section>
+
+<!-- Ⅲ 행정의 눈 ───────────────────────────────────── -->
+<section class="ch wrap" id="ch3">
+  <div class="ch-head"><span class="no">Ⅲ</span><h2>행정의 눈 — 현실화율</h2>
+    <div class="meta">지표 <b>공시가격 ÷ 직전 1년 매매 중앙값</b><br>표본 <b id="m-real-n">—</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">공시가격은 과세·건보료·담보 평가의 기준이지만, 시장을 <b>1년 늦게, 일부만</b>
+  반영한다. 공시가 시장가의 몇 %를 따라왔는지 — 현실화율 — 는 곧 행정의 눈과 시장의 눈
+  사이 시차각이다. 각도가 클수록 세 부담은 가볍고, 담보의 장부는 시장과 멀어진다.</p>
+  <div class="plate">
+    <div class="viz-title">연도별 현실화율 — 표본 중앙값 궤적</div>
+    <div class="viz-q">행정의 눈은 시장을 얼마나 따라왔는가</div>
+    <div class="viz-unit">% · 단지·연도 관측 중앙값</div>
+    <div id="r-year"></div>
+    <p class="note">공시 기준일(1월 1일) 전후 1년(전년 7월~당년 6월)의 동단지·동면적대 매매
+    중앙값과 대조. 시장이 급등한 해에는 분모가 먼저 움직여 현실화율이 내려 보인다.</p>
+  </div>
+  <div class="grid2">
+    <div class="plate">
+      <div class="viz-title">단지별 산점 — 시장가 × 현실화율</div>
+      <div class="viz-q">비싼 집일수록 행정의 눈은 더 멀리 있는가</div>
+      <div class="viz-unit">가로 시장 중앙값(억) · 세로 현실화율(%) · 2024~25 관측</div>
+      <div id="r-scatter"></div>
+    </div>
+    <div class="plate">
+      <div class="viz-title">시군구별 현실화율 — 2024~25 표본 중앙값</div>
+      <div class="viz-unit">%</div>
+      <div id="r-rank"></div>
+      <p class="note">시군구당 표본 3단지 내외 — 지역 대표치가 아니라 <b>거래 상위 단지의
+      경향</b>으로 읽어야 한다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Ⅳ 겹침 ────────────────────────────────────────── -->
+<section class="ch wrap" id="ch4">
+  <div class="ch-head"><span class="no">Ⅳ</span><h2>겹침 — 이중 시차</h2>
+    <div class="meta">방법 <b>전세가율 × 현실화율 교차</b><br>주의 <b>상관 관측 · 표본 소</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">두 시차각을 겹치면 네 개의 사분면이 생긴다. 왼쪽 위 —
+  <b>전세가율은 높고 현실화율은 낮은 곳</b> — 은 보증금이 매매가에 바짝 붙어 있는데
+  담보·과세의 장부는 시장을 덜 반영한 지역이다. 세입자의 리스크와 행정의 착시가
+  같은 곳에서 겹친다면, 그곳이 신탁·심사의 눈이 먼저 가야 할 자리다.</p>
+  <div class="plate">
+    <div class="viz-title">이중 시차 사분면 — 시군구</div>
+    <div class="viz-q">두 각도가 함께 벌어진 곳은 어디인가</div>
+    <div class="viz-unit">가로 현실화율(%) · 세로 전세가율(%) · 점선 = 표본 중앙값</div>
+    <div id="q-quad"></div>
+    <p class="note" id="q-note">전세가율은 최신 분기, 현실화율은 2024~25 표본 중앙값.
+    시군구 수가 적어 사분면은 <b>탐색적 지도</b>다 — 개별 지역 판정은 원자료 확인이 먼저다.</p>
+  </div>
+</section>
+
+<!-- Ⅴ 방법론 ──────────────────────────────────────── -->
+<section class="ch wrap" id="ch5">
+  <div class="ch-head"><span class="no">Ⅴ</span><h2>방법론 — 출처·정의·한계</h2>
+    <div class="meta">갱신 <b>{{BUILT_AT}}</b><br>원칙 <b>전 수치 재현 가능</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">모든 수치는 공공 API에서 수집해 로컬에서 계산했고, 이 페이지는 외부 요청
+  없는 단일 파일이다. 아래 접힘에 원천·표본 설계·지표 정의·한계를 전부 남긴다.</p>
+  <details class="method"><summary>원천과 수집 — 3개 API · <span id="m-src-n">—</span></summary>
+    <div class="body"><table class="sheet">
+      <thead><tr><th>원천</th><th>내용</th><th>범위</th><th class="num">규모</th></tr></thead>
+      <tbody id="m-src-rows"></tbody>
+    </table></div></details>
+  <details class="method"><summary>표본 설계 — 왜 전수가 아닌가</summary>
+    <div class="body"><p>매매·전세는 수지(收支) 연구와 동일한 시군구 집합(시도별 대표
+    시군구, 매매 원거래와 같은 파일 범위)에서 수집한다 — 전세가율의 분자·분모가 같은
+    표본 위에 서게 하기 위해서다. 공시가격은 필지(PNU) 단위 조회만 가능해 전국 전수가
+    불가하다 — 시군구별 매매 거래 최다 단지 상위 3곳을 지오코더→연속지적→공시가 체인으로
+    조회했다. 따라서 현실화율은 <b>거래가 활발한 대단지의 경향</b>이며, 저거래 지역·비아파트
+    로 일반화할 수 없다.</p></div></details>
+  <details class="method"><summary>지표 정의 — 식과 폴백</summary>
+    <div class="body"><p>· 전세 = 월세가 0인 계약. 보증부 월세는 제외하며 전월세전환은
+    시도하지 않는다.<br>· 전세가율 = 단지·전용면적대(±10%) 매칭된 전세 보증금 중앙값 ÷ 매매
+    중앙값. 분기·시군구 매칭 표본이 5건 미만이면 ㎡당 중앙값의 비율로 폴백하고 basis로
+    구분 기록한다.<br>· 역전세 지표 = 현재 분기 ㎡당 전세 중앙값 ÷ 8분기 전 동일값 − 1.<br>
+    · 현실화율 = 공시가격(최빈 전용면적 구간의 호 중앙값) ÷ 공시 기준일 전후 1년
+    동단지·동면적대(±10%) 매매 중앙값(3건 이상일 때만).</p></div></details>
+  <details class="method"><summary>한계 — 이 지도가 말하지 않는 것</summary>
+    <div class="body"><p>· 전세가율은 시군구·분기 중앙값의 비율이다 — 개별 계약의 안전도가
+    아니다.<br>· 역전세 지표는 동일 계약 추적이 아닌 집계 근사다 — 갱신·신규가 섞인다.<br>
+    · 공시 표본은 거래 상위 단지 편향이 있다 — 저거래 지역 현실화율의 대표성이 낮다.<br>
+    · 모든 교차는 상관 관측이며 인과 주장이 아니다.<br>· 스킵된 표본(지오코딩 실패 등
+    <span id="m-skip">—</span>건)은 수집 로그에 사유와 함께 남겼다.</p></div></details>
+</section>
+</main>
+
+<footer>
+  <div class="sig anaglyph">視差</div>
+  <p>시차 — 한 자산을 보는 세 개의 눈 · 개인 연구 포트폴리오</p>
+  <p>수집·계산·조립 전 과정 재현 가능 · 본 페이지는 외부 네트워크 요청이 없는 정적 단일 파일이다</p>
+</footer>
+
+<script>window.__BUNDLE__ = {{DATA}};</script>
+<script>{{JS:charts.js}}</script>
+<script>{{JS:app.js}}</script>

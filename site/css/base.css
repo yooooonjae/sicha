@@ -1,0 +1,53 @@
+/* 시차(視差) 기저 — 순백 계측지. */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.72;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 모눈 교차 십자(+) — 사각 그리드가 아니라 정점만 찍히는 계측지 */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--cross) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cross) 1px, transparent 1px);
+  background-size: 96px 96px;
+  -webkit-mask-image: radial-gradient(circle at center, #000 0, #000 1.5px, transparent 2.5px);
+  -webkit-mask-size: 96px 96px;
+  mask-image: radial-gradient(circle at center, #000 0, #000 1.5px, transparent 2.5px);
+  mask-size: 96px 96px;
+  opacity: .9;
+}
+main, nav, footer { position: relative; z-index: 1; }
+
+a { color: var(--eye-blue); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+::selection { background: var(--wash-blue); color: var(--eye-blue-deep); }
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; }
+
+.num, .mono { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+
+/* 애너글리프 — 두 눈의 이중 인쇄. 시차의 서명. */
+.anaglyph {
+  text-shadow: 1.5px 0 0 rgba(211, 35, 46, .55), -1.5px 0 0 rgba(21, 71, 200, .55);
+}
+:root[data-theme="dark"] .anaglyph {
+  text-shadow: 1.5px 0 0 rgba(255, 122, 128, .5), -1.5px 0 0 rgba(111, 150, 255, .5);
+}
+
+@media (max-width: 640px) {
+  body { font-size: 15px; }
+  .wrap { padding: 0 18px; }
+}

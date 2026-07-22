@@ -172,6 +172,9 @@ def main():
     gp = ROOT / "data" / "gongsi.json"
     if gp.exists():
         gongsi = json.load(open(gp))
+        bundle["meta"]["sgg_names"] = {s["sgg"]: s["sggNm"].replace("서울 ", "").replace("경기 ", "")
+                                       or s["sgg"] for s in gongsi["samples"]}
+        bundle["meta"]["sgg_full"] = {s["sgg"]: s["sggNm"] for s in gongsi["samples"]}
         bundle["real"] = realization(gongsi, sales)
         print(f"현실화율: 단지·연도 관측 {len(bundle['real']['by_complex'])}개 · "
               f"연도별 {bundle['real']['by_year']}")
