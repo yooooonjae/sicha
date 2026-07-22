@@ -8,6 +8,7 @@
 """
 
 import json
+import re
 from pathlib import Path
 from statistics import median
 
@@ -18,7 +19,9 @@ MAX_LAG = 24
 
 
 def to_map(rows):
-    return {r["ym"]: r["value"] for r in rows if r.get("value") is not None}
+    """ym이 YYYYMM 6자리인 행만 — 연간 합계·빈 키 행 방어."""
+    return {r["ym"]: r["value"] for r in rows
+            if r.get("value") is not None and re.fullmatch(r"\d{6}", str(r.get("ym") or ""))}
 
 
 def load_series():
@@ -169,5 +172,60 @@ def main():
     print(f"병합: lag.series {len(T)}개 변수 · grid {len(grid)}쌍 → {bp}")
 
 
+
+
+
+# ── 지역확산 — 서울 기준 양방향 시차 (선행을 전제하지 않는다) ──────
+
+SPREAD_VARS = [("미분양", "unsold"), ("인허가", "permits"), ("착공", "starts")]
+REGIONS = ["경기", "인천", "부산", "대구", "광주", "대전", "울산", "세종",
+           "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"]
+
+
+def spread():
+    """변수별 서울↔각 지역 양방향(-18..+18) 스캔 → 판정.
+    k>0 = 서울이 k개월 선행 · k<0 = 지역이 선행 · |k|<=1 동행 · max|r|<0.3 독립."""
+    k = json.load(open(SUJI / "kosis.json"))
+    out = {}
+    for name, key in SPREAD_VARS:
+        seoul = transform(name, to_map(k[key]["서울"]))
+        rows = []
+        for rg in REGIONS:
+            if rg not in k[key]:
+                continue
+            other = transform(name, to_map(k[key][rg]))
+            best = None
+            for kk in range(-18, 19):
+                r, n = (xcorr(seoul, other, kk) if kk >= 0
+                        else xcorr(other, seoul, -kk))
+                if r is not None and (best is None or abs(r) > abs(best[1])):
+                    best = (kk, r, n)
+            if not best:
+                continue
+            kk, r, n = best
+            verdict = ("독립" if abs(r) < 0.3 else
+                       "동행" if abs(kk) <= 1 else
+                       "서울 선행" if kk > 0 else "지역 선행")
+            rows.append({"region": rg, "k": kk, "r": round(r, 3), "n": n,
+                         "verdict": verdict})
+        rows.sort(key=lambda x: x["k"])
+        out[name] = rows
+        lead = sum(1 for x in rows if x["verdict"] == "서울 선행")
+        lag_ = sum(1 for x in rows if x["verdict"] == "지역 선행")
+        print(f"  {name}: 서울 선행 {lead} · 지역 선행 {lag_} · "
+              f"동행 {sum(1 for x in rows if x['verdict']=='동행')} · "
+              f"독립 {sum(1 for x in rows if x['verdict']=='독립')}")
+    return out
+
+
+def main_spread():
+    bp = ROOT / "out" / "site_bundle.json"
+    bundle = json.load(open(bp))
+    bundle["spread"] = spread()
+    json.dump(bundle, open(bp, "w"), ensure_ascii=False)
+    print("병합: spread →", bp)
+
+
 if __name__ == "__main__":
     main()
+    main_spread()

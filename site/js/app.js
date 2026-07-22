@@ -54,22 +54,23 @@
       for (const k in at) n.setAttribute(k, at[k]); (parent || svg).appendChild(n); return n; };
     const hi = Math.max(...items.map(d => Math.abs(d.value)), 1e-9);
     const half = (W - M.l - M.r) / 2, x0 = M.l + half;
+    const span = half - 48;  // 값 텍스트 자리 확보 — 최대 바도 라벨을 침범하지 않게
     E("line", { x1: x0, x2: x0, y1: M.t, y2: H - M.b, stroke: css("--ink"), "stroke-width": 1.3 });
     items.forEach((d, i) => {
       const cy = M.t + i * rowH;
       E("text", { x: M.l - 10, y: cy + rowH / 2 + 5, "text-anchor": "end",
         "font-size": 13, "font-weight": 700, fill: css("--ink-2") }).textContent = d.name;
-      const w = half * Math.abs(d.value) / hi;
-      const negC = css("--neg"), posC = css("--pos");
+      const w = span * Math.abs(d.value) / hi;
+      const negC = css(opts.negColor || "--neg"), posC = css(opts.posColor || "--pos");
       E("rect", { x: d.value < 0 ? x0 - w : x0, y: cy + 9, width: Math.max(2, w),
         height: rowH - 18, rx: 2, fill: d.value < 0 ? negC : posC, opacity: .88 });
       E("text", { x: d.value < 0 ? x0 - w - 7 : x0 + w + 7, y: cy + rowH / 2 + 5,
         "text-anchor": d.value < 0 ? "end" : "start", "font-size": 12.5, "font-weight": 700,
         fill: d.value < 0 ? negC : posC, "font-family": "var(--font-num)" })
-        .textContent = (d.value > 0 ? "+" : "") + d.value.toFixed(1) + "%";
+        .textContent = opts.fmt ? opts.fmt(d.value) : ((d.value > 0 ? "+" : "") + d.value.toFixed(1) + "%");
     });
     E("text", { x: x0, y: H - 8, "text-anchor": "middle", "font-size": 11.5,
-      fill: css("--ink-3"), "font-family": "var(--font-num)" }).textContent = "0%";
+      fill: css("--ink-3"), "font-family": "var(--font-num)" }).textContent = opts.zeroLabel || "0%";
   }
 
   /* ── 렌더 (테마 전환 시 재호출) ───────────────── */
@@ -224,7 +225,32 @@
     /* Ⅵ 시차실험실 */
     if (L && L.series) initLab(L);
 
-    /* Ⅶ 방법론 수치 */
+    /* Ⅶ 지역확산 */
+    const SP = B.spread;
+    if (SP) {
+      const wrap = $("spread-wrap");
+      wrap.innerHTML = "";
+      for (const [vn, rows] of Object.entries(SP)) {
+        if (!rows.length) continue;
+        const bars = rows.filter(r2 => r2.verdict !== "독립");
+        const indep = rows.filter(r2 => r2.verdict === "독립").map(r2 => r2.region);
+        const div = document.createElement("div");
+        div.className = "plate";
+        div.innerHTML = `<div class="viz-title">${vn} — 서울 대비 시차</div>
+          <div class="viz-q">양(청)=서울이 먼저 · 음(적)=그 지역이 먼저</div>
+          <div class="viz-unit">개월 · 양방향 최적 시차</div><div id="sp-${vn}"></div>
+          <p class="note">판정: ${rows.filter(r2=>r2.verdict==="서울 선행").length}곳 서울 선행 ·
+          ${rows.filter(r2=>r2.verdict==="지역 선행").length}곳 지역 선행 ·
+          ${rows.filter(r2=>r2.verdict==="동행").length}곳 동행${indep.length ? " · 독립(|r|<0.3): " + indep.join("·") : ""}.
+          |r| 최대 기준이며 예측적 선후관계다 — 전달 경로의 증명이 아니다.</p>`;
+        wrap.appendChild(div);
+        divergeBars($("sp-" + vn), bars.map(r2 => ({ name: r2.region, value: r2.k })),
+          { posColor: "--s1", negColor: "--s2", zeroLabel: "동시",
+            fmt: v => (v > 0 ? "+" : "") + v + "M", aria: vn + " 지역확산 시차" });
+      }
+    }
+
+    /* Ⅷ 방법론 수치 */
     const src = [];
     src.push(`<tr><td>국토부 RTMS 매매</td><td>아파트 매매 실거래(수지 공유 원천)</td>
       <td>${M.sgg_names ? Object.keys(M.sgg_names).length : "—"}개 시군구 · 36개월</td>

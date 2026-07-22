@@ -8,7 +8,7 @@
   <div class="wrap row">
     <a class="brand" href="#top"><span class="hanja">視差</span> 시차</a>
     <div class="tabs">
-      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 시차지도</a><a href="#ch6">Ⅵ 실험실</a><a href="#ch7">Ⅶ 방법론</a>
+      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 시차지도</a><a href="#ch6">Ⅵ 실험실</a><a href="#ch7">Ⅶ 지역확산</a><a href="#ch8">Ⅷ 방법론</a>
     </div>
     <button class="toc-btn" id="tocBtn" aria-label="목차 열기">목차</button>
     <button class="theme-btn" id="themeBtn" aria-label="테마 전환">☀</button>
@@ -22,7 +22,8 @@
   <a href="#ch4"><span class="no">Ⅳ</span> 겹침 — 이중 시차</a>
   <a href="#ch5"><span class="no">Ⅴ</span> 시차지도 — 무엇이 먼저 움직이는가</a>
   <a href="#ch6"><span class="no">Ⅵ</span> 시차실험실 — 파형을 직접 정렬</a>
-  <a href="#ch7"><span class="no">Ⅶ</span> 방법론</a>
+  <a href="#ch7"><span class="no">Ⅶ</span> 지역확산 — 신호는 어디로 퍼지는가</a>
+  <a href="#ch8"><span class="no">Ⅷ</span> 방법론</a>
 </div>
 
 <main id="top">
@@ -282,9 +283,21 @@
   </div>
 </section>
 
-<!-- Ⅶ 방법론 ──────────────────────────────────────── -->
+<!-- Ⅶ 지역확산 ────────────────────────────────────── -->
 <section class="ch wrap" id="ch7">
-  <div class="ch-head"><span class="no">Ⅶ</span><h2>방법론 — 출처·정의·한계</h2>
+  <div class="ch-head"><span class="no">Ⅶ</span><h2>지역확산 — 신호는 어디로 퍼지는가</h2>
+    <div class="meta">방법 <b>서울↔지역 양방향 스캔(−18~+18개월)</b><br>판정 <b>선행 · 후행 · 동행 · 독립</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">서울이 항상 먼저 움직인다고 전제하지 않는다 — 변수마다 서울과 각 시도의
+  시차를 <b>양방향으로</b> 재서, 서울 선행·지역 선행·동행·독립을 데이터로 판정한다.
+  실제로 <b>미분양은 서울이 대부분 지역에 앞서지만, 착공은 지역이 서울에 앞서는 곳이 더 많다</b> —
+  공급의 신호는 수도가 아니라 지방에서 먼저 꺾인다.</p>
+  <div class="grid2" id="spread-wrap"></div>
+</section>
+
+<!-- Ⅷ 방법론 ──────────────────────────────────────── -->
+<section class="ch wrap" id="ch8">
+  <div class="ch-head"><span class="no">Ⅷ</span><h2>방법론 — 출처·정의·한계</h2>
     <div class="meta">갱신 <b>{{BUILT_AT}}</b><br>원칙 <b>전 수치 재현 가능</b></div></div>
   <div class="ch-rule"></div>
   <p class="lede">모든 수치는 공공 API에서 수집해 로컬에서 계산했고, 이 페이지는 외부 요청
