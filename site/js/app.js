@@ -641,20 +641,31 @@
             <b style="color:var(--time-neutral)">■ 회</b> 동행 · <b style="color:var(--ink-3)">□ 옅음</b> 독립·자료없음</div>
           <div id="sp-read" class="sp-read"></div>
           <div class="spread-split">
-            <div id="sp-map"></div>
+            <div class="sp-mapcol">
+              <div id="sp-map"></div>
+              <div class="sp-metros" id="sp-metros" role="group" aria-label="소형 광역시 바로 선택"></div>
+            </div>
             <div><div class="viz-unit" style="margin:0 0 4px">개월 · 양방향 최적 시차(발산 바)</div><div id="sp-panel"></div></div>
           </div>
           <p class="note" id="sp-note"></p></div>`;
         const seqTeal = ["--seq-300", "--seq-400", "--seq-500", "--seq-600", "--seq-700"]; // 청록 램프(--seq) — 서울 선행 농도
         const fillFor = rec => {
-          if (!rec || rec.verdict === "독립") return { f: css("--surface-2"), s: css("--hairline-2"), w: 1 };
-          if (rec.verdict === "동행") return { f: css("--time-neutral-wash"), s: css("--hairline"), w: 1 };
-          if (rec.verdict === "서울 선행") return { f: css(seqTeal[Math.min(4, Math.floor(Math.abs(rec.k) / 3))]), s: css("--hairline"), w: 1 };
+          if (!rec || rec.verdict === "독립") return { f: css("--surface-2"), s: css("--hairline-2") };
+          if (rec.verdict === "동행") return { f: css("--time-neutral-wash"), s: css("--hairline") };
+          if (rec.verdict === "서울 선행") return { f: css(seqTeal[Math.min(4, Math.floor(Math.abs(rec.k) / 3))]), s: css("--hairline") };
           const pct = 30 + Math.min(58, Math.abs(rec.k) * 6); // 지역 선행 — 적갈 농도
-          return { f: `color-mix(in srgb, ${css("--time-supply")} ${pct}%, ${css("--surface")})`, s: css("--hairline"), w: 1 };
+          return { f: `color-mix(in srgb, ${css("--time-supply")} ${pct}%, ${css("--surface")})`, s: css("--hairline") };
         };
-        const strokeOf = (name, byRegion) => name === "서울" ? css("--ink")
-          : (byRegion[name] && byRegion[name].verdict === "독립") || !byRegion[name] ? css("--hairline-2") : css("--hairline");
+        // 판정 → 라벨·색 클래스·한 줄 해석 (판독 패널의 판정·해석 공통 출처)
+        const verdictInfo = (name, rec) => {
+          if (name === "서울") return { label: "기준 지역", cls: "ref", line: "다른 시도의 시차를 재는 비교 기준이다." };
+          if (!rec) return { label: "표본 없음", cls: "none", line: "이 변수의 지역 표본이 없다." };
+          if (rec.verdict === "독립") return { label: "독립 (|r|&lt;0.3)", cls: "indep", line: name + "는 서울과 뚜렷한 선후 관계가 없다." };
+          if (rec.verdict === "동행") return { label: "동행 (±1개월)", cls: "sync", line: name + "는 서울과 거의 동시에 움직인다." };
+          if (rec.verdict === "서울 선행") return { label: "서울 선행 +" + rec.k + "M", cls: "seoul", line: "서울이 " + name + "보다 " + rec.k + "개월 먼저 움직였다." };
+          return { label: "지역 선행 +" + Math.abs(rec.k) + "M", cls: "region", line: name + "가 서울보다 " + Math.abs(rec.k) + "개월 먼저 움직였다." };
+        };
+        const METROS = ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종"]; // 소형 광역시(작은 폴리곤) 보조 선택
         const drawSp = vn => {
           const rows = SP[vn], byRegion = {};
           rows.forEach(r => byRegion[r.region] = r);
@@ -663,42 +674,58 @@
           $("sp-title").textContent = `${vn} — 서울 대비 지역 시차 지도`;
           $("sp-note").innerHTML = `판정: <span class="num">${rows.filter(r2 => r2.verdict === "서울 선행").length}</span>곳 서울 선행 · ` +
             `<span class="num">${rows.filter(r2 => r2.verdict === "지역 선행").length}</span>곳 지역 선행 · ` +
-            `<span class="num">${rows.filter(r2 => r2.verdict === "동행").length}</span>곳 동행${indep.length ? " · 독립(|r|<0.3): " + indep.join("·") : ""}. ` +
+            `<span class="num">${rows.filter(r2 => r2.verdict === "동행").length}</span>곳 동행${indep.length ? " · 독립(|r|&lt;0.3): " + indep.join("·") : ""}. ` +
             `|r| 최대 기준이며 <b>예측적 선후관계다 — 전달 경로의 증명이 아니다.</b>`;
-          // 지도
+          // 지도 — 서울은 is-ref(점선 기준선), 나머지는 판정 채움 + 기본 실선(호버·선택은 CSS 클래스가 담당)
           let msvg = `<svg viewBox="0 0 520 690" role="img" aria-label="${vn} 지역확산 지도" style="width:100%;height:auto;display:block">`;
           KOREA.forEach(sd => {
             const isSeoul = sd.name === "서울";
-            const st = isSeoul ? { f: css("--time-main-wash"), s: css("--ink"), w: 2.2 } : fillFor(byRegion[sd.name]);
-            msvg += `<path class="kmap-region" data-region="${sd.name}" d="${sd.d}" fill="${st.f}" stroke="${st.s}" stroke-width="${st.w}"/>`;
+            const st = isSeoul ? { f: css("--time-main-wash"), s: css("--ink") } : fillFor(byRegion[sd.name]);
+            msvg += `<path class="kmap-region${isSeoul ? " is-ref" : ""}" data-region="${sd.name}" d="${sd.d}" fill="${st.f}" stroke="${st.s}" stroke-width="1"/>`;
           });
           msvg += `</svg>`;
           $("sp-map").innerHTML = msvg;
-          // 판독
-          const rr = rec => `r=<span class="num">${rec.r > 0 ? "+" : ""}${rec.r.toFixed(2)}</span> · n=<span class="num">${rec.n}</span>`;
-          const readout = name => {
-            const rec = byRegion[name];
-            if (name === "서울") return `<b>서울</b> — 기준 지역(비교 대상)`;
-            if (!rec) return `<b>${name}</b> — 이 변수 표본 없음`;
-            if (rec.verdict === "독립") return `<b>${name}</b> — 독립(|r|&lt;0.3) · ${rr(rec)}`;
-            if (rec.verdict === "동행") return `<b>${name}</b> — 서울과 동행(±1개월) · ${rr(rec)}`;
-            if (rec.verdict === "서울 선행") return `<b>${name}</b> — 서울이 <span class="num">+${rec.k}</span>개월 선행 · ${rr(rec)}`;
-            return `<b>${name}</b> — ${name}가 <span class="num">+${Math.abs(rec.k)}</span>개월 선행 · ${rr(rec)}`;
-          };
+          // 판독 패널 — 지역 / 변수 / 판정 / r·n / 한 줄 해석
           const readEl = $("sp-read");
-          readEl.innerHTML = `<span style="color:var(--ink-3)">지역에 마우스를 올리거나 탭하면 상세가 뜬다 · 서울(굵은 테두리)이 기준</span>`;
+          const renderRead = name => {
+            if (name == null) { readEl.innerHTML = `<span class="spr-hint">지도의 지역을 누르거나 아래 <b>소형 광역시</b> 버튼을 선택하면 판독이 뜬다 · <span class="spr-ref-chip">서울</span>은 기준 지역</span>`; return; }
+            const rec = byRegion[name], vi = verdictInfo(name, rec);
+            const rn = rec ? `<span class="num">${rec.r > 0 ? "+" : ""}${rec.r.toFixed(2)}</span> · n <span class="num">${rec.n}</span>` : `<span style="color:var(--ink-3)">—</span>`;
+            readEl.innerHTML = `<div class="spr-grid">` +
+              `<div class="spr-f"><span class="spr-k">지역</span><span class="spr-v spr-region">${name}</span></div>` +
+              `<div class="spr-f"><span class="spr-k">변수</span><span class="spr-v">${vn}</span></div>` +
+              `<div class="spr-f"><span class="spr-k">판정</span><span class="spr-verdict ${vi.cls}">${vi.label}</span></div>` +
+              `<div class="spr-f"><span class="spr-k">r · n</span><span class="spr-v">${rn}</span></div>` +
+              `</div><p class="spr-line">${vi.line}</p>`;
+          };
+          // 지도 상태·선택 관리 (서울=기준은 선택 강조 대상이 아니라 항상 점선)
           const paths = [...$("sp-map").querySelectorAll(".kmap-region")];
-          const show = p => {
-            paths.forEach(o => { o.setAttribute("stroke", strokeOf(o.dataset.region, byRegion)); o.setAttribute("stroke-width", o.dataset.region === "서울" ? 2.2 : 1); });
-            p.setAttribute("stroke", css("--ink")); p.setAttribute("stroke-width", 2.6);
-            p.parentNode.appendChild(p); // 선택 외곽선을 위로
-            readEl.innerHTML = readout(p.dataset.region);
+          const metroWrap = $("sp-metros");
+          let selected = null;
+          const syncMetros = () => metroWrap.querySelectorAll(".sp-metro").forEach(b =>
+            b.classList.toggle("on", !b.disabled && b.dataset.region === selected));
+          const setSel = name => {
+            selected = name;
+            paths.forEach(o => o.classList.toggle("is-sel", name !== "서울" && o.dataset.region === name));
+            const sp = paths.find(o => o.dataset.region === name);
+            if (sp && name !== "서울") sp.parentNode.appendChild(sp); // 선택 외곽선을 위로
+            syncMetros(); renderRead(name);
           };
           paths.forEach(p => {
-            p.style.cursor = "pointer";
-            p.addEventListener("pointerenter", () => show(p));
-            p.addEventListener("click", () => show(p));
+            p.addEventListener("pointerenter", () => renderRead(p.dataset.region)); // 호버 = 미리보기(외곽선은 CSS :hover)
+            p.addEventListener("pointerleave", () => renderRead(selected));
+            p.addEventListener("click", () => setSel(p.dataset.region));
           });
+          // 소형 광역시 버튼 — 지도 아래, 탭=지도 탭과 동일(판독+강조). 서울은 기준이라 비활성
+          metroWrap.innerHTML = METROS.map(mn => {
+            const dis = mn === "서울";
+            return `<button class="btn-sm sp-metro" data-region="${mn}"${dis ? " disabled aria-disabled=\"true\"" : ""}>${mn}${dis ? `<span class="sp-metro-tag">기준</span>` : ""}</button>`;
+          }).join("");
+          metroWrap.querySelectorAll(".sp-metro").forEach(b => {
+            if (b.disabled) return;
+            b.addEventListener("click", () => setSel(b.dataset.region));
+          });
+          renderRead(null);
           // 발산 바(우)
           divergeBars($("sp-panel"), bars.map(r2 => ({ name: r2.region, value: r2.k })),
             { width: MOB ? 560 : 720, posColor: "--time-main", negColor: "--time-supply", zeroLabel: "동시",
