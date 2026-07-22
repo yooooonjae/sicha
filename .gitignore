@@ -1,0 +1,6 @@
+config.json
+data/
+out/
+web/
+web.tmp/
+__pycache__/
