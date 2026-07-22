@@ -155,11 +155,14 @@
     /* Ⅲ 현실화율 */
     if (R) {
       $("m-real-n").textContent = R.by_complex.length + "개 단지·연도 관측";
-      const years = Object.keys(R.by_year).sort();
-      Charts.line($("r-year"), [{
-        name: "현실화율 중앙값",
-        points: years.map(y => ({ label: y + ".01", y: R.by_year[y].med })),
-      }], { height: 280, interactive: false, aria: "연도별 현실화율 중앙값" });
+      const OF = R.official || {};
+      const years = [...new Set(Object.keys(R.by_year).concat(Object.keys(OF)))].sort();
+      Charts.line($("r-year"), [
+        { name: "정부 발표 평균(공동주택 전체)", color: "--ink-3",
+          points: years.map(y => ({ label: y + ".01", y: OF[y] != null ? OF[y] : NaN })) },
+        { name: "이 표본 중앙값", color: "--s2", emph: true,
+          points: years.map(y => ({ label: y + ".01", y: R.by_year[y] ? R.by_year[y].med : NaN })) },
+      ], { height: 300, interactive: false, aria: "연도별 현실화율 — 표본과 정부 발표 대조" });
 
       const pts = R.by_complex.filter(c => c.year >= 2024).map(c => ({
         x: c.market_eok, y: c.ratio, label: c.apt,

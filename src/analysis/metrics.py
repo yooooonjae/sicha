@@ -153,12 +153,15 @@ def realization(gongsi, sales):
     for c in by_complex:
         if c["year"] >= 2024:
             by_sgg[c["sgg"]].append(c["ratio"])
+    # 정부 발표 공동주택 평균 현실화율(국토부 보도자료) — 표본과의 괴리 대조선
+    official = {"2021": 70.2, "2022": 71.5, "2023": 69.0, "2024": 69.0, "2025": 69.0}
     return {
         "by_complex": by_complex,
         "by_year": {y: {"med": round(median(v), 1), "n": len(v)}
                     for y, v in sorted(by_year.items())},
         "by_sgg": {g: {"med": round(median(v), 1), "n": len(v)}
                    for g, v in by_sgg.items()},
+        "official": official,
     }
 
 
