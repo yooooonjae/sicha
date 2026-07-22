@@ -8,7 +8,7 @@
   <div class="wrap row">
     <a class="brand" href="#top"><span class="hanja">視差</span> 시차</a>
     <div class="tabs">
-      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 시차지도</a><a href="#ch6">Ⅵ 실험실</a><a href="#ch7">Ⅶ 지역확산</a><a href="#ch8">Ⅷ 방법론</a>
+      <a href="#ch1">Ⅰ 세 개의 가격</a><a href="#ch2">Ⅱ 세입자의 눈</a><a href="#ch3">Ⅲ 행정의 눈</a><a href="#ch4">Ⅳ 겹침</a><a href="#ch5">Ⅴ 시차지도</a><a href="#ch6">Ⅵ 실험실</a><a href="#ch7">Ⅶ 지역확산</a><a href="#ch8">Ⅷ 사건연구</a><a href="#ch9">Ⅸ 방법론</a>
     </div>
     <button class="toc-btn" id="tocBtn" aria-label="목차 열기">목차</button>
     <button class="theme-btn" id="themeBtn" aria-label="테마 전환">☀</button>
@@ -23,7 +23,8 @@
   <a href="#ch5"><span class="no">Ⅴ</span> 시차지도 — 무엇이 먼저 움직이는가</a>
   <a href="#ch6"><span class="no">Ⅵ</span> 시차실험실 — 파형을 직접 정렬</a>
   <a href="#ch7"><span class="no">Ⅶ</span> 지역확산 — 신호는 어디로 퍼지는가</a>
-  <a href="#ch8"><span class="no">Ⅷ</span> 방법론</a>
+  <a href="#ch8"><span class="no">Ⅷ</span> 사건연구 — 정책 이후 시장은 언제 반응했는가</a>
+  <a href="#ch9"><span class="no">Ⅸ</span> 방법론</a>
 </div>
 
 <main id="top">
@@ -303,9 +304,21 @@
   <div class="grid2" id="spread-wrap"></div>
 </section>
 
-<!-- Ⅷ 방법론 ──────────────────────────────────────── -->
+<!-- Ⅷ 사건연구 ────────────────────────────────────── -->
 <section class="ch wrap" id="ch8">
-  <div class="ch-head"><span class="no">Ⅷ</span><h2>방법론 — 출처·정의·한계</h2>
+  <div class="ch-head"><span class="no">Ⅷ</span><h2>사건연구 — 정책 이후 시장은 언제 반응했는가</h2>
+    <div class="meta">방법 <b>사건월 T=0 · 전 12개월 추세 대비 이탈(z)</b><br>주의 <b>비교군 없음 · 동시 사건 중첩</b></div></div>
+  <div class="ch-rule"></div>
+  <p class="lede">정책 발표일에 수직선 하나 긋고 끝내지 않는다 — 각 지표의 경로를 <b>사건 전
+  12개월의 평균·변동성 대비 몇 표준편차 이탈했는가(z)</b>로 재고, 첫 반응 시점(|z|>1)과
+  최대 반응 시점을 기록한다. 발표일과 시행일을 분리하고, 같은 시기에 겹친 다른 정책을
+  카드마다 명시한다. <b>비교군이 없는 전국 단일 경로라 인과가 아니라 전후 관측이다.</b></p>
+  <div id="event-cards"></div>
+</section>
+
+<!-- Ⅸ 방법론 ──────────────────────────────────────── -->
+<section class="ch wrap" id="ch9">
+  <div class="ch-head"><span class="no">Ⅸ</span><h2>방법론 — 출처·정의·한계</h2>
     <div class="meta">갱신 <b>{{BUILT_AT}}</b><br>원칙 <b>전 수치 재현 가능</b></div></div>
   <div class="ch-rule"></div>
   <p class="lede">모든 수치는 공공 API에서 수집해 로컬에서 계산했고, 이 페이지는 외부 요청

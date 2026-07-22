@@ -260,6 +260,46 @@
     /* Ⅵ 시차실험실 */
     if (L && L.series) initLab(L);
 
+    /* Ⅷ 사건연구 */
+    if (B.events && B.events.length) {
+      const zSpark = (zp, first, peakK) => {
+        const W2 = 300, H2 = 54, lo = -3.5, hi2 = 3.5;
+        const x2 = k => 8 + (k + 12) * (W2 - 16) / 24;
+        const y2 = z => 6 + (1 - (Math.max(lo, Math.min(hi2, z)) - lo) / (hi2 - lo)) * (H2 - 12);
+        let d = "", pen = false;
+        zp.forEach(p => {
+          if (p.z == null) { pen = false; return; }
+          d += (pen ? "L" : "M") + x2(p.k).toFixed(1) + " " + y2(p.z).toFixed(1);
+          pen = true;
+        });
+        return `<svg viewBox="0 0 ${W2} ${H2}" style="width:${W2}px;max-width:100%;height:${H2}px">
+          <line x1="8" x2="${W2-8}" y1="${y2(0)}" y2="${y2(0)}" stroke="var(--hairline)" stroke-width="1"/>
+          <line x1="${x2(0)}" x2="${x2(0)}" y1="4" y2="${H2-4}" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="3 3"/>
+          ${[1,-1].map(v => `<line x1="8" x2="${W2-8}" y1="${y2(v)}" y2="${y2(v)}" stroke="var(--hairline-2)" stroke-width="1"/>`).join("")}
+          <path d="${d}" fill="none" stroke="var(--eye-blue)" stroke-width="1.8"/>
+          ${peakK != null ? `<circle cx="${x2(peakK)}" cy="${y2(zp.find(p=>p.k===peakK).z)}" r="3.2" fill="var(--eye-red)"/>` : ""}
+        </svg>`;
+      };
+      $("event-cards").innerHTML = B.events.map(ev => `
+        <div class="plate">
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <div class="viz-title">${ev.name}</div>
+            <span class="eye-tag ${ev.type === "통화" ? "blue" : ev.type === "규제" ? "red" : "black"}">${ev.type}</span>
+            <span style="margin-left:auto;font-size:12.5px;color:var(--ink-2)" class="num">발표 ${ev.announce} · 시행 ${ev.effective}</span>
+          </div>
+          <div class="viz-q" style="margin-bottom:10px">${ev.note}</div>
+          ${ev.rows.length ? `<table class="sheet"><thead><tr><th>지표</th><th>T−12 ~ T+12 이탈 경로(z)</th>
+            <th class="num">첫 반응</th><th class="num">최대 반응</th></tr></thead><tbody>` +
+            ev.rows.map(r => `<tr><td><b>${r.ind}</b></td>
+              <td>${zSpark(r.z, r.first, r.peak_k)}</td>
+              <td class="num">${r.first != null ? "+" + r.first + "M" : "없음"}</td>
+              <td class="num">+${r.peak_k}M <span style="color:${r.peak_z < 0 ? "var(--eye-red)" : "var(--eye-blue)"}">z=${r.peak_z > 0 ? "+" : ""}${r.peak_z}</span></td></tr>`).join("") +
+            "</tbody></table>" : '<p class="note">이 사건 시점을 덮는 관측 지표가 없다(표본 기간 밖).</p>'}
+          <p class="note">동시 사건: ${ev.concurrent}. 점선 = 사건월(T=0), 가는 선 = ±1z.
+          거래량·매매가는 2023-08 이후 표본이라 그 이전 사건에는 나타나지 않는다.</p>
+        </div>`).join("");
+    }
+
     /* Ⅶ 지역확산 */
     const SP = B.spread;
     if (SP) {
