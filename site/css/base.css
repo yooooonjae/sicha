@@ -64,9 +64,32 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing:
   text-shadow: 1.5px 0 0 rgba(255, 122, 128, .5), -1.5px 0 0 rgba(111, 150, 255, .5);
 }
 
-/* .ana — 히어로 대형 제목 전용 애너글리프(넓은 5px 오프셋·옅은 잉크). 큰 제목에만, 본문 금지. */
+/* .ana — 히어로 대형 제목 전용 애너글리프(넓은 5px 오프셋·옅은 잉크). 큰 제목에만, 본문 금지.
+   정적 5px = prefers-reduced-motion·캡처 경로가 보는 최종 상태. */
 .ana {
   text-shadow: 5px 0 0 rgba(211, 35, 46, .22), -5px 0 0 rgba(29, 78, 216, .22);
+}
+
+/* ── 개막 시그니처 "갈라지는 삼중상" (모션 1) ────────────────────────────
+   히어로 SVG 청/적 이중상 g: 정적 기본 ±34 user단위(reduced-motion·캡처가 보는 최종 상태).
+   SVG g의 CSS transform은 attribute transform과 충돌하므로 attribute는 템플릿에서 제거했다. */
+.ghost-b { transform: translateX(-34px); }
+.ghost-r { transform: translateX(34px); }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 로드 시 0→±34 0.9s ease-out 1회(both로 유지) → 이후 ±34↔±38 6s 숨쉬기(느리고 미세) */
+  .ghost-b { animation: ghost-open-b .9s ease-out both, ghost-breathe-b 6s ease-in-out .9s infinite alternate; }
+  .ghost-r { animation: ghost-open-r .9s ease-out both, ghost-breathe-r 6s ease-in-out .9s infinite alternate; }
+  /* 제목 애너글리프 오프셋 0→5px, 삼중상과 같은 타이밍(0.9s). reduced-motion은 .ana 정적 5px. */
+  .ana { animation: ana-split .9s ease-out both; }
+}
+@keyframes ghost-open-b { from { transform: translateX(0); } to { transform: translateX(-34px); } }
+@keyframes ghost-breathe-b { from { transform: translateX(-34px); } to { transform: translateX(-38px); } }
+@keyframes ghost-open-r { from { transform: translateX(0); } to { transform: translateX(34px); } }
+@keyframes ghost-breathe-r { from { transform: translateX(34px); } to { transform: translateX(38px); } }
+@keyframes ana-split {
+  from { text-shadow: 0 0 0 rgba(211, 35, 46, .22), 0 0 0 rgba(29, 78, 216, .22); }
+  to   { text-shadow: 5px 0 0 rgba(211, 35, 46, .22), -5px 0 0 rgba(29, 78, 216, .22); }
 }
 
 @media (max-width: 640px) {

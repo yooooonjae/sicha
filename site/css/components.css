@@ -183,17 +183,45 @@ main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
 
 .nav-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(206px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5); }
 .nav-card { display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--hairline); border-radius: var(--radius);
-  background: var(--surface); box-shadow: var(--shadow-1); padding: 15px 17px 14px; transition: transform .15s ease, border-color .15s ease; }
-.nav-card:hover { border-color: var(--ink-3); text-decoration: none; transform: translateY(-1px); }
+  background: var(--surface); box-shadow: var(--shadow-1); padding: 15px 17px 14px; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+/* 모션 5 — 카드 hover: 테두리·그림자 상승은 항상, lift(-2px)는 모션 허용 시에만(아래 no-preference) */
+.nav-card:hover { border-color: var(--ink-3); text-decoration: none; box-shadow: var(--shadow-2); }
 /* 로마 숫자 승격 — 26px 세리프 · 관문 색(視差 청 / 時差 청록) */
 .nav-card .nc-no { font-family: var(--font-display); font-size: 26px; line-height: 1.05; color: #1d4ed8; letter-spacing: .04em; }
 #home-time .nav-card .nc-no { color: var(--time-main); }
 .nav-card .nc-t { font-weight: 700; font-size: 15px; color: var(--ink); }
-/* 카드 hover 시 제목 미세 애너글리프 시프트(모션 허용 시에만) */
+/* 카드 hover 시 제목 미세 애너글리프 시프트 + lift(모션 허용 시에만) */
 @media (prefers-reduced-motion: no-preference) {
   .nav-card .nc-t { transition: text-shadow .2s ease; }
   .nav-card:hover .nc-t { text-shadow: 1px 0 0 rgba(211, 35, 46, .28), -1px 0 0 rgba(29, 78, 216, .28); }
+  .nav-card:hover { transform: translateY(-2px); }        /* 모션 5 — 카드 lift */
+  /* 모션 5 + D-5 — 히트맵 셀 hover: scale 1.06(셀 자기 중심) + 잉크 스트로크 */
+  .heat-cell { transition: transform .2s ease; transform-box: fill-box; transform-origin: center; }
+  .heat-cell:hover { transform: scale(1.06); stroke: var(--ink); stroke-width: 1.2px; }
+  /* 모션 5 — 연구 카드(lag-map) hover: lift + 스파크 stroke-dashoffset 재생 0.6s */
+  #lag-map .plate { transition: box-shadow .2s ease, transform .2s ease; }
+  #lag-map .plate:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  #lag-map .plate .spark-line { stroke-dasharray: 360; stroke-dashoffset: 0; }
+  #lag-map .plate:hover .spark-line { animation: spark-draw .6s ease-out; }
+  /* D-애니 5 — 랭킹 바 hover 밝기 · 라인 호버 포커스 디밍 트랜지션 */
+  .hbar { transition: filter .2s ease, opacity .2s ease; }
+  .hbar:hover { filter: brightness(1.07); }
+  .ln-s { transition: opacity .2s ease; }
+  /* D-애니 3 — 산점 스태거(페이드+스케일): .sc-anim 초기 숨김 → IO(.anim-in)에서 시작.
+     reduced-motion은 이 블록 미적용 → 즉시 최종(캡처 경로). */
+  .sc-anim .sc-pt { opacity: 0; }
+  .sc-anim.anim-in .sc-pt { animation: sc-in .35s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+  /* D-애니 4 — 히트맵 행 스태거: 행 g 그룹 opacity만(셀 농도 opacity는 셀 속성으로 보존) */
+  .hm-anim .hm-r { opacity: 0; }
+  .hm-anim.anim-in .hm-r { animation: hm-in .3s ease-out forwards; }
 }
+@keyframes spark-draw { from { stroke-dashoffset: 360; } to { stroke-dashoffset: 0; } }
+@keyframes sc-in { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes hm-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* D-7 — 파형 글로우(홈 #wave-band 전용, 동색 4px·알파 .18 절제). 모션 아님 — 캡처에도 표시 */
+.wave-glow-main { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--time-main) 18%, transparent)); }
+.wave-glow-supply { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--time-supply) 18%, transparent)); }
 .nav-card .nc-d { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
 /* 時差 편 포커스 링 — 청록(재량) */
 #home-time :focus-visible, #ch5 :focus-visible, #ch6 :focus-visible, #ch7 :focus-visible, #ch8 :focus-visible { outline-color: var(--time-main); }
@@ -363,11 +391,20 @@ footer .build-stamp .num { font-family: var(--font-num); }
 .sister .n { font-weight: 600; }
 .sister a.btn { margin-left: auto; padding: 8px 16px; font-size: 13px; }
 
-/* 스크롤 등장 */
+/* 스크롤 등장 (모션 2) — 애니메이션 기반: op 0→1 + translateY 12→0, 0.5s.
+   개별 속성 translate + animation-delay 스태거라 카드 hover transform과 무간섭.
+   reduced-motion에서는 이 블록 미적용 → 요소가 즉시 최종 상태(캡처 경로가 보는 상태). */
 @media (prefers-reduced-motion: no-preference) {
-  .rise { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
-  .rise.in { opacity: 1; transform: none; }
+  .rise { opacity: 0; }
+  .rise.in { animation: rise-in .5s ease both; }
+  /* 스태거 60ms — 같은 줄에 함께 들어오는 카드·KPI 순차 등장 */
+  .nav-cards .rise:nth-child(2), .kpi-row .rise:nth-child(2) { animation-delay: .06s; }
+  .nav-cards .rise:nth-child(3), .kpi-row .rise:nth-child(3) { animation-delay: .12s; }
+  .nav-cards .rise:nth-child(4), .kpi-row .rise:nth-child(4) { animation-delay: .18s; }
+  .nav-cards .rise:nth-child(5), .kpi-row .rise:nth-child(5) { animation-delay: .24s; }
+  .nav-cards .rise:nth-child(6), .kpi-row .rise:nth-child(6) { animation-delay: .30s; }
 }
+@keyframes rise-in { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: none; } }
 
 /* ── 차트 도구용 소형 버튼 (13·14차: 차트 위 버튼 통일) ─────────────── */
 .btn-sm {

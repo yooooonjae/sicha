@@ -17,6 +17,15 @@
   function css(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
+  /* 입장 애니메이션 1회 계약 — 같은 마운트 요소는 재렌더(테마 토글·실험실 슬라이더)에도
+     다시 애니메이션하지 않는다. reduced-motion이면 항상 false(즉시 최종 상태 = 캡처 경로). */
+  const REDUCED = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const animDone = (typeof WeakSet !== "undefined") ? new WeakSet() : { has: () => true, add: () => {} };
+  function animOnce(root) {
+    if (REDUCED || animDone.has(root)) return false;
+    animDone.add(root); return true;
+  }
+  let clipSeq = 0;
   // 단일 색상 명도 변조 (amt -1..1) — 그라데이션 스톱용. 동일 색상군 내 깊이감만 주고
   // 값 인코딩은 길이/위치가 담당한다 (색은 정체성 유지).
   function shade(hex, amt) {
@@ -221,6 +230,7 @@
     const box = document.createElement("div");
     root.appendChild(box);
 
+    let entryPending = animOnce(root);   // 라인 드로우 입장 — 최초 draw 1회만(줌·재렌더 제외)
     let lastSvg = null;
     function draw() {
       const S = aggregate();
@@ -251,10 +261,10 @@
       const x = i => M.l + (i / Math.max(1, n - 1)) * (W - M.l - M.r);
       const y = v => M.t + (1 - (v - lo) / (hi - lo)) * (H - M.t - M.b);
 
-      // 그리드(수평만, 헤어라인) + y라벨
+      // 그리드(수평만, 0.75px 최저 대비 — 축선 없음) + y라벨(tabular 11px)
       for (const tv of niceTicks(lo, hi, 4)) {
-        el("line", { x1: M.l, x2: W - M.r, y1: y(tv), y2: y(tv), stroke: css("--grid"), "stroke-width": 1 }, svg);
-        el("text", { x: M.l - 7, y: y(tv) + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
+        el("line", { x1: M.l, x2: W - M.r, y1: y(tv), y2: y(tv), stroke: css("--grid"), "stroke-width": 0.75 }, svg);
+        el("text", { x: M.l - 7, y: y(tv) + 4, "text-anchor": "end", "font-size": 11, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
           .textContent = opts.yFmt ? opts.yFmt(tv) : fmt.num(tv, 0);
       }
       // x라벨 (양끝 + 중앙)
@@ -265,9 +275,22 @@
           .textContent = lp[i].label;
       });
 
-      // 계열 (강조 계열엔 은은한 영역 워시 — 스몰멀티플과 동일 문법)
+      // 입장 드로우(왼→오 x 클리핑 0.9s) — 최초 draw에서만. 시리즈·면·끝도트·직접라벨을
+      // 클립 그룹에 넣고, 그리드·축라벨·크로스헤어는 밖(항상 표시). reduced-motion은 클립 없음.
+      const entry = entryPending; entryPending = false;
+      let gSeries = svg, clipRect = null;
+      const areaPaths = [];
+      if (entry) {
+        const cid = "lclip" + (++clipSeq);
+        clipRect = el("rect", { x: 0, y: 0, width: 0, height: H },
+          el("clipPath", { id: cid }, el("defs", {}, svg)));
+        gSeries = el("g", { "clip-path": `url(#${cid})` }, svg);
+      }
+
+      // 계열 (주 시리즈에만 수직 그라데이션 면 — 다중 겹침 라인은 면 생략해 탁해짐 방지)
       const ends = [];
-      V.forEach(s => {
+      const sPaths = [];  // 시리즈 경로 — 호버 포커스(타 시리즈 30% 디밍)용
+      V.forEach((s, si) => {
         if (!s.points.length) return;
         const col = css(s.color || "--s1");
         let d = "", pen = false; // 비유한 y는 갭 — 선을 끊는다 (codex 지적)
@@ -276,14 +299,30 @@
           d += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(p.y).toFixed(1);
           pen = true;
         });
-        if (s.emph && !s.dim) {
+        // 주 시리즈 판정: emph 지정 또는 단일 시리즈 차트 — 면은 선 색 알파 .08→0
+        if ((s.emph || V.length === 1) && !s.dim) {
           const base = H - M.b;
           const area = d + `L${x(s.points.length - 1).toFixed(1)} ${base}L${x(0).toFixed(1)} ${base}Z`;
-          el("path", { d: area, fill: grad(svg, col, "v", 0, 0, 0.14, 0), "pointer-events": "none" }, svg);
+          const ap = el("path", { d: area, fill: grad(svg, col, "v", 0, 0, 0.08, 0), "pointer-events": "none" }, gSeries);
+          if (entry) { ap.style.opacity = 0; areaPaths.push(ap); }   // 면은 선 드로우 후행 페이드
         }
-        el("path", { d, fill: "none", stroke: col, "stroke-width": s.emph ? 2.6 : 2, "stroke-linejoin": "round", opacity: s.dim ? 0.35 : 1 }, svg);
-        const last = s.points[s.points.length - 1];
-        ends.push({ name: s.name, col, ty: y(last.y) + 4 });
+        const pth = el("path", { d, fill: "none", stroke: col, "stroke-width": s.emph ? 2.6 : 2.25,
+          "stroke-linejoin": "round", "class": "ln-s", opacity: s.dim ? 0.35 : 1 }, gSeries);
+        // 파형 글로우(홈·실험실 전용 opt-in) — 동색 4px, 알파 .18 절제
+        if (opts.glow) pth.style.filter = `drop-shadow(0 0 4px color-mix(in srgb, ${col} 18%, transparent))`;
+        sPaths[si] = { pth, base: s.dim ? 0.35 : 1 };
+        // 직접 라벨·끝 도트는 마지막 '유한' 점에 앉힌다 — 우측 끝이 결측(NaN)이면 y(NaN)=NaN 라벨이
+        // 차트 상단으로 튀는 것을 막는다 (시차 이동으로 반응 계열 우측이 비는 실험실에서 특히).
+        let lp = null, lpi = -1;
+        for (let li = s.points.length - 1; li >= 0; li--) {
+          if (Number.isFinite(s.points[li].y)) { lp = s.points[li]; lpi = li; break; }
+        }
+        if (lp) {
+          // 선 끝 도트 — r3 · 서피스 스트로크 2px (유한점 끝 라벨과 같은 점에 정렬)
+          el("circle", { cx: x(lpi).toFixed(1), cy: y(lp.y).toFixed(1), r: 3, fill: col,
+            stroke: css("--surface"), "stroke-width": 2 }, gSeries);
+          ends.push({ name: s.name, col, ty: y(lp.y) + 4 });
+        }
       });
       // 직접 라벨 — 세로 충돌 회피(위→아래 정렬 후 최소 15px 간격 보장)
       ends.sort((a, b) => a.ty - b.ty);
@@ -291,9 +330,26 @@
         if (ends[i].ty - ends[i - 1].ty < 15) ends[i].ty = ends[i - 1].ty + 15;
       }
       ends.forEach(e2 => {
-        el("text", { x: W - M.r + 6, y: Math.min(H - M.b - 2, Math.max(M.t + 8, e2.ty)), "font-size": 12, "font-weight": 700, fill: e2.col }, svg)
+        el("text", { x: W - M.r + 6, y: Math.min(H - M.b - 2, Math.max(M.t + 8, e2.ty)), "font-size": 12, "font-weight": 700, fill: e2.col }, gSeries)
           .textContent = e2.name;
       });
+      // 입장 드로우 실행 — IO 진입 시 rAF 0.9s ease-out(클립 폭 0→W), 면은 후반(0.5~1) 페이드
+      if (entry) {
+        const lio = new IntersectionObserver(es => es.forEach(en => {
+          if (!en.isIntersecting) return;
+          lio.disconnect();
+          const DUR = 900, t0 = performance.now();
+          (function step(now) {
+            const p = Math.min(1, (now - t0) / DUR), e3 = 1 - Math.pow(1 - p, 3);
+            if (clipRect) clipRect.setAttribute("width", (W * e3).toFixed(1));
+            const ao = Math.max(0, Math.min(1, (p - 0.5) / 0.5));
+            areaPaths.forEach(ap => { ap.style.opacity = ao; });
+            if (p < 1) requestAnimationFrame(step);
+            else { if (clipRect) clipRect.setAttribute("width", W); areaPaths.forEach(ap => { ap.style.opacity = ""; }); }
+          })(performance.now());
+        }), { threshold: 0.2 });
+        lio.observe(root);
+      }
 
       // 크로스헤어 + 선택 영역 + 툴팁
       const cross = el("line", { y1: M.t, y2: H - M.b, stroke: css("--axis"), "stroke-width": 1, "stroke-dasharray": "3 3", opacity: 0 }, svg);
@@ -302,8 +358,25 @@
       hot.style.touchAction = "pan-y";          // 모바일 세로 스크롤 보존
       if (interactive) hot.style.cursor = "crosshair";
       const pxOf = ev => { const r = svg.getBoundingClientRect(); return (ev.clientX - r.left) * (W / r.width); };
+      const pyOf = ev => { const r = svg.getBoundingClientRect(); return (ev.clientY - r.top) * (H / r.height); };
       const idxOf = px => Math.round(((px - M.l) / (W - M.l - M.r)) * (n - 1));
       let dragFrom = null;
+      // 호버 포커스 — 포인터에 가장 가까운 시리즈만 본색, 나머지 30% 디밍(다중 시리즈만)
+      const undim = () => sPaths.forEach(o => { if (o) o.pth.setAttribute("opacity", o.base); });
+      const dimTo = ev => {
+        if (V.length < 2) return;
+        const i = idxOf(pxOf(ev)); if (i < 0 || i >= n) return;
+        const py = pyOf(ev);
+        let bi = -1, bd = Infinity;
+        V.forEach((s, si) => {
+          const p = s.points[i];
+          if (!p || !Number.isFinite(p.y) || !sPaths[si]) return;
+          const d2 = Math.abs(py - y(p.y));
+          if (d2 < bd) { bd = d2; bi = si; }
+        });
+        if (bi < 0) { undim(); return; }
+        sPaths.forEach((o, si) => { if (o) o.pth.setAttribute("opacity", si === bi ? o.base : Math.min(o.base, 0.3)); });
+      };
 
       hot.addEventListener("pointerdown", ev => {
         if (!interactive || ev.button > 0) return;
@@ -313,7 +386,7 @@
       hot.addEventListener("pointermove", ev => {
         const px = pxOf(ev);
         if (dragFrom != null) {
-          tipHide(); cross.setAttribute("opacity", 0);
+          tipHide(); cross.setAttribute("opacity", 0); undim();
           const a = Math.max(M.l, Math.min(dragFrom, px)), b = Math.min(W - M.r, Math.max(dragFrom, px));
           selRect.setAttribute("x", a); selRect.setAttribute("width", Math.max(0, b - a));
           selRect.setAttribute("opacity", 0.16);
@@ -322,6 +395,7 @@
         const i = idxOf(px);
         if (i < 0 || i >= n) return;
         cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("opacity", 1);
+        dimTo(ev);
         const rows = V.map(s => {
           const p = s.points[i]; if (!p) return "";
           return `<div><span style="color:${css(s.color || "--s1")}">●</span> ${s.name} <b class="num">${opts.yFmt ? opts.yFmt(p.y) : fmt.num(p.y)}</b></div>`;
@@ -338,7 +412,7 @@
       };
       hot.addEventListener("pointerup", endDrag);
       hot.addEventListener("pointercancel", () => { dragFrom = null; selRect.setAttribute("opacity", 0); });
-      hot.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); tipHide(); });
+      hot.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); tipHide(); undim(); });
       hot.addEventListener("dblclick", () => { st.view = null; draw(); });
     }
     draw();
@@ -468,13 +542,19 @@
     const maxAbs = Math.max(...vs.map(Math.abs)) || 1;
     const seq = ["--seq-100", "--seq-200", "--seq-300", "--seq-400", "--seq-500", "--seq-600", "--seq-700"];
     const vFmt = opts.vFmt || (v => fmt.eok(v) + "원");
+    // 행 스태거 입장(총 ≤0.6s) — 행 단위 g 그룹의 opacity만 페이드(셀 자체의 농도 opacity는 보존)
+    const hmAnim = animOnce(root);
+    if (hmAnim) svg.classList.add("hm-anim");
+    const rowStep = grid.ys.length > 1 ? Math.min(60, 300 / (grid.ys.length - 1)) : 0;
     grid.ys.forEach((yv, r) => {
+      const rowG = el("g", { "class": "hm-r" }, svg);
+      if (hmAnim) rowG.style.animationDelay = Math.round(r * rowStep) + "ms";
       grid.xs.forEach((xv, c) => {
         const v = grid.cells[r][c];
         if (!Number.isFinite(v)) { // 결측 — 무상관(0)으로 위장하지 않고 빈 셀로 (codex 지적)
           const miss = el("rect", { x: M.l + c * cw + 1, y: M.t + r * cellH + 1,
             width: cw - 2, height: cellH - 2, fill: css("--heat-base"), rx: 2,
-            stroke: css("--hairline-2"), "stroke-dasharray": "3 3" }, svg);
+            stroke: css("--hairline-2"), "stroke-dasharray": "3 3" }, rowG);
           bindTip(miss, () =>
             `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>자료 없음`);
           return;
@@ -484,9 +564,10 @@
         if (v < 0) { fill = css(opts.negColor || "--s2"); op = 0.22 + 0.68 * (Math.abs(v) / maxAbs); }
         else { fill = css(seq[Math.min(6, Math.floor((v / maxAbs) * 6.99))]); op = 1; }
         const rect = el("rect", {
+          "class": "heat-cell",   // 모션 5 — hover 시 scale 1.06 + 잉크 스트로크 (CSS)
           x: M.l + c * cw + 1, y: M.t + r * cellH + 1,
           width: cw - 2, height: cellH - 2, fill, rx: 2, opacity: op,
-        }, svg);
+        }, rowG);
         const strong = Math.abs(v) / maxAbs > 0.5; // 진한 배경에만 흰 글자 (연한 셀은 먹색 — 대비 확보)
         const tcol = strong ? "#fff" : css("--ink-2");
         // 불안정 셀 = 점선 테두리 (관계가 시기 의존적임을 셀에서 바로 표시)
@@ -500,16 +581,16 @@
           const sub = opts.cellSub ? opts.cellSub(v, r, c) : null; // 2줄: 위=시차 · 아래=부호 r
           el("text", { x: cxc, y: sub ? cyc - 1 : cyc + 4, "text-anchor": "middle",
             "font-size": 11.5, "font-weight": 700, "font-family": "var(--font-num)", "pointer-events": "none",
-            fill: tcol }, svg).textContent = (opts.cellFmt || vFmt)(v, r, c);
+            fill: tcol }, rowG).textContent = (opts.cellFmt || vFmt)(v, r, c);
           if (sub) el("text", { x: cxc, y: cyc + 11.5, "text-anchor": "middle", "font-size": 10,
             "font-weight": 600, "font-family": "var(--font-num)", "pointer-events": "none",
-            fill: tcol, opacity: .82 }, svg).textContent = sub;
+            fill: tcol, opacity: .82 }, rowG).textContent = sub;
         }
         // 탐색 상한 도달 셀 표식 (우상단 ▲ 등) — 최대가 경계에서 잡혀 미확정임을 알린다
         if (opts.cellMark) {
           const mk = opts.cellMark(r, c);
           if (mk) el("text", { x: M.l + c * cw + cw - 4, y: M.t + r * cellH + 11, "text-anchor": "end",
-            "font-size": 9.5, fill: tcol, opacity: .9, "pointer-events": "none" }, svg).textContent = mk;
+            "font-size": 9.5, fill: tcol, opacity: .9, "pointer-events": "none" }, rowG).textContent = mk;
         }
         if (opts.onCell) { // 셀 클릭 → 콜백(선행·반응 축 값). 결측 셀은 위 return으로 제외됨.
           rect.style.cursor = "pointer";
@@ -521,8 +602,14 @@
         bindTip(rect, () =>
           `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>${opts.vLabel || "이익"} <b class="num">${(opts.tipFmt || vFmt)(v, r, c)}</b>`);
       });
-      el("text", { x: M.l - 8, y: M.t + r * cellH + cellH / 2 + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-2"), "font-family": "var(--font-num)" }, svg).textContent = yv;
+      el("text", { x: M.l - 8, y: M.t + r * cellH + cellH / 2 + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-2"), "font-family": "var(--font-num)" }, rowG).textContent = yv;
     });
+    if (hmAnim) {
+      const hio = new IntersectionObserver(es => es.forEach(en => {
+        if (en.isIntersecting) { hio.disconnect(); svg.classList.add("anim-in"); }
+      }), { threshold: 0.2 });
+      hio.observe(root);
+    }
     grid.xs.forEach((xv, c) => {
       el("text", { x: M.l + c * cw + cw / 2, y: H - M.b + 16, "text-anchor": "middle", "font-size": 11.5, fill: css("--ink-2"), "font-family": "var(--font-num)" }, svg).textContent = xv;
     });
@@ -703,6 +790,8 @@
     // 결측(value가 유한수 아님)은 스케일에서 제외 — NaN 하나가 전체 폭을 오염시키지 않게
     const finite = items.filter(d => Number.isFinite(d.value));
     const hi = Math.max(...finite.map(d => d.value), 0) || 1;
+    const bars = [];     // 모션 4 — 자라남 애니메이션용 (rect 노드 + 최종 폭)
+    const vlabels = [];  // 값 라벨 — 바 자라남 후행 페이드용
     items.forEach((d, i) => {
       const cy = M.t + i * rowH;
       if (!Number.isFinite(d.value)) { // 결측 행: 바 없이 사유 표기
@@ -724,10 +813,16 @@
       } else {
         barFill = grad(svg, barCol, "h", -0.18, 0.16);
       }
-      const bar = el("rect", { x: M.l, y: cy + 8, width: Math.max(2, w2), height: rowH - 16,
-        fill: barFill, rx: 6, opacity: isSel ? 1 : .95 }, svg);
-      el("text", { x: M.l + Math.max(2, w2) + 9, y: cy + rowH / 2 + 5, "font-size": 13, fill: css("--ink-2"), "font-family": "var(--font-num)", "font-weight": 700 }, svg)
-        .textContent = opts.fmt ? opts.fmt(d.value) : fmt.num(d.value, 0);
+      // 바 뒤 100% 트랙(잉크 2% 기저) — 자라나는 바의 척도 컨텍스트. 애니메이션 대상 아님.
+      el("rect", { x: M.l, y: cy + 8, width: W - M.l - M.r, height: rowH - 16,
+        rx: 2, fill: css("--ink"), opacity: .02, "pointer-events": "none" }, svg);
+      const wf = Math.max(2, w2);
+      const bar = el("rect", { x: M.l, y: cy + 8, width: wf, height: rowH - 16,
+        fill: barFill, rx: 2, opacity: isSel ? 1 : .95, "class": "hbar" }, svg);
+      bars.push({ node: bar, w: wf });
+      const vlab = el("text", { x: M.l + Math.max(2, w2) + 9, y: cy + rowH / 2 + 5, "font-size": 13, fill: css("--ink-2"), "font-family": "var(--font-num)", "font-weight": 700 }, svg);
+      vlab.textContent = opts.fmt ? opts.fmt(d.value) : fmt.num(d.value, 0);
+      vlabels.push(vlab);
       bindTip(bar, () => `<div class="t-title">${d.name}</div><b class="num">${opts.fmt ? opts.fmt(d.value) : fmt.num(d.value, 0)}</b>${opts.onSelect ? '<br><span style="opacity:.7">클릭: 상세 보기</span>' : ""}`);
       if (opts.onSelect) {
         [bar, lab].forEach(nd => {
@@ -753,6 +848,31 @@
       el("text", { x: flip ? mx - 5 : mx + 5, y: 13, "text-anchor": flip ? "end" : "start",
         "font-size": 10.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
         .textContent = "표본 중앙값 " + (opts.fmt ? opts.fmt(med) : fmt.num(med, 0));
+    }
+    // 모션 4 — 바 자라남: IO 진입 시 rAF 0→1 0.6s로 rect 폭만 스케일 + 값 라벨 후행 페이드.
+    //   rankTiers·medianLine·끝 라벨 유한점 로직은 불변(위 코드), 여기선 width·라벨 opacity만.
+    //   reduced-motion·재렌더는 즉시 최종 폭(캡처 경로가 보는 100%) — animOnce 1회 계약.
+    if (animOnce(root) && bars.length) {
+      const setP = p => bars.forEach(b => b.node.setAttribute("width", Math.max(0.5, b.w * p)));
+      setP(0);
+      vlabels.forEach(t => { t.style.opacity = 0; });
+      const bIO = new IntersectionObserver(es => es.forEach(en => {
+        if (!en.isIntersecting) return;
+        bIO.disconnect();
+        const DUR = 600, t0 = performance.now();
+        (function step(now) {
+          const p = Math.min(1, (now - t0) / DUR), e = 1 - Math.pow(1 - p, 3);  // easeOutCubic
+          setP(e);
+          const lo = Math.max(0, Math.min(1, (p - 0.35) / 0.5));   // 라벨은 바를 뒤따라 페이드
+          vlabels.forEach(t => { t.style.opacity = lo; });
+          if (p < 1) requestAnimationFrame(step);
+          else {
+            bars.forEach(b => b.node.setAttribute("width", b.w));  // 정확한 최종 폭 복원
+            vlabels.forEach(t => { t.style.opacity = ""; });
+          }
+        })(performance.now());
+      }), { threshold: 0.25 });
+      bIO.observe(root);
     }
     return svg;
   }
@@ -855,8 +975,8 @@
         fill: css("--eye-red-deep"), opacity: .8 }, svg).textContent = opts.riskQuad;
     }
     for (const tv of niceTicks(y0, y1, 5)) {
-      el("line", { x1: M.l, x2: W - M.r, y1: Y(tv), y2: Y(tv), stroke: css("--grid"), "stroke-width": 1 }, svg);
-      el("text", { x: M.l - 8, y: Y(tv) + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(tv), y2: Y(tv), stroke: css("--grid"), "stroke-width": 0.75 }, svg);
+      el("text", { x: M.l - 8, y: Y(tv) + 4, "text-anchor": "end", "font-size": 11, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
         .textContent = opts.yFmt ? opts.yFmt(tv) : tv;
     }
     for (const tv of niceTicks(x0, x1, 6)) {
@@ -870,16 +990,33 @@
     el("text", { x: W - M.r, y: H - 8, "text-anchor": "end", "font-size": 12, fill: css("--ink-3") }, svg).textContent = opts.xName || "";
     el("text", { x: M.l, y: 12, "font-size": 12, fill: css("--ink-3") }, svg).textContent = opts.yName || "";
     const groups = opts.groups || {};
-    pts.forEach(p => {
+    // 입장 스태거(페이드+스케일, 인덱스*8ms·총 ≤0.8s) — IO 진입 시 1회, reduced-motion 즉시 최종
+    const scAnim = animOnce(root);
+    if (scAnim) svg.classList.add("sc-anim");
+    pts.forEach((p, pi) => {
       const col = css(groups[p.group] || "--s2");
       const r = Math.max(6, Math.sqrt(p.size || 100) * (opts.sizeK || 0.35));
       const c = el("circle", { cx: X(p.x), cy: Y(p.y), r, fill: col, "fill-opacity": .78,
-        stroke: css("--surface"), "stroke-width": 1.6 }, svg);
+        stroke: css("--surface"), "stroke-width": 1.5 }, svg);   // 점 서피스 링 1.5px
       bindTip(c, () =>
         `<div class="t-title">${p.name}</div>${opts.xName || "x"} <b class="num">${opts.xFmt ? opts.xFmt(p.x) : p.x}</b><br>${opts.yName || "y"} <b class="num">${opts.yFmt ? opts.yFmt(p.y) : p.y}</b><br><span style="opacity:.7">${p.group || ""}</span>`);
-      if (p.label) el("text", { x: X(p.x), y: Y(p.y) - r - 5, "text-anchor": "middle", "font-size": 11,
-        "font-weight": 700, fill: css("--ink-2") }, svg).textContent = p.name;
+      let lb = null;
+      if (p.label) {
+        lb = el("text", { x: X(p.x), y: Y(p.y) - r - 5, "text-anchor": "middle", "font-size": 11,
+          "font-weight": 700, fill: css("--ink-2") }, svg);
+        lb.textContent = p.name;
+      }
+      if (scAnim) {
+        const dl = Math.min(pi * 8, 450) + "ms";
+        [c, lb].forEach(nd => { if (nd) { nd.classList.add("sc-pt"); nd.style.animationDelay = dl; } });
+      }
     });
+    if (scAnim) {
+      const sio = new IntersectionObserver(es => es.forEach(en => {
+        if (en.isIntersecting) { sio.disconnect(); svg.classList.add("anim-in"); }
+      }), { threshold: 0.2 });
+      sio.observe(root);
+    }
     // 범례
     let lx = M.l + 4;
     Object.entries(groups).forEach(([g, cv]) => {

@@ -77,7 +77,32 @@
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
   }), { threshold: 0.08 });
-  document.querySelectorAll(".plate, .kpi").forEach(el => { el.classList.add("rise"); io.observe(el); });
+  // 모션 2 — 장 헤더·카드·plate·KPI 스크롤 등장(정적 요소만; 동적 카드는 render가 그린 뒤라 미관측)
+  document.querySelectorAll(".plate, .kpi, .ch-head, .nav-card").forEach(el => { el.classList.add("rise"); io.observe(el); });
+
+  /* ── 숫자 카운트업 (모션 3) — 텍스트의 숫자 토큰만 rAF 카운트(소수 자리·"/"·단위 보존).
+     reduced-motion: 관측 안 함 → 주입/렌더된 최종값 그대로. ── */
+  const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function countUp(node) {
+    const raw = node.textContent;
+    const segs = raw.split(/(\d+(?:\.\d+)?)/);   // 짝수 idx=리터럴, 홀수 idx=숫자 토큰
+    const nums = segs.map((s, i) => i % 2 ? { v: parseFloat(s), d: (s.split(".")[1] || "").length } : null);
+    if (!nums.some(Boolean)) return;             // 숫자 없음(예: "—") — 건너뜀
+    const DUR = 800, t0 = performance.now();
+    (function frame(now) {
+      const p = Math.min(1, (now - t0) / DUR), e = 1 - Math.pow(1 - p, 3);  // easeOutCubic
+      node.textContent = segs.map((s, i) => nums[i] ? (nums[i].v * e).toFixed(nums[i].d) : s).join("");
+      if (p < 1) requestAnimationFrame(frame);
+      else node.textContent = raw;               // 정확한 최종값 복원
+    })(performance.now());
+  }
+  const countIO = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { countIO.unobserve(e.target); countUp(e.target); }
+  }), { threshold: 0.6 });
+  const watchCount = node => { if (!REDUCE_MOTION) countIO.observe(node); };
+  // 히어로 좌하 스탯(빌드 주입 텍스트) — JS가 파싱해 카운트(주입 값 자체는 불변)
+  document.querySelectorAll(".hs-v").forEach(watchCount);
+  let kpiCounted = false;   // 관문 KPI는 첫 render 후 1회만 관측(테마 토글 재애니 방지)
 
   /* ── 역전세 발산 바 (전용 렌더러 — 0 중심 좌우) ── */
   function divergeBars(rootEl, items, opts) {
@@ -149,6 +174,8 @@
     }
     $("home-kpis").innerHTML = kp.map(k =>
       `<div class="kpi"><div class="v ${k.c}">${k.v}</div><div class="l">${k.l}</div></div>`).join("");
+    // 모션 3 — 관문 KPI 4개 카운트업(첫 render 후 1회만 관측)
+    if (!kpiCounted) { $("home-kpis").querySelectorAll(".v").forEach(watchCount); kpiCounted = true; }
 
     /* Ⅰ 계보 수치 */
     $("m-scope").textContent = (M.sgg_names ? Object.keys(M.sgg_names).length : "—") + "개 시군구";
@@ -332,8 +359,8 @@
           { name: "공급 피드백", nodes: ["매매가", "미분양", "착공", "준공", "준공후미분양"] },
         ];
         let ci = 0;
-        pp.innerHTML = `<div class="pt-tabs">${CHAINS.map((c, i) =>
-          `<button class="pt-tab${i === 0 ? " on" : ""}" data-c="${i}">${c.name}</button>`).join("")}</div><div class="pt-flow" id="pt-flow"></div>`;
+        pp.innerHTML = `<div class="pt-tabs" role="tablist">${CHAINS.map((c, i) =>
+          `<button class="pt-tab${i === 0 ? " on" : ""}" role="tab" aria-selected="${i === 0}" data-c="${i}">${c.name}</button>`).join("")}</div><div class="pt-flow" id="pt-flow"></div>`;
         const drawFlow = () => {
           const ch = CHAINS[ci];
           let h = "";
@@ -374,8 +401,8 @@
           }));
         };
         pp.querySelectorAll(".pt-tab").forEach(bt => bt.addEventListener("click", () => {
-          pp.querySelectorAll(".pt-tab").forEach(b2 => b2.classList.remove("on"));
-          bt.classList.add("on"); ci = +bt.dataset.c; drawFlow();
+          pp.querySelectorAll(".pt-tab").forEach(b2 => { b2.classList.remove("on"); b2.setAttribute("aria-selected", "false"); });
+          bt.classList.add("on"); bt.setAttribute("aria-selected", "true"); ci = +bt.dataset.c; drawFlow();
         }));
         drawFlow();
       } else {
@@ -486,13 +513,18 @@
         if (!ws || ws.length < 3) return '<span style="font-size:12px;color:var(--ink-3)">이동창 표본 부족</span>';
         const ML = maxLag || 24;
         const W2 = 190, H2 = 40, n2 = ws.length;
-        const x2 = i => 6 + i * (W2 - 12) / (n2 - 1);
+        const x2 = i => 6 + i * (W2 - 34) / (n2 - 1);   // 우측 28px — 끝 도트·최종값 소라벨 자리
         const y2 = l => 4 + (1 - l / ML) * (H2 - 12);
         const pl = ws.map((w, i) => `${x2(i).toFixed(1)},${y2(w.lag).toFixed(1)}`).join(" ");
+        // D-6 — 끝 도트(r3·서피스 링) + 최종값 소라벨(마지막 이동창의 최적 시차)
+        const le = ws[n2 - 1], ex = x2(n2 - 1), ey = y2(le.lag);
+        const ly = Math.max(9, Math.min(H2 - 3, ey + 3.5));
         return `<svg viewBox="0 0 ${W2} ${H2}" style="width:${W2}px;height:${H2}px;vertical-align:middle">
-          <line x1="6" x2="${W2-6}" y1="${y2(0)}" y2="${y2(0)}" stroke="var(--hairline)" stroke-width="1"/>
-          <polyline points="${pl}" fill="none" stroke="var(--time-main)" stroke-width="1.6"/>
+          <line x1="6" x2="${W2-34}" y1="${y2(0)}" y2="${y2(0)}" stroke="var(--hairline)" stroke-width="1"/>
+          <polyline class="spark-line" points="${pl}" fill="none" stroke="var(--time-main)" stroke-width="1.6"/>
           ${ws.map((w, i) => `<circle cx="${x2(i).toFixed(1)}" cy="${y2(w.lag).toFixed(1)}" r="2" fill="var(--time-main)"/>`).join("")}
+          <circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="3" fill="var(--time-main)" stroke="var(--surface)" stroke-width="1.5"/>
+          <text x="${(ex + 6).toFixed(1)}" y="${ly.toFixed(1)}" font-size="9.5" font-weight="700" fill="var(--time-main-deep)" font-family="var(--font-num)" class="spark-end">+${le.lag}M</text>
         </svg>`;
       };
       const GROUPS = [
@@ -514,15 +546,15 @@
           <span class="lag-grpname">${head}</span><span class="lag-grpcnt">· ${cnt}개 관계</span>
           ${restN ? `<button class="btn-sm lag-more" data-grp="${head}" style="margin-left:auto">나머지 ${restN}개 보기 ▾</button>` : ""}</div>` : "") + (g2 => {
         const [gd] = grade(g);
-        // 등급 문자 키 — 좌측 3px 등급 바·배지 스타일 결정 (A 채움 · B/C 아웃라인 · 짧은표본 회)
+        // 등급 문자 키 — 배지(.lag-grade) 스타일만 결정 (A 채움 · B/C 아웃라인 · 짧은표본 회).
+        // 좌측 3px 등급 컬러 바는 제거(E) — 카드는 순백+헤어라인+shadow-1로 깔끔하게.
         const gk = gd[0] === "A" ? "a" : gd[0] === "B" ? "b" : gd[0] === "C" ? "c" : "x";
-        const gBar = gk === "a" ? "var(--time-main)" : gk === "b" ? "#7fa8ac" : "#c3cad3";
         const ag = agreeShow(g);
         const rg = (t, o) => o ? `${t} <b class="num">+${o.lag}M</b> <span class="num" style="color:${rC(o.r)}">${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}</span>` : `${t} <span style="color:var(--ink-3)">표본 부족</span>`;
         const per = g.period ? `${fmtYm(g.period[0])}–${fmtYm(g.period[1])}` : "—";
         const tv = g.x_transform === g.y_transform ? g.x_transform : `${g.x_transform}→${g.y_transform}`;
         const scopeTxt = g.scope_mismatch ? `${g.x_scope} → ${g.y_scope}` : (g.x_scope || "—");
-        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0;border-left:3px solid ${gBar}">
+        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0">
           <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
             <div class="viz-title">${g.x} → ${g.y}</div>
             ${g.scope_mismatch ? '<span class="scope-badge">공간 범위 불일치</span>' : ""}
@@ -610,8 +642,8 @@
           거래량·매매가는 2023-08 이후 표본이라 그 이전 사건에는 나타나지 않는다.</p>
         </div>`;
       const tabs = B.events.map((ev, i) =>
-        `<button class="btn-sm ev-tab${i === 0 ? " on" : ""}" data-i="${i}">${ev.name.split(" ")[0].slice(0, 10)}</button>`).join("");
-      $("event-cards").innerHTML = `<div class="tab-row">${tabs}</div><div id="ev-panel">${evCard(B.events[0])}</div>`;
+        `<button class="btn-sm ev-tab${i === 0 ? " on" : ""}" role="tab" aria-selected="${i === 0}" data-i="${i}">${ev.name.split(" ")[0].slice(0, 10)}</button>`).join("");
+      $("event-cards").innerHTML = `<div class="tab-row" role="tablist">${tabs}</div><div id="ev-panel">${evCard(B.events[0])}</div>`;
       const bindEvDots = () => $("ev-panel").querySelectorAll("circle.ev-hit").forEach(c =>
         c.addEventListener("pointerdown", () => {
           const t = c.querySelector("title"), plate = c.closest(".plate");
@@ -622,8 +654,8 @@
         }));
       bindEvDots();
       $("event-cards").querySelectorAll(".ev-tab").forEach(btn => btn.addEventListener("click", () => {
-        $("event-cards").querySelectorAll(".ev-tab").forEach(b2 => b2.classList.remove("on"));
-        btn.classList.add("on");
+        $("event-cards").querySelectorAll(".ev-tab").forEach(b2 => { b2.classList.remove("on"); b2.setAttribute("aria-selected", "false"); });
+        btn.classList.add("on"); btn.setAttribute("aria-selected", "true");
         $("ev-panel").innerHTML = evCard(B.events[+btn.dataset.i]);
         bindEvDots();
       }));
@@ -679,8 +711,8 @@
       if (!vars.length) { wrap.innerHTML = ""; }
       else {
         wrap.innerHTML = `<div class="plate">
-          <div class="tab-row">${vars.map(([vn], i) =>
-            `<button class="btn-sm sp-tab${i === 0 ? " on" : ""}" data-vn="${vn}">${vn}</button>`).join("")}</div>
+          <div class="tab-row" role="tablist">${vars.map(([vn], i) =>
+            `<button class="btn-sm sp-tab${i === 0 ? " on" : ""}" role="tab" aria-selected="${i === 0}" data-vn="${vn}">${vn}</button>`).join("")}</div>
           <div class="viz-title" id="sp-title"></div>
           <div class="viz-q">서울과 각 시도의 양방향 최적 시차 —
             <b style="color:var(--time-main)">■ 청록</b> 서울이 먼저 ·
@@ -780,8 +812,8 @@
         };
         drawSp(vars[0][0]);
         wrap.querySelectorAll(".sp-tab").forEach(btn => btn.addEventListener("click", () => {
-          wrap.querySelectorAll(".sp-tab").forEach(b2 => b2.classList.remove("on"));
-          btn.classList.add("on"); drawSp(btn.dataset.vn);
+          wrap.querySelectorAll(".sp-tab").forEach(b2 => { b2.classList.remove("on"); b2.setAttribute("aria-selected", "false"); });
+          btn.classList.add("on"); btn.setAttribute("aria-selected", "true"); drawSp(btn.dataset.vn);
         }));
       }
     }
@@ -907,7 +939,7 @@
           points: labels.map((t, i) => ({ label: mk(t), y: zx(xv[i]) })) },
         { name: ny + (k ? ` +${k}M` : "") + "·z", color: "--time-supply",
           points: labels.map((t, i) => ({ label: mk(t), y: zy(yv[i]) })) },
-      ], { width: MOB ? 560 : 1160, height: MOB ? 340 : 320, rightPad: MOB ? 96 : 116, interactive: false, aria: "두 변수의 파형 정렬(표준화)" });
+      ], { width: MOB ? 560 : 1160, height: MOB ? 340 : 320, rightPad: MOB ? 96 : 116, interactive: false, glow: true, aria: "두 변수의 파형 정렬(표준화)" });
       const cur = corrAt(xm, ym_, k);
       $("lab-read").innerHTML = cur.r == null
         ? `시차 <span class="num">+${k}</span>개월 · 겹침 <span class="num">${cur.n}</span>개월 — 표본 부족`
