@@ -54,9 +54,12 @@ def _grid():
 def grade(g):
     """site/js/app.js의 grade()를 그대로 옮긴 등급 규칙 (단일 출처 계약).
 
+    분기 쌍(freq "Q")은 월 기준 문턱(25·60)이 안 맞아 '짧은 표본'(참고 수준)으로 고정 ·
     n<25 짧은표본 · n<60 B−(중간)/C(중간) · n≥60에서만 A/B/C ·
     공간 범위 불일치는 A 금지(B로 강등).
     """
+    if g.get("freq") == "Q":
+        return "짧은 표본"
     n, stable, r = g["n"], g["stable"], g["r"]
     if n < 25:
         res = "짧은 표본"

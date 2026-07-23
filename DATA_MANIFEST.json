@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-23",
+ "generated_at": "2026-07-24",
  "datasets": [
   {
    "key": "rtms_sale",
@@ -101,6 +101,20 @@
    "collected_at": "2026-07-21",
    "rows": 138,
    "unit": "개월",
+   "progress": 1.0
+  },
+  {
+   "key": "hug_initial_rate",
+   "name": "HUG 민간아파트 초기분양률(분기)",
+   "source": "순환(循環) hug_initial_rate — KOSIS 승인통계(orgId 414)",
+   "scope": "전국",
+   "obs_range": [
+    "2014-09",
+    "2026-03"
+   ],
+   "collected_at": "2026-07-22",
+   "rows": 47,
+   "unit": "분기",
    "progress": 1.0
   }
  ]

@@ -32,6 +32,34 @@ def to_map(rows):
             if r.get("value") is not None and re.fullmatch(r"\d{6}", str(r.get("ym") or ""))}
 
 
+# ── 분기 계열 인코딩 — 분기를 '분기말 월'(YYYY{03,06,09,12})에 얹는다 ────────────
+# 월 단위 교차상관·Granger 기계(_shift·xcorr·best_lag·granger)를 그대로 재사용하기 위해,
+# 분기 계열도 YYYYMM 격자에 표현한다. 분기 자료는 분기말 월에만 값이 있으므로 월 시차 k 중
+# 3의 배수(=k/3 분기)에서만 겹침이 생긴다 → 최적 시차는 자연히 분기 단위(+3·Q개월)로 나온다.
+# 사이트는 이 쌍을 "+kQ"(k=lag/3)로 표기하고 툴팁·각주에 '분기 단위 · 월 환산 +3k개월'을 병기한다.
+
+def _quarter_endmonth(q):
+    """'2014Q3' → '201409'(분기말 월 YYYYMM)."""
+    y, qq = q.split("Q")
+    return f"{int(y)}{int(qq) * 3:02d}"
+
+
+def monthly_to_quarter_end(m):
+    """월 재고(stock) 계열 → 분기말(말월) 값 {YYYYMM(분기말): v}. 재고는 시점값이라 분기말이 자연."""
+    return {ym: v for ym, v in m.items() if int(ym[4:6]) in (3, 6, 9, 12)}
+
+
+def monthly_to_quarter_mean(m):
+    """월 유량(flow) 계열 → 분기 3개월 산술평균(완전 분기만) {YYYYMM(분기말): v}.
+    유량은 분기 내 누적이라 평균(=합/3)이 자연 — 비율(전년동기비) 변환 후엔 합·평균이 동치다."""
+    buckets = {}
+    for ym, v in m.items():
+        y, mo = int(ym[:4]), int(ym[4:6])
+        qend = ((mo - 1) // 3 + 1) * 3           # 그 달이 속한 분기의 말월
+        buckets.setdefault(f"{y}{qend:02d}", []).append(v)
+    return {q: sum(vs) / len(vs) for q, vs in buckets.items() if len(vs) == 3}
+
+
 def load_series():
     """이름 → {ym: 원값}. 전국(수량)·표본 합산(거래) 기준."""
     S = {}
@@ -87,10 +115,28 @@ def load_series():
                 jm.setdefault(ym, []).extend(
                     r2["deposit"] / r2["ar"] for r2 in jeonse_only(rows2))
         S["전세가"] = {ym: median(v) for ym, v in jm.items() if len(v) >= 30}
+    # ── HUG 초기분양률(분기·전국) + 짝지을 월 공급 계열의 월→분기 집계 ──────
+    # 초기분양률 자체를 시차 분석에 편입한다(허브 부산 사례가 밝힌 "초기분양률은 시차 분석에
+    # 포함되지 않는다"는 한계 해소). 원천은 순환 리포(KOSIS 승인통계 orgId 414) — 경로 참조·
+    # 존재 가드(수지 raw 재사용 관례와 동일, 파일 복사 금지). 분기말 월 격자에 얹는다.
+    hp = SUN / "hug_initial_rate.json"
+    if hp.exists():
+        hug = json.load(open(hp)).get("전국", [])
+        hn = {_quarter_endmonth(r["q"]): r["rate"] for r in hug
+              if r.get("rate") is not None and re.fullmatch(r"\d{4}Q[1-4]", str(r.get("q") or ""))}
+        if len(hn) >= 24:
+            S["초기분양률"] = hn
+            if "미분양" in S:
+                S["미분양(분기)"] = monthly_to_quarter_end(S["미분양"])   # 재고 = 분기말
+            if "착공" in S:
+                S["착공(분기)"] = monthly_to_quarter_mean(S["착공"])       # 유량 = 3개월 평균
     return S
 
 
 RATE_VARS = {"기준금리", "주담대금리", "국고10년"}
+# 차분(레벨 변화) 변환 대상 = 금리 + 초기분양률. 초기분양률은 0~100% 유계 비율이라 금리처럼
+# 전년동기 pp 차분이 자연스럽다(수준의 추세·계절을 제거해 정상화). 그 외 수량·가격은 전년비(%).
+DIFF_VARS = RATE_VARS | {"초기분양률"}
 
 
 # ── 공간 범위 계약 (SERIES) — 각 시계열의 {scope, freq, unit, agg} ──────
@@ -115,6 +161,11 @@ SERIES_META = {
     "거래량(서울)": {"scope": "서울 표본", "freq": "월", "unit": "건", "agg": "서울 표본 거래건수 합"},
     "매매가(서울)": {"scope": "서울 표본", "freq": "월", "unit": "원/㎡", "agg": "서울 표본 ㎡당 중앙값"},
     "전세가":       {"scope": "서울 표본", "freq": "월", "unit": "원/㎡", "agg": "서울 표본 전세 ㎡당 중앙값"},
+    # 분기 계열(freq "분기") — HUG 초기분양률 + 이와 짝지을 월 공급 계열의 분기 집계본.
+    # 셋 다 scope "전국"이라 서로 짝지으면 scope_mismatch가 아니다(공간 범위 일치).
+    "초기분양률":   {"scope": "전국", "freq": "분기", "unit": "%", "agg": "HUG 민간아파트 초기분양률(지역·분기 평균, 전국)"},
+    "미분양(분기)": {"scope": "전국", "freq": "분기", "unit": "호", "agg": "월 전국 미분양 재고를 분기말(말월)로 집계"},
+    "착공(분기)":   {"scope": "전국", "freq": "분기", "unit": "호", "agg": "월 전국 착공을 분기 3개월 평균으로 집계"},
 }
 
 
@@ -123,7 +174,10 @@ def scope_of(name):
 
 
 def tlabel(name):
-    return "12개월 차분(pp)" if name in RATE_VARS else "전년동월비(%)"
+    q = (SERIES_META.get(name) or {}).get("freq") == "분기"
+    if name in DIFF_VARS:
+        return "전년동기 차분(pp)" if q else "12개월 차분(pp)"
+    return "전년동기비(%)" if q else "전년동월비(%)"
 
 
 def overlap_period(xm, ym_, k):
@@ -133,14 +187,15 @@ def overlap_period(xm, ym_, k):
 
 
 def transform(name, m):
-    """금리 = 12개월 차분(pp) · 그 외 = 전년동월비(%). {ym: 변환값}."""
+    """차분 대상(금리·초기분양률) = 전년동기 차분(pp) · 그 외 = 전년동기비(%). {ym: 변환값}.
+    분기 계열은 분기말 월 격자라 prev_ym(전년 동월)이 곧 전년 동분기 — 월·분기 공통 코드."""
     out = {}
     for ym, v in m.items():
         prev_ym = f"{int(ym[:4])-1}{ym[4:]}"
         p = m.get(prev_ym)
         if p is None:
             continue
-        if name in RATE_VARS:
+        if name in DIFF_VARS:
             out[ym] = round(v - p, 3)
         elif p:
             out[ym] = round((v / p - 1) * 100, 2)
@@ -337,14 +392,15 @@ def _rss(y, cols):
     return sum(x * x for x in resid)
 
 
-def _lag_rows(xm, ym_, p):
-    """(Y_t, [Y_{t-1..p}], [X_{t-1..p}]) 행 — 2p개 시차값이 모두 존재하는 연속월만.
-    제한·비제한이 같은 표본 위에 서도록(중첩 비교의 전제) X·Y 시차가 모두 있어야 포함한다."""
+def _lag_rows(xm, ym_, p, step=1):
+    """(Y_t, [Y_{t-1..p}], [X_{t-1..p}]) 행 — 2p개 시차값이 모두 존재하는 연속 관측만.
+    제한·비제한이 같은 표본 위에 서도록(중첩 비교의 전제) X·Y 시차가 모두 있어야 포함한다.
+    step = 한 시차 차수당 월 수(월 계열=1, 분기 계열=3) — 분기는 전분기(=−3월)를 1차로 본다."""
     rows = []
     for t in sorted(ym_):
         yl, xl, ok = [], [], True
         for i in range(1, p + 1):
-            ti = _shift(t, -i)
+            ti = _shift(t, -i * step)
             if ti in ym_ and ti in xm:
                 yl.append(ym_[ti])
                 xl.append(xm[ti])
@@ -356,16 +412,17 @@ def _lag_rows(xm, ym_, p):
     return rows
 
 
-def granger(xm, ym_):
+def granger(xm, ym_, step=1):
     """X(xm)가 Y(ym_)를 Granger-선행하는가. → (p값, 사용 차수) 또는 (None, 차수 or None).
 
     차수 p 선택: 후보 {3,6} 중 비제한모형 AIC 최소. 둘 다 가능하면 공통표본(더 짧은 쪽 =
       큰 p의 표본)에서 AIC를 비교한다 — AIC의 n·ln(RSS/n) 항이 표본크기에 의존하므로 같은
       표본에서 재야 정당하기 때문이다. p=6이 자유도 부족이면 자동으로 p=3만 남는다(표본
-      짧으면 3 규칙과 일치). 어느 차수도 df2<GRANGER_MIN_DF면 검정 불가 → None."""
+      짧으면 3 규칙과 일치). 어느 차수도 df2<GRANGER_MIN_DF면 검정 불가 → None.
+    step = 한 차수당 월 수(월=1, 분기=3) — 분기 쌍은 차수가 '분기 시차'가 된다(월 기계 재사용)."""
     feas = []
     for p in GRANGER_CAND:
-        rows = _lag_rows(xm, ym_, p)
+        rows = _lag_rows(xm, ym_, p, step)
         if len(rows) - (2 * p + 1) >= GRANGER_MIN_DF:
             feas.append((p, rows))
     if not feas:
@@ -407,6 +464,9 @@ PAIRS = [  # (선행, 반응, 최대 탐색 시차)
     ("거래량(서울)", "전세가", 18), ("매매가(서울)", "전세가", 18),
     ("매매가", "미분양", 30), ("미분양", "착공", 30), ("인허가", "착공", 30),
     ("착공", "준공", 48), ("준공", "준공후미분양", 30),
+    # 초기분양률(HUG·전국·분기) 편입 — 월 공급 계열을 분기로 집계해 맞춘 분기 단위 2쌍.
+    # 탐색 상한 24개월 = 8분기(분기말 격자라 유효 시차는 3의 배수=+kQ). 표본이 짧아 참고 수준.
+    ("미분양(분기)", "초기분양률", 24), ("초기분양률", "착공(분기)", 24),
 ]
 
 
@@ -529,10 +589,18 @@ def main():
         g["x_transform"], g["y_transform"] = tlabel(a), tlabel(b)
         g["period"] = overlap_period(T[a], T[b], res["lag"])
         g["agree"] = agree_pct(T[a], T[b], res["lag"])
+        # 분기 계열(freq "분기") 쌍은 분기말 격자 — 시차 단위를 분기로 병기하고 Granger는 step=3.
+        is_q = (SERIES_META.get(a) or {}).get("freq") == "분기"
+        step = 3 if is_q else 1
+        if is_q:
+            g["freq"] = "Q"                       # 사이트: "+kQ" 라벨·"분기 단위" 툴팁의 근거
+            g["lagQ"] = g["lag"] // 3             # 월 시차 → 분기 시차(유효 시차는 3의 배수)
+            if "lag_near" in g:
+                g["lagQ_near"] = g["lag_near"] // 3
         # Granger 검정 — gp: X→Y p값 · gl: 사용 차수 · gpr: 역방향 Y→X p값(방향성 근거).
         # 기존 필드·원장 로직은 불변, 추가 필드일 뿐이다. 자유도 부족이면 null.
-        g["gp"], g["gl"] = granger(T[a], T[b])
-        g["gpr"], _ = granger(T[b], T[a])
+        g["gp"], g["gl"] = granger(T[a], T[b], step)
+        g["gpr"], _ = granger(T[b], T[a], step)
         for rg_name, rg_key in [("up", "up"), ("down", "down")]:
             sub = {t: v for t, v in T[a].items() if reg.get(t) == rg_key}
             best = None
@@ -635,6 +703,10 @@ def main():
          "source": "건축HUB(수지 공유 원천)", "scope": "대표 시군구 표본",
          "obs_range": _range("인허가"), "collected_at": _collected(SUJI / "archub.json"),
          "rows": _months("인허가"), "unit": "개월", "progress": 1.0},
+        {"key": "hug_initial_rate", "name": "HUG 민간아파트 초기분양률(분기)",
+         "source": "순환(循環) hug_initial_rate — KOSIS 승인통계(orgId 414)", "scope": "전국",
+         "obs_range": _range("초기분양률"), "collected_at": _collected(SUN / "hug_initial_rate.json"),
+         "rows": _months("초기분양률"), "unit": "분기", "progress": 1.0},
     ]
 
     # SERIES 계약 — 각 변환 시계열의 공간 범위·주기·단위·집계·변환·기간·n (연구 카드 메타 줄용)

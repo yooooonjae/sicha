@@ -545,6 +545,9 @@
     const L = B.lag;
     if (L && L.grid && L.grid.length) {
       const grade = g => {
+        // 분기 쌍(freq "Q")은 등급 사다리의 월 기준 문턱(25·60개월)을 그대로 못 쓴다 —
+        // n이 '분기 수'라 표본이 짧다. 참고 수준으로 '짧은 표본'에 고정(허브 부산 사례와 동일 톤).
+        if (g.freq === "Q") return ["짧은 표본", "var(--ink-3)"];
         let res = g.n < 25 ? ["짧은 표본", "var(--ink-3)"]
           : g.n < 60 ? (g.stable ? ["B−(중간)", "var(--ink-2)"] : ["C(중간)", "var(--ink-3)"])
           : (g.stable && Math.abs(g.r) >= 0.4) ? ["A", "var(--time-main)"]
@@ -579,12 +582,14 @@
         ["금융 → 신용", ["기준금리|주담대금리"]],
         ["금융·신용 → 수요·가격", ["기준금리|거래량", "기준금리|매매가", "주담대금리|거래량", "주담대금리|매매가", "국고10년|매매가"]],
         ["수요 → 가격", ["거래량|매매가", "거래량(서울)|전세가", "매매가(서울)|전세가"]],
-        ["가격·재고 → 공급", ["매매가|미분양", "미분양|착공", "인허가|착공", "착공|준공", "준공|준공후미분양"]],
+        ["가격·재고 → 공급", ["매매가|미분양", "미분양|착공", "인허가|착공", "착공|준공", "준공|준공후미분양",
+          "미분양(분기)|초기분양률", "초기분양률|착공(분기)"]],
       ];
       const groupOf = g => { const k2 = g.x + "|" + g.y;
         const f = GROUPS.find(([, ks]) => ks.includes(k2)); return f ? f[0] : "기타"; };
-      /* 전달시간 축 지도 — 14쌍을 그룹 스윔레인·+kM 위치 칩으로 (연구 카드와 동일 그룹·등급·수치).
-         k=g.lag(전역 최적, 카드 헤드라인과 동일) · 색=부호 · 채움/테두리/점선=등급 · 클릭→실험실. */
+      /* 전달시간 축 지도 — 관측 쌍을 그룹 스윔레인·+kM 위치 칩으로 (연구 카드와 동일 그룹·등급·수치).
+         k=g.lag(전역 최적, 카드 헤드라인과 동일) · 색=부호 · 채움/테두리/점선=등급 · 클릭→실험실.
+         분기 쌍(freq "Q")은 x위치는 월 환산(3k) 그대로 두고 라벨만 "+kQ"로 표기(툴팁에 분기 단위 명시). */
       if ($("lag-heat")) {
         const lanes = GROUPS.map(([gname], gi) => ({
           group: gname, badge: String.fromCharCode(65 + gi),
@@ -592,6 +597,7 @@
             const label = grade(g)[0];   // "A" · "B" · "C" · "짧은 표본"
             return {
               lead: g.x, react: g.y, k: g.lag, r: g.r, n: g.n, grade: label,
+              freq: g.freq, kq: g.lagQ,   // 분기 쌍이면 "Q" + 분기 시차(라벨·툴팁용)
               gp: g.gp, gpr: g.gpr,   // Granger p값(순·역방향) — 칩 툴팁에 병기
               cls: label === "A" ? "fill" : label[0] === "B" ? "light" : "outline", // C·짧은 표본 → 점선
               sign: g.r < 0 ? "supply" : "main", overflow: g.lag > 30,
@@ -599,7 +605,7 @@
           }),
         }));
         Charts.lagmap($("lag-heat"), lanes, {
-          mob: MOB, aria: "선행이 반응에 닿는 전달시간 지도 — 14개 관계",
+          mob: MOB, aria: `선행이 반응에 닿는 전달시간 지도 — ${L.grid.length}개 관계`,
           onChip: (lead, react) => loadLab(lead, react, true),
         });
       }
@@ -634,9 +640,9 @@
             <span class="lag-meta-sep">·</span><span><span class="lag-meta-k">변환</span> ${tv}</span>
             <span class="lag-meta-sep">·</span><span><span class="lag-meta-k">n</span> <span class="num">${g.n}</span></span>
           </div>
-          <div style="font-size:20px;margin:6px 0 2px"><b class="num">+${g.lag}</b>개월
+          <div style="font-size:20px;margin:6px 0 2px"><b class="num">+${g.freq === "Q" ? g.lagQ : g.lag}</b>${g.freq === "Q" ? "분기" : "개월"}
             <span class="num" style="color:${rC(g.r)}">r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)}</span>
-            <span style="font-size:12.5px;color:var(--ink-3)"> n=<span class="num">${g.n}</span>${g.lag_near != null ? ` · 6M내 피크 <span class="num">+${g.lag_near}M(${g.r_near})</span>` : ""}${g.at_bound ? ` · <b style="color:var(--time-supply)">탐색 상한(<span class="num">${g.max_lag}M</span>)에서 최대 — 미확정</b>` : ""}</span></div>
+            <span style="font-size:12.5px;color:var(--ink-3)"> n=<span class="num">${g.n}</span>${g.freq === "Q" ? ` · 분기 단위(월 환산 +<span class="num">${g.lag}</span>M)` : ""}${g.lag_near != null ? ` · 6M내 피크 <span class="num">+${g.lag_near}M(${g.r_near})</span>` : ""}${g.at_bound ? ` · <b style="color:var(--time-supply)">탐색 상한(<span class="num">${g.freq === "Q" ? g.max_lag / 3 + "분기" : g.max_lag + "M"}</span>)에서 최대 — 미확정</b>` : ""}</span></div>
           <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">
             ${ag != null ? `방향 일치 <b class="num">${ag}%</b>${g.r < 0 ? " (역방향 기준)" : ""}` : "방향 일치 표본 부족"}
             &nbsp;·&nbsp; ${rg("인상기", g.regime_up)} &nbsp;·&nbsp; ${rg("인하기", g.regime_down)}</div>
@@ -645,7 +651,7 @@
             <span style="color:var(--ink-3)">(역방향 ${fmtP(g.gpr)}${g.gl ? " · " + g.gl + "차" : ""})</span>
             <span style="color:var(--ink-3);font-size:11.5px">· 검정 결과도 탐색적 참고</span></div>` : ""}
           <div style="display:flex;align-items:center;gap:8px">${spark(g.windows, g.max_lag)}
-            <span style="font-size:12px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~${g.max_lag || 24}M</span></div>
+            <span style="font-size:12px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~${g.freq === "Q" ? (g.max_lag / 3 + "분기") : (g.max_lag || 24) + "M"}</span></div>
         </div>`;
       })(g)).join("");
       $("lag-map").querySelectorAll(".lag-more").forEach(btn => btn.addEventListener("click", () => {
@@ -978,6 +984,9 @@
     function drawLab() {
       const MOB = matchMedia("(max-width: 640px)").matches;
       const nx = sx.value, ny = sy.value, k = +sk.value, rgm = sr.value;
+      // 분기 쌍(양쪽 다 freq "분기")이면 분기말 격자라 유효 시차는 3의 배수 — 읽기에 분기 병기.
+      const qMeta = n => (((L.series_meta || {})[n] || {}).freq === "분기");
+      const isQpair = qMeta(nx) && qMeta(ny), qNote = isQpair ? ` <span style="color:var(--ink-3)">(분기 단위 · +${Math.round(k / 3)}분기)</span>` : "";
       let xm = toMap(L.series[nx]);
       const ym_ = toMap(L.series[ny]);
       if (rgm !== "all" && L.series["기준금리"]) {
@@ -1014,8 +1023,8 @@
       ], { width: MOB ? 560 : 1160, height: MOB ? 340 : 320, rightPad: MOB ? 96 : 116, interactive: false, glow: true, aria: "두 변수의 파형 정렬(표준화)" });
       const cur = corrAt(xm, ym_, k);
       $("lab-read").innerHTML = cur.r == null
-        ? `시차 <span class="num">+${k}</span>개월 · 겹침 <span class="num">${cur.n}</span>개월 — 표본 부족`
-        : `시차 <b class="num">+${k}</b>개월 · r = <b class="num" style="color:${cur.r < 0 ? "var(--time-supply)" : "var(--time-main)"}">${cur.r > 0 ? "+" : ""}${cur.r.toFixed(2)}</b> · 겹침 <span class="num">${cur.n}</span>개월`;
+        ? `시차 <span class="num">+${k}</span>개월${qNote} · 겹침 <span class="num">${cur.n}</span>개${isQpair ? "분기" : "월"} — 표본 부족`
+        : `시차 <b class="num">+${k}</b>개월${qNote} · r = <b class="num" style="color:${cur.r < 0 ? "var(--time-supply)" : "var(--time-main)"}">${cur.r > 0 ? "+" : ""}${cur.r.toFixed(2)}</b> · 겹침 <span class="num">${cur.n}</span>개${isQpair ? "분기" : "월"}`;
       // 시차별 곡선
       const pts = [];
       for (let kk = 0; kk <= (L.max_lag || 24); kk++) {

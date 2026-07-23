@@ -1,6 +1,6 @@
 {
  "created": "2026-07-23",
- "updated": "2026-07-23",
+ "updated": "2026-07-24",
  "entries": [
   {
    "id": "기준금리→주담대금리@202607",
@@ -18,7 +18,7 @@
    "observed_dir": null,
    "scored_on": null,
    "elapsed": 0,
-   "last_seen": "2026-07-23",
+   "last_seen": "2026-07-24",
    "kind": "live",
    "as_of": "202605"
   },
@@ -38,7 +38,7 @@
    "observed_dir": "+",
    "scored_on": "2026-07-23",
    "elapsed": 5,
-   "last_seen": "2026-07-23",
+   "last_seen": "2026-07-24",
    "kind": "backtest",
    "as_of": "202605"
   },
@@ -58,7 +58,7 @@
    "observed_dir": "+",
    "scored_on": "2026-07-23",
    "elapsed": 4,
-   "last_seen": "2026-07-23",
+   "last_seen": "2026-07-24",
    "kind": "backtest",
    "as_of": "202607"
   }

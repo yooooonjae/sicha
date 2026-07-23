@@ -556,7 +556,9 @@
         : ch === "→" ? px * 1.05 : ch === " " ? px * 0.32
         : (ch === "(" || ch === ")") ? px * 0.42 : px * 0.6; } return w; };
     const nameSz = 11, kSz = mob ? 11.5 : 12, padX = mob ? 7 : 8;
-    const kStr = c => (c.k === 0 ? "0M" : "+" + c.k + "M") + (c.overflow ? "›" : "");
+    // 분기 쌍(freq "Q")은 "+kQ"(k=분기 시차)로 표기 — x위치는 월 환산(3k) 그대로. 월 쌍은 "+kM".
+    const kStr = c => (c.freq === "Q" ? (c.kq === 0 ? "0Q" : "+" + c.kq + "Q")
+      : (c.k === 0 ? "0M" : "+" + c.k + "M")) + (c.overflow ? "›" : "");
     const chipW = c => {
       const kw = glyph(kStr(c), kSz);
       const nw = mob ? 0 : glyph(c.lead + "→" + c.react, nameSz);
@@ -622,7 +624,7 @@
         wrap.style.setProperty("--lm-from", (x0 - cx).toFixed(1) + "px");        // x=0에서 슬라이드 시작
         wrap.style.animationDelay = (li * 60) + "ms";                            // 레인별 스태거
         const g = el("g", { "class": "lm-chip", role: "button", tabindex: 0,
-          "aria-label": `${c.lead} → ${c.react} +${c.k}M · ${c.grade}` }, wrap);
+          "aria-label": `${c.lead} → ${c.react} ${c.freq === "Q" ? "+" + c.kq + "분기(분기 단위)" : "+" + c.k + "M"} · ${c.grade}` }, wrap);
         const rect = el("rect", { x: cx - w / 2, y: cy - chipH / 2, width: w, height: chipH, rx: 6 }, g);
         let txtCol;
         if (c.cls === "fill") { rect.style.fill = col.base; txtCol = onFill; }
@@ -647,7 +649,8 @@
         g.addEventListener("click", fire);
         g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); fire(); } });
         const fmtP = v => v == null ? "—" : v < 0.001 ? "<0.001" : v < 0.1 ? v.toFixed(3) : v.toFixed(2);
-        bindTip(g, () => `<div class="t-title">${c.lead} → ${c.react}</div>+${c.k}M · r ${c.r > 0 ? "+" : ""}${c.r.toFixed(2)} · n=${c.n} · ${c.grade}${c.gp != null ? ` · Granger p=${fmtP(c.gp)} (역 ${fmtP(c.gpr)})` : ""}${c.overflow ? " · 축 상한(+30M) 밖" : ""}`);
+        const kTip = c.freq === "Q" ? `+${c.kq}Q <span style="opacity:.7">(분기 단위 · 월 환산 +${c.k}M)</span>` : `+${c.k}M`;
+        bindTip(g, () => `<div class="t-title">${c.lead} → ${c.react}</div>${kTip} · r ${c.r > 0 ? "+" : ""}${c.r.toFixed(2)} · n=${c.n} · ${c.grade}${c.gp != null ? ` · Granger p=${fmtP(c.gp)} (역 ${fmtP(c.gpr)})` : ""}${c.overflow ? " · 축 상한(+30M) 밖" : ""}`);
       });
     });
 

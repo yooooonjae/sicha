@@ -18,7 +18,7 @@ MANIFEST = ROOT / "DATA_MANIFEST.json"
 
 # 표시(방법론 표) 순서 — 視差 3종 → 時差 4종
 ORDER = ["rtms_sale", "rtms_rent", "gongsi",
-         "ecos_rate", "treasury10y", "kosis_supply", "archub_permits"]
+         "ecos_rate", "treasury10y", "kosis_supply", "archub_permits", "hug_initial_rate"]
 
 
 def ym_dash(ym):
