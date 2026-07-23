@@ -3,7 +3,9 @@
 # 레시피는 `target: ; cmd` 한 줄 형식 — 탭 들여쓰기에 의존하지 않는다.
 .DEFAULT_GOAL := build
 PY := python3
-CHROME := /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+# CHROME: 헤드리스 OG 렌더용 브라우저 — PATH에서 자동 탐색(portable). 리눅스는 chrome/chromium,
+# 못 찾으면 macOS 기본 앱 경로로 폴백. og 타깃에서 "$(CHROME)"로 따옴표 감싸 공백 경로도 안전.
+CHROME := $(shell command -v google-chrome-stable 2>/dev/null || command -v google-chrome 2>/dev/null || command -v chromium 2>/dev/null || command -v chromium-browser 2>/dev/null || echo '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
 
 .PHONY: all analysis metrics lags events build build-index og test \
         collect-rent collect-gongsi clean help

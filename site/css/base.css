@@ -13,6 +13,9 @@ body {
   line-height: 1.72;
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  /* 한글 조판 — 낱말 중간 끊김 방지(keep-all), 긴 무공백 토큰(URL·숫자)만 넘칠 때 분리 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* 모눈 교차 십자(+) — 사각 그리드가 아니라 정점만 찍히는 계측지 */

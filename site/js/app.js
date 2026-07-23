@@ -774,7 +774,7 @@
       }
     }
 
-    /* Ⅷ 방법론 수치 */
+    /* Ⅸ 방법론 수치 */
     const src = [];
     src.push(`<tr><td>국토부 RTMS 매매</td><td>아파트 매매 실거래(수지 공유 원천)</td>
       <td>${M.sgg_names ? Object.keys(M.sgg_names).length : "—"}개 시군구 · 36개월</td>
