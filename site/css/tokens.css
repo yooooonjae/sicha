@@ -16,7 +16,7 @@
   /* 종이와 잉크 */
   --paper: #ffffff;
   --surface: #ffffff;
-  --surface-2: #fafbfc;
+  --surface-2: #f4f6f8;    /* 지면(paper #fff)과 구분되는 보조 면 */
   --ink: #16181d;          /* 흑 — 시장의 눈(기준선) */
   --ink-2: #4b5563;        /* 본문 보조 (4.5:1+) */
   --ink-3: #6b7280;        /* 캡션 최저 대비선 */
@@ -38,27 +38,29 @@
   --time-supply-deep: #874624;
   --time-supply-wash: #f6ebe3;
   --time-neutral: #717985;
-  --time-neutral-wash: #eef0f2;
+  --time-neutral-wash: #e6e9ee;    /* grid·hairline-2와 구분되는 회 톤 */
+  --time-btn: var(--time-main);            /* 時差 장(Ⅴ~Ⅷ) 주 CTA·활성 버튼 — 청록 계열 일관 */
+  --time-btn-hover: var(--time-main-deep);
 
   /* charts.js 계약 — blueprint = 이 사이트의 주 계열(청) */
   --blueprint: var(--eye-blue);
-  --blueprint-2: var(--eye-red);
+  --blueprint-2: var(--eye-blue-deep);  /* 주 계열(청)의 밝기 단계 — 대립색 아님(호버·활성 적색 오염 방지) */
   --blueprint-wash: var(--wash-blue);
   --s1: var(--eye-blue);
   --s2: var(--eye-red);
   --pos: #0e7a4a;          /* 상승·양(+) */
-  --neg: var(--eye-red);   /* 하락·음(−) — 역전세의 색 */
+  --neg: #c23b2e;          /* 하락·음(−) — 역전세의 색: s2·eye-red와 분리 */
 
   /* 괘선·격자 — 계측지 */
   --rule: #d9dde3;
   --hairline: #e7eaee;
-  --hairline-2: #eef0f3;
+  --hairline-2: #c3cad3;   /* grid보다 확실히 진하게 — 차트 기준선 소실 해소 */
   --grid: #eef0f3;
   --axis: #8a94a3;
   --cross: #d3d8e0;        /* 모눈 교차 십자 */
 
   /* 히트맵·확산지도·카드 톤 램프 (라이트) — 時差 편 전용이라 청록(time-main 계열)으로 통일 */
-  --seq-100: #eef5f5;
+  --seq-100: #e8f1f1;      /* grid와 구분 — 히트맵 기저 셀 소실 해소 */
   --seq-200: #d5e8e8;
   --seq-300: #abd2d3;
   --seq-400: #78b5b7;
@@ -71,16 +73,25 @@
   --font-body: "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", -apple-system, sans-serif;
   --font-num: "Plex Num", "IBM Plex Mono", "SF Mono", ui-monospace, monospace; /* 시차 고유 계측 활자 (3부작 방침) */
 
-  --maxw: 1180px;
+  --maxw: 1240px;
   --radius: 12px;          /* 시리즈 공통 — 애플 곡률 */
   --radius-sm: 8px;
-  --shadow-card: 0 1px 2px rgba(22, 24, 29, .08), 0 12px 36px rgba(22, 24, 29, .10); /* 순환과 동일 깊이 */
+
+  /* 스페이싱 스케일 — 4·8 기반 8단. 굵직한 간격(plate 마진·섹션 패딩·카드 갭)을 이 눈금에 정렬한다. */
+  --space-1: 4px;  --space-2: 8px;   --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px;  --space-7: 48px; --space-8: 72px;
+
+  /* 그림자 3단 계약 (shadow-0 = none은 인라인/기본) — 얕게(일반 plate)·중간(지도·전달경로·히트맵 대표)·깊게(예비).
+     중성 틴트(잉크 rgba 22 24 29), 수지와 동일한 깊이 구조. */
+  --shadow-1: 0 1px 2px rgba(22, 24, 29, .05), 0 3px 8px rgba(22, 24, 29, .05);
+  --shadow-2: 0 1px 2px rgba(22, 24, 29, .06), 0 6px 18px rgba(22, 24, 29, .07);
+  --shadow-3: 0 1px 2px rgba(22, 24, 29, .06), 0 10px 32px rgba(22, 24, 29, .08), 0 28px 72px rgba(22, 24, 29, .05);
 }
 
 :root[data-theme="dark"] {
   --paper: #101216;
   --surface: #14161b;
-  --surface-2: #191c22;
+  --surface-2: #1b1e26;    /* surface(#14161b)와 한 단계 분리 */
   --ink: #e9ebef;
   --ink-2: #b3bac4;
   --ink-3: #99a1ad;
@@ -99,18 +110,19 @@
   --time-supply-deep: #e6b092;
   --time-supply-wash: #3a281d;
   --time-neutral: #9aa2ad;
-  --time-neutral-wash: #23272f;
+  --time-neutral-wash: #2b3038;    /* grid·hairline-2와 구분 */
 
   --pos: #4fd396;
+  --neg: #e06a5c;           /* 역전세의 색 (다크) — s2·eye-red와 분리 */
 
   --rule: #2c313a;
   --hairline: #23272f;
-  --hairline-2: #1e222a;
+  --hairline-2: #3a4150;   /* grid보다 확실히 밝게(가시) — 차트 기준선 소실 해소 */
   --grid: #1e222a;
   --axis: #7a828e;
   --cross: #2a2f38;
 
-  --seq-100: #12211f;
+  --seq-100: #1a2e2b;      /* 지면 대비 뚜렷 — 히트맵 기저 셀 소실 해소 */
   --seq-200: #163a37;
   --seq-300: #1f5450;
   --seq-400: #2c736d;
@@ -118,5 +130,7 @@
   --seq-600: #5bb3aa;
   --seq-700: #8ad0c8;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 40px rgba(0, 0, 0, .35);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .30), 0 3px 8px rgba(0, 0, 0, .24);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, .34), 0 6px 18px rgba(0, 0, 0, .34);
+  --shadow-3: 0 1px 2px rgba(0, 0, 0, .32), 0 10px 32px rgba(0, 0, 0, .36), 0 28px 72px rgba(0, 0, 0, .28);
 }

@@ -40,7 +40,7 @@ nav.appbar .tabs a.on { color: var(--paper); background: var(--ink); }
 }
 .toc-overlay {
   position: fixed; inset: 0; z-index: 90; background: var(--paper);
-  padding: 24px; display: flex; flex-direction: column;
+  padding: var(--space-5); display: flex; flex-direction: column;
 }
 .toc-overlay a {
   display: flex; align-items: baseline; gap: 14px;
@@ -74,8 +74,11 @@ nav.appbar .tabs a.on { color: var(--paper); background: var(--ink); }
 .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .btn.primary:hover { opacity: .9; }
 /* 時差 CTA — 청록으로 시간 편 정체성 예고 */
-.btn.time { background: var(--time-main); color: #fff; border-color: var(--time-main); }
-.btn.time:hover { background: var(--time-main-deep); border-color: var(--time-main-deep); }
+.btn.time { background: var(--time-btn); color: #fff; border-color: var(--time-btn); }
+.btn.time:hover { background: var(--time-btn-hover); border-color: var(--time-btn-hover); }
+/* 時差 장(Ⅴ~Ⅷ) 액션 버튼 — 경로 재생·자동 스윕: 청록 계열로 일관 */
+#pp-play, #lab-play { color: var(--time-main-deep); border-color: var(--time-main); }
+#pp-play:hover, #lab-play:hover { color: var(--time-btn-hover); border-color: var(--time-btn-hover); background: var(--time-main-wash); }
 @media (max-width: 600px) {
   .cta-row { display: grid; grid-template-columns: 1fr; }
   .hero { padding: 56px 0 40px; }
@@ -92,9 +95,9 @@ main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
 .home-lede { max-width: 720px; color: var(--ink-2); font-size: 15px; margin: 4px 0 20px; }
 .home-lede b { color: var(--ink); font-weight: 600; }
 
-.nav-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(206px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.nav-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(206px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5); }
 .nav-card { display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--hairline); border-radius: var(--radius);
-  background: var(--surface); box-shadow: var(--shadow-card); padding: 15px 17px 14px; transition: transform .15s ease, border-color .15s ease; }
+  background: var(--surface); box-shadow: var(--shadow-1); padding: 15px 17px 14px; transition: transform .15s ease, border-color .15s ease; }
 .nav-card:hover { border-color: var(--ink-3); text-decoration: none; transform: translateY(-1px); }
 .nav-card .nc-no { font-family: var(--font-display); font-size: 14px; color: var(--eye-blue); letter-spacing: .04em; }
 #home-time .nav-card .nc-no { color: var(--time-main); }
@@ -116,11 +119,11 @@ main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
 .eye3-mob .e3-asset span { display: block; font-size: 12px; color: var(--ink-3); margin-top: 2px; }
 
 /* ── KPI — 계측값 판독 ───────────────────────────── */
-.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); }
 .kpi {
   border: 1px solid var(--hairline); border-radius: var(--radius);
   background: var(--surface); padding: 18px 20px 15px;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-1);
 }
 .kpi .v { font-family: var(--font-num); font-size: 27px; font-weight: 600; letter-spacing: -.01em; }
 .kpi .v.blue { color: var(--eye-blue); }
@@ -145,16 +148,18 @@ section.ch + section.ch { border-top: 1px solid var(--hairline); }
   content: ""; position: absolute; right: 0; top: -3px;
   width: 8px; height: 8px; border-radius: 50%; background: var(--eye-red);
 }
-.lede { max-width: 760px; color: var(--ink-2); font-size: 16px; margin-bottom: 30px; }
+.lede { max-width: 760px; color: var(--ink-2); font-size: 16px; margin-bottom: var(--space-6); }
 .lede b, .lede strong { color: var(--ink); }
 
 /* ── 카드·차트 도판 ──────────────────────────────── */
 .plate {
   position: relative;
   border: 1px solid var(--hairline); border-radius: var(--radius);
-  background: var(--surface); box-shadow: var(--shadow-card);
-  padding: 22px 24px 18px; margin-bottom: 20px;
+  background: var(--surface); box-shadow: var(--shadow-1);
+  padding: var(--space-5) var(--space-5) var(--space-4); margin-bottom: var(--space-5);
 }
+/* 대표 기기 — 지도·전달경로·히트맵: 한 단 깊은 그림자로 위계 부여(일반 plate = 1 → 대표 = 2) */
+#path-plate, #lag-heat-plate, .plate:has(#sp-map) { box-shadow: var(--shadow-2); }
 .plate .viz-title { font-weight: 700; font-size: 15.5px; }
 .plate .viz-q { font-size: 13px; color: var(--ink-2); margin: 2px 0 4px; }
 .plate .viz-unit { font-size: 12px; color: var(--ink-3); text-align: right; }
@@ -164,7 +169,7 @@ section.ch + section.ch { border-top: 1px solid var(--hairline); }
 .viz-head > .viz-unit { grid-column: 2; grid-row: 1; white-space: nowrap; }
 .viz-head > .viz-q { grid-column: 1 / -1; grid-row: 2; margin: 3px 0 0; }
 .plate .note { font-size: 12.5px; color: var(--ink-2); margin-top: 12px; line-height: 1.65; border-top: 1px dashed var(--hairline); padding-top: 10px; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
 @media (max-width: 880px) { .grid2 { grid-template-columns: 1fr; } }
 
 /* 눈 배지 — 세 시선의 서명 */
@@ -247,7 +252,7 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 .lab-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
 /* ── Ⅴ 전달경로: 데스크톱 우측 상세 + 모바일 세로 타임라인 ──────────── */
-.path-split { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 3fr); gap: 22px; align-items: start; }
+.path-split { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 3fr); gap: var(--space-5); align-items: start; }
 .path-detail { border-left: 1px solid var(--hairline); padding-left: 20px; align-self: stretch; }
 .path-detail .pd-empty { font-size: 12.5px; color: var(--ink-3); line-height: 1.7; margin: 4px 0; }
 .pd-head { font-weight: 700; font-size: 14.5px; }
@@ -305,7 +310,7 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 #ev-panel .ev-hit.on { fill: var(--time-main); }
 
 /* Ⅶ 지역확산 — 확산 지도 + 발산 바 */
-.spread-split { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.spread-split { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
 .sp-mapcol { display: flex; flex-direction: column; gap: 12px; align-self: start; }
 #sp-map { align-self: start; }
 #sp-map svg { width: 100%; height: auto; display: block; }
