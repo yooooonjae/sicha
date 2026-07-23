@@ -535,3 +535,16 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
   .path-detail { display: none; }
   .spread-split { grid-template-columns: 1fr; gap: 10px; }
 }
+
+/* ── 차트 툴팁(#tip 싱글턴) — charts.js가 body에 붙임: fixed+기본 숨김 필수 ── */
+#tip {
+  position: fixed; z-index: 60; pointer-events: none; opacity: 0;
+  background: var(--ink); color: var(--paper);
+  font-size: 12px; line-height: 1.5;
+  padding: 7px 10px; border-radius: 8px;
+  transform: translate(-50%, calc(-100% - 10px));
+  max-width: 260px; transition: opacity .12s;
+  font-family: inherit;
+}
+#tip.on { opacity: 1; }
+#tip .t-title { font-weight: 700; }
