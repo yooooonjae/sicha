@@ -152,7 +152,7 @@
   <div class="home-head"><span class="hanja">時差</span><span class="home-tag">시간의 차이</span></div>
   <p class="home-lede">세 가격은 같은 시각을 살지 않는다 — 공시가격은 연 1회 고시되고, 전세 계약은 통상 2년 단위로 갱신된다. 여기서부터는 선행 지표의 변화가 다른 지표에 나타나기까지 몇 개월이 걸리는지 살펴본다.</p>
   <div class="nav-cards">
-    <a class="nav-card" href="#ch5"><span class="nc-no">Ⅴ</span><span class="nc-t">시차지도</span><span class="nc-d">선행·반응 전체 관계표 · 무엇이 먼저 움직이는가</span></a>
+    <a class="nav-card" href="#ch5"><span class="nc-no">Ⅴ</span><span class="nc-t">시차지도</span><span class="nc-d">선행·반응 전달시간 지도 · 무엇이 먼저 움직이는가</span></a>
     <a class="nav-card" href="#ch6"><span class="nc-no">Ⅵ</span><span class="nc-t">시차실험실</span><span class="nc-d">두 파형을 슬라이더로 직접 정렬</span></a>
     <a class="nav-card" href="#ch7"><span class="nc-no">Ⅶ</span><span class="nc-t">지역확산</span><span class="nc-d">서울↔지역 양방향 · 신호는 어디로 퍼지나</span></a>
     <a class="nav-card" href="#ch8"><span class="nc-no">Ⅷ</span><span class="nc-t">사건연구</span><span class="nc-d">정책 이후 시장은 언제 반응했는가(z 이탈)</span></a>
@@ -361,14 +361,13 @@
   </div>
   <div class="plate" id="lag-heat-plate">
     <div class="viz-head">
-    <div class="viz-title">시차지도 — 선행·반응 전체 관계표</div>
-    <div class="viz-q">행(선행)이 열(반응)보다 몇 개월 앞서 움직였나 · 셀 클릭 = 실험실에서 열기</div>
-    <div class="viz-unit">셀 위 = 최적 시차 · 아래 = 부호 r · 농도 = |r|</div>
+    <div class="viz-title">시차지도 — 선행·반응 전달시간 지도</div>
+    <div class="viz-q">선행이 반응보다 몇 개월 앞서 움직였나 — 가로축 = 전달시간(+개월) · 칩 클릭 = 실험실에서 열기</div>
+    <div class="viz-unit">가로 위치 = 최적 시차(+개월) · 색 = 관계 부호 · 채움/테두리 = 등급</div>
     </div>
     <div id="lag-heat"></div>
-    <p class="note">셀 위는 최적 시차, 아래는 <b>부호를 포함한 상관계수</b>(예: −.62)다. <b>점선 테두리 = 전·후반 부호 불안정</b>,
-    <b>▲ = 탐색 상한에서 최대(미확정)</b>. 빈칸 = 이 사이트가 재는 관측 쌍이 아니다(경로 가설에 없는 조합). 색이 짙을수록 상관이 강하다(|r|).
-    전세가(서울 표본)는 서울 하위 계열(거래량·매매가 서울)과만 짝지어 공간 범위를 맞췄다.
+    <p class="note">가로 위치가 오른쪽일수록 선행이 더 오래 앞선다(최적 시차). 칩 색 = 관계 부호 — <b style="color:var(--time-main)">청록 = 양</b> · <b style="color:var(--time-supply)">적갈 = 음</b>.
+    형태 = 등급: <b>채움 = A · 옅은 채움 = B · 점선 = C·짧은 표본</b>. 전세가(서울 표본)는 서울 하위 계열(거래량·매매가 서울)과만 짝지어 공간 범위를 맞췄다.
     시차·상관은 <b>예측적 선후관계이며 인과가 아니다.</b> 아래 카드는 각 관계의 국면·이동창·공간 범위 상세다.</p>
   </div>
   <div id="lag-map" class="grid2"></div>

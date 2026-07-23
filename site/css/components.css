@@ -195,9 +195,13 @@ main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
   .nav-card .nc-t { transition: text-shadow .2s ease; }
   .nav-card:hover .nc-t { text-shadow: 1px 0 0 rgba(211, 35, 46, .28), -1px 0 0 rgba(29, 78, 216, .28); }
   .nav-card:hover { transform: translateY(-2px); }        /* 모션 5 — 카드 lift */
-  /* 모션 5 + D-5 — 히트맵 셀 hover: scale 1.06(셀 자기 중심) + 잉크 스트로크 */
-  .heat-cell { transition: transform .2s ease; transform-box: fill-box; transform-origin: center; }
-  .heat-cell:hover { transform: scale(1.06); stroke: var(--ink); stroke-width: 1.2px; }
+  /* 모션 5 — 전달시간 축 지도 칩 hover: 살짝 상승 + 그림자(칩 자기 중심) */
+  .lm-chip { transform-box: fill-box; transform-origin: center; transition: transform .16s ease, filter .16s ease; }
+  .lm-chip:hover { transform: translateY(-1px); filter: drop-shadow(0 2px 3px rgba(20, 22, 29, .20)); }
+  /* 입장 — 칩이 x=0(신호 발생)에서 자기 위치로 슬라이드. 레인별 스태거는 g style(animation-delay) */
+  .lm-chipwrap { transform-box: view-box; }
+  .lm-anim .lm-chipwrap { opacity: 0; transform: translateX(var(--lm-from)); }
+  .lm-anim.anim-in .lm-chipwrap { animation: lm-slide .7s cubic-bezier(.16, .84, .44, 1) forwards; }
   /* 모션 5 — 연구 카드(lag-map) hover: lift + 스파크 stroke-dashoffset 재생 0.6s */
   #lag-map .plate { transition: box-shadow .2s ease, transform .2s ease; }
   #lag-map .plate:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
@@ -211,13 +215,10 @@ main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
      reduced-motion은 이 블록 미적용 → 즉시 최종(캡처 경로). */
   .sc-anim .sc-pt { opacity: 0; }
   .sc-anim.anim-in .sc-pt { animation: sc-in .35s ease-out forwards; transform-box: fill-box; transform-origin: center; }
-  /* D-애니 4 — 히트맵 행 스태거: 행 g 그룹 opacity만(셀 농도 opacity는 셀 속성으로 보존) */
-  .hm-anim .hm-r { opacity: 0; }
-  .hm-anim.anim-in .hm-r { animation: hm-in .3s ease-out forwards; }
 }
 @keyframes spark-draw { from { stroke-dashoffset: 360; } to { stroke-dashoffset: 0; } }
 @keyframes sc-in { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
-@keyframes hm-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lm-slide { from { opacity: 0; transform: translateX(var(--lm-from)); } to { opacity: 1; transform: translateX(0); } }
 
 /* D-7 — 파형 글로우(홈 #wave-band 전용, 동색 4px·알파 .18 절제). 모션 아님 — 캡처에도 표시 */
 .wave-glow-main { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--time-main) 18%, transparent)); }
@@ -311,7 +312,7 @@ main { overflow-x: clip; }  /* 전폭 밴드(100vw)가 가로 스크롤을 만�
   background: var(--surface); box-shadow: var(--shadow-1);
   padding: var(--space-5) var(--space-5) var(--space-4); margin-bottom: var(--space-5);
 }
-/* 대표 기기 — 지도·전달경로·히트맵: 한 단 깊은 그림자로 위계 부여(일반 plate = 1 → 대표 = 2) */
+/* 대표 기기 — 전달경로·시차지도·확산지도: 한 단 깊은 그림자로 위계 부여(일반 plate = 1 → 대표 = 2) */
 #path-plate, #lag-heat-plate, .plate:has(#sp-map) { box-shadow: var(--shadow-2); }
 .plate .viz-title { font-weight: 700; font-size: 15.5px; }
 .plate .viz-q { font-size: 13px; color: var(--ink-2); margin: 2px 0 4px; }
@@ -527,10 +528,23 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 .spr-verdict.ref { color: var(--ink-2); background: var(--surface-2); border-color: var(--ink-3); border-style: dashed; }
 .spr-line { font-size: 12.5px; color: var(--ink-2); margin: 7px 0 0; line-height: 1.5; }
 
-/* 시차지도 히트맵 — 모바일 가로 스크롤 · 좁은 화면 세로 재배치 */
+/* ── 전달시간 축 지도 (Ⅴ) — 반응형 SVG(가로 스크롤 없음) · 칩 포커스 · 범례 ── */
+#lag-heat svg { width: 100%; height: auto; display: block; }
+.lm-chip { cursor: pointer; outline: none; }
+.lm-chip:focus-visible { outline: 2px solid var(--time-main); outline-offset: 2px; }
+.lm-legend { display: flex; flex-wrap: wrap; gap: 5px 8px; align-items: center; margin-top: 12px; font-size: 11.5px; color: var(--ink-3); }
+.lm-legend .lm-lg { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.lm-legend .lm-sep { color: var(--rule); }
+.lm-legend .sw { width: 17px; height: 12px; border-radius: 3px; display: inline-block; box-sizing: border-box; }
+.lm-legend .sw-fill { background: var(--ink-2); }
+.lm-legend .sw-line { background: color-mix(in srgb, var(--ink-2) 18%, var(--surface)); border: 1.2px solid var(--ink-2); }
+.lm-legend .sw-dash { background: var(--surface); border: 1.2px dashed var(--ink-2); }
+.lm-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.lm-legend .dot-main { background: var(--time-main); }
+.lm-legend .dot-supply { background: var(--time-supply); }
+
+/* 시차지도 — 모바일: 전달경로/확산 세로 재배치 (지도는 자체 반응형 SVG) */
 @media (max-width: 640px) {
-  #lag-heat { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  #lag-heat svg { min-width: 620px; }
   .path-split { grid-template-columns: 1fr; gap: 0; }
   .path-detail { display: none; }
   .spread-split { grid-template-columns: 1fr; gap: 10px; }

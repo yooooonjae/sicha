@@ -471,33 +471,9 @@
       }
     }
 
-    /* Ⅴ 연구 카드 (아래) — 그 위 시차지도 히트맵이 장의 대표 화면 */
+    /* Ⅴ 시차지도 — 그 위 '전달시간 축 지도'가 장의 대표 화면, 아래는 연구 카드 */
     const L = B.lag;
     if (L && L.grid && L.grid.length) {
-      /* 시차지도 — 선행(행) × 반응(열) 전수표. 셀=최적 시차 · 농도=|r| · 클릭=실험실 */
-      if ($("lag-heat")) {
-        const XORD = ["기준금리", "국고10년", "주담대금리", "거래량", "매매가", "거래량(서울)", "매매가(서울)", "미분양", "인허가", "착공", "준공"];
-        const YORD = ["주담대금리", "거래량", "매매가", "전세가", "미분양", "착공", "준공", "준공후미분양"];
-        const rowsH = XORD.filter(x => L.grid.some(g => g.x === x));
-        const colsH = YORD.filter(y => L.grid.some(g => g.y === y));
-        const gAt = (x, y) => L.grid.find(g => g.x === x && g.y === y);
-        // 셀은 '6M 국소 피크 우선' 시차를 표시하므로 r·농도도 같은 피크값으로 맞춘다(부호·강도 일치).
-        const lagAt = (x, y) => { const g = gAt(x, y); return g ? (g.lag_near != null ? g.lag_near : g.lag) : null; };
-        const rAt = (x, y) => { const g = gAt(x, y); return g ? (g.lag_near != null ? g.r_near : g.r) : null; };
-        const rFmt = r => (r < 0 ? "−" : "+") + Math.abs(r).toFixed(2).replace(/^0\./, "."); // 부호 포함 r(−.62)
-        const cellsH = rowsH.map(x => colsH.map(y => { const r = rAt(x, y); return r == null ? NaN : Math.abs(r); }));
-        Charts.heatmap($("lag-heat"), { xs: colsH, ys: rowsH, cells: cellsH }, {
-          width: MOB ? 720 : 1120, cellH: MOB ? 42 : 46, labelW: 96, negColor: "--time-supply",
-          cellText: true, xName: "반응", yName: "선행", vLabel: "|r|",
-          cellFmt: (v, r, c) => { const lg = lagAt(rowsH[r], colsH[c]); return lg == null ? "" : lg === 0 ? "0M" : "+" + lg + "M"; },
-          cellSub: (v, r, c) => { const rr = rAt(rowsH[r], colsH[c]); return rr == null ? "" : rFmt(rr); }, // 아래줄 = 표시 시차의 부호 r
-          cellDashed: (r, c) => { const g = gAt(rowsH[r], colsH[c]); return !!(g && !g.stable); }, // 불안정 = 점선
-          cellMark: (r, c) => { const g = gAt(rowsH[r], colsH[c]); return g && g.at_bound ? "▲" : ""; }, // 탐색 상한 도달
-          tipFmt: (v, r, c) => { const g = gAt(rowsH[r], colsH[c]); if (!g) return "관측 쌍 아님"; const lg = lagAt(rowsH[r], colsH[c]), rr = rAt(rowsH[r], colsH[c]); return `+${lg}M · r ${rr > 0 ? "+" : ""}${rr.toFixed(2)} · n=${g.n}${g.lag_near != null ? ` · 전역 최적 +${g.lag}M(r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)})` : ""}${g.stable ? "" : " · 불안정"}${g.at_bound ? " · 상한 도달" : ""}${g.scope_mismatch ? " · 공간 범위 불일치" : ""}`; },
-          legend: "셀 위 = 최적 시차 · 아래 = 부호 r · 농도 = |r| · 점선 = 불안정 · ▲ = 탐색 상한 · 빈칸 = 관측 쌍 아님",
-          aria: "선행×반응 시차 전수표", onCell: (colV, rowV) => loadLab(rowV, colV, true),
-        });
-      }
       const grade = g => {
         let res = g.n < 25 ? ["짧은 표본", "var(--ink-3)"]
           : g.n < 60 ? (g.stable ? ["B−(중간)", "var(--ink-2)"] : ["C(중간)", "var(--ink-3)"])
@@ -535,6 +511,25 @@
       ];
       const groupOf = g => { const k2 = g.x + "|" + g.y;
         const f = GROUPS.find(([, ks]) => ks.includes(k2)); return f ? f[0] : "기타"; };
+      /* 전달시간 축 지도 — 14쌍을 그룹 스윔레인·+kM 위치 칩으로 (연구 카드와 동일 그룹·등급·수치).
+         k=g.lag(전역 최적, 카드 헤드라인과 동일) · 색=부호 · 채움/테두리/점선=등급 · 클릭→실험실. */
+      if ($("lag-heat")) {
+        const lanes = GROUPS.map(([gname], gi) => ({
+          group: gname, badge: String.fromCharCode(65 + gi),
+          chips: L.grid.filter(g => groupOf(g) === gname).map(g => {
+            const label = grade(g)[0];   // "A" · "B" · "C" · "짧은 표본"
+            return {
+              lead: g.x, react: g.y, k: g.lag, r: g.r, n: g.n, grade: label,
+              cls: label === "A" ? "fill" : label[0] === "B" ? "light" : "outline", // C·짧은 표본 → 점선
+              sign: g.r < 0 ? "supply" : "main", overflow: g.lag > 30,
+            };
+          }),
+        }));
+        Charts.lagmap($("lag-heat"), lanes, {
+          mob: MOB, aria: "선행이 반응에 닿는 전달시간 지도 — 14개 관계",
+          onChip: (lead, react) => loadLab(lead, react, true),
+        });
+      }
       const ordered = [];
       GROUPS.forEach(([gn], gi) => { const arr = L.grid.filter(g => groupOf(g) === gn);
         arr.forEach((g, i) => ordered.push({ g, head: i === 0 ? gn : null, gi, cnt: arr.length, rest: i > 0, restN: arr.length - 1 })); });
