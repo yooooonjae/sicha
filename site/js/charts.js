@@ -1014,9 +1014,12 @@
         if (a === 0) { pick = cd; pickBox = box; break; }
         if (a < best) { best = a; pick = cd; pickBox = box; }
       }
-      placed.push(pickBox);
-      el("text", { x: pick.x, y: pick.y, "text-anchor": pick.anchor, "font-size": 11.5, "font-weight": 700, fill: css("--ink-2") }, svg).textContent = p.name;
-      bindTip(c, () => `<div class="t-title">${p.name}</div>매매지수 1년 변동 <b class="num">${p.y >= 0 ? "+" : ""}${p.y.toFixed(1)}%</b><br>미분양 1년 증감 <b class="num">${p.x >= 0 ? "+" : ""}${p.x.toFixed(0)}%</b>`);
+      if (p.name != null) {
+        placed.push(pickBox);
+        el("text", { x: pick.x, y: pick.y, "text-anchor": pick.anchor, "font-size": 11.5, "font-weight": 700, fill: css("--ink-2") }, svg).textContent = p.name;
+      }
+      const fx = v => opts.xFmt ? opts.xFmt(v) : fmt.num(v), fy = v => opts.yFmt ? opts.yFmt(v) : fmt.num(v);
+      bindTip(c, () => `<div class="t-title">${p.name || p.label || ""}</div>${opts.yName || "y"} <b class="num">${fy(p.y)}</b><br>${opts.xName || "x"} <b class="num">${fx(p.x)}</b>`);
     });
     return svg;
   }
