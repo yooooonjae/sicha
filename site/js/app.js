@@ -570,7 +570,7 @@
           <polyline class="spark-line" points="${pl}" fill="none" stroke="var(--time-main)" stroke-width="1.6"/>
           ${ws.map((w, i) => `<circle cx="${x2(i).toFixed(1)}" cy="${y2(w.lag).toFixed(1)}" r="2" fill="var(--time-main)"/>`).join("")}
           <circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="3" fill="var(--time-main)" stroke="var(--surface)" stroke-width="1.5"/>
-          <text x="${(ex + 6).toFixed(1)}" y="${ly.toFixed(1)}" font-size="9.5" font-weight="700" fill="var(--time-main-deep)" font-family="var(--font-num)" class="spark-end">+${le.lag}M</text>
+          <text x="${(ex + 6).toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" font-weight="700" fill="var(--time-main-deep)" font-family="var(--font-num)" class="spark-end">+${le.lag}M</text>
         </svg>`;
       };
       const GROUPS = [
@@ -638,7 +638,7 @@
             ${ag != null ? `방향 일치 <b class="num">${ag}%</b>${g.r < 0 ? " (역방향 기준)" : ""}` : "방향 일치 표본 부족"}
             &nbsp;·&nbsp; ${rg("인상기", g.regime_up)} &nbsp;·&nbsp; ${rg("인하기", g.regime_down)}</div>
           <div style="display:flex;align-items:center;gap:8px">${spark(g.windows, g.max_lag)}
-            <span style="font-size:11.5px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~${g.max_lag || 24}M</span></div>
+            <span style="font-size:12px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~${g.max_lag || 24}M</span></div>
         </div>`;
       })(g)).join("");
       $("lag-map").querySelectorAll(".lag-more").forEach(btn => btn.addEventListener("click", () => {
@@ -746,8 +746,8 @@
       const stLabel = s => s === "pending" ? "대기" : s;
       const dirWord = d => d === "-" ? "하락" : d === "+" ? "상승" : d;
       const kindTag = k => k === "backtest"
-        ? `<span title="결정 시점에 반응월이 이미 관측돼 있던 사후 검증 — 전향 예측이 아니다" style="font-size:11px;font-weight:700;color:var(--ink-3);border:1px solid var(--rule);border-radius:3px;padding:1px 5px;white-space:nowrap">사후 backtest</span>`
-        : `<span title="결정 시점에 반응월이 미관측 — 미리 적어 둔 전향 예측" style="font-size:11px;font-weight:700;color:var(--eye-blue);border:1px solid var(--eye-blue);border-radius:3px;padding:1px 5px;white-space:nowrap">전향 live</span>`;
+        ? `<span title="결정 시점에 반응월이 이미 관측돼 있던 사후 검증 — 전향 예측이 아니다" style="font-size:12px;font-weight:700;color:var(--ink-3);border:1px solid var(--rule);border-radius:3px;padding:1px 5px;white-space:nowrap">사후 backtest</span>`
+        : `<span title="결정 시점에 반응월이 미관측 — 미리 적어 둔 전향 예측" style="font-size:12px;font-weight:700;color:var(--eye-blue);border:1px solid var(--eye-blue);border-radius:3px;padding:1px 5px;white-space:nowrap">전향 live</span>`;
       const rows = (LD.entries || []).slice().reverse(); // 최신 판정 먼저
       const tEl = $("ledger-table");
       if (tEl) tEl.innerHTML = rows.length ? `<div class="table-scroll"><table class="sheet">

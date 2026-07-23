@@ -264,7 +264,7 @@
       // 그리드(수평만, 0.75px 최저 대비 — 축선 없음) + y라벨(tabular 11px)
       for (const tv of niceTicks(lo, hi, 4)) {
         el("line", { x1: M.l, x2: W - M.r, y1: y(tv), y2: y(tv), stroke: css("--grid"), "stroke-width": 0.75 }, svg);
-        el("text", { x: M.l - 7, y: y(tv) + 4, "text-anchor": "end", "font-size": 11, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
+        el("text", { x: M.l - 7, y: y(tv) + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
           .textContent = opts.yFmt ? opts.yFmt(tv) : fmt.num(tv, 0);
       }
       // x라벨 (양끝 + 중앙)
@@ -555,7 +555,7 @@
       w += /[가-힣ㄱ-ㆎ]/.test(ch) ? px
         : ch === "→" ? px * 1.05 : ch === " " ? px * 0.32
         : (ch === "(" || ch === ")") ? px * 0.42 : px * 0.6; } return w; };
-    const nameSz = 10.5, kSz = mob ? 11.5 : 12, padX = mob ? 7 : 8;
+    const nameSz = 11, kSz = mob ? 11.5 : 12, padX = mob ? 7 : 8;
     const kStr = c => (c.k === 0 ? "0M" : "+" + c.k + "M") + (c.overflow ? "›" : "");
     const chipW = c => {
       const kw = glyph(kStr(c), kSz);
@@ -577,14 +577,14 @@
     for (let k = 6; k <= MAXK; k += 6) {
       const gx = xAt(k);
       el("line", { x1: gx, x2: gx, y1: mT - 6, y2: laneBot, stroke: css("--grid"), "stroke-width": 1 }, svg);
-      el("text", { x: gx, y: laneBot + 20, "text-anchor": "middle", "font-size": 11,
+      el("text", { x: gx, y: laneBot + 20, "text-anchor": "middle", "font-size": 11.5,
         "font-family": "var(--font-num)", fill: css("--ink-3") }, svg).textContent = "+" + k + "M";
     }
     // ── x=0 기준선(신호 발생) — 굵은 세로선 + 상·하 라벨 ──
     el("line", { x1: x0, x2: x0, y1: mT - 6, y2: laneBot, stroke: css("--ink"), "stroke-width": 2 }, svg);
     el("text", { x: x0, y: mT - 15, "text-anchor": mob ? "start" : "middle", "font-size": 12,
       "font-weight": 700, fill: css("--ink-2"), "font-family": "var(--font-body)" }, svg).textContent = "신호 발생";
-    el("text", { x: x0, y: laneBot + 20, "text-anchor": "middle", "font-size": 11,
+    el("text", { x: x0, y: laneBot + 20, "text-anchor": "middle", "font-size": 11.5,
       "font-family": "var(--font-num)", fill: css("--ink-3") }, svg).textContent = "0M";
 
     // ── 레인별 배치 + 칩 ──
@@ -602,7 +602,7 @@
         const cy = top + laneH / 2, parts = lane.group.split(" → "), two = parts.length === 2;
         const gt = el("text", { x: 8, y: two ? cy - 7 : cy + 4, "font-size": 13,
           fill: css("--ink"), "font-family": "var(--font-display)" }, svg);
-        el("tspan", { fill: css("--ink-3"), "font-size": 11, "font-family": "var(--font-num)" }, gt).textContent = lane.badge + " ";
+        el("tspan", { fill: css("--ink-3"), "font-size": 11.5, "font-family": "var(--font-num)" }, gt).textContent = lane.badge + " ";
         el("tspan", {}, gt).textContent = two ? parts[0] + " →" : lane.group;
         if (two) el("text", { x: 22, y: cy + 11, "font-size": 13, fill: css("--ink"),
           "font-family": "var(--font-display)" }, svg).textContent = parts[1];
@@ -916,7 +916,7 @@
         "stroke-width": 1, "stroke-dasharray": "3 3" }, svg);
       const flip = mx > W - M.r - 78; // 우측 여백 부족 시 라벨을 선 왼쪽으로
       el("text", { x: flip ? mx - 5 : mx + 5, y: 13, "text-anchor": flip ? "end" : "start",
-        "font-size": 10.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
+        "font-size": 11.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
         .textContent = "표본 중앙값 " + (opts.fmt ? opts.fmt(med) : fmt.num(med, 0));
     }
     // 모션 4 — 바 자라남: IO 진입 시 rAF 0→1 0.6s로 rect 폭만 스케일 + 값 라벨 후행 페이드.
@@ -1044,12 +1044,12 @@
     if (opts.riskQuad && opts.xRef != null && opts.yRef != null) {
       el("rect", { x: M.l, y: M.t, width: Math.max(0, X(opts.xRef) - M.l),
         height: Math.max(0, Y(opts.yRef) - M.t), fill: "rgba(211,35,46,.05)" }, svg);
-      el("text", { x: M.l + 10, y: M.t + 18, "font-size": 11, "font-weight": 700,
+      el("text", { x: M.l + 10, y: M.t + 18, "font-size": 12, "font-weight": 700,
         fill: css("--eye-red-deep"), opacity: .8 }, svg).textContent = opts.riskQuad;
     }
     for (const tv of niceTicks(y0, y1, 5)) {
       el("line", { x1: M.l, x2: W - M.r, y1: Y(tv), y2: Y(tv), stroke: css("--grid"), "stroke-width": 0.75 }, svg);
-      el("text", { x: M.l - 8, y: Y(tv) + 4, "text-anchor": "end", "font-size": 11, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
+      el("text", { x: M.l - 8, y: Y(tv) + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
         .textContent = opts.yFmt ? opts.yFmt(tv) : tv;
     }
     for (const tv of niceTicks(x0, x1, 6)) {
@@ -1075,7 +1075,7 @@
         `<div class="t-title">${p.name}</div>${opts.xName || "x"} <b class="num">${opts.xFmt ? opts.xFmt(p.x) : p.x}</b><br>${opts.yName || "y"} <b class="num">${opts.yFmt ? opts.yFmt(p.y) : p.y}</b><br><span style="opacity:.7">${p.group || ""}</span>`);
       let lb = null;
       if (p.label) {
-        lb = el("text", { x: X(p.x), y: Y(p.y) - r - 5, "text-anchor": "middle", "font-size": 11,
+        lb = el("text", { x: X(p.x), y: Y(p.y) - r - 5, "text-anchor": "middle", "font-size": 11.5,
           "font-weight": 700, fill: css("--ink-2") }, svg);
         lb.textContent = p.name;
       }
