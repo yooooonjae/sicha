@@ -252,14 +252,23 @@ PAIRS = [  # (선행, 반응, 최대 탐색 시차)
 
 # ── 신호원장 — 예측을 판정일·검증기한과 함께 적고, 기한 뒤 자동 채점 ──────
 
-def _date_plus_months(dstr, months):
-    """ISO 날짜 + months개월 (검증기한 계산)."""
-    d = datetime.date.fromisoformat(dstr)
-    idx = d.year * 12 + (d.month - 1) + months
-    y, m = idx // 12, idx % 12 + 1
+# 반응 계열 데이터 공개 지연(개월) — 목표월 값은 대략 +1M 뒤 공개된다.
+PUB_DELAY = 1
+
+
+def _month_end(ym):
+    """YYYYMM → 그 달 말일 ISO(YYYY-MM-DD). 윤년 2월 클램프."""
+    y, m = int(ym[:4]), int(ym[4:6])
     leap = y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)
     last = [31, 29 if leap else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]
-    return datetime.date(y, m, min(d.day, last)).isoformat()
+    return datetime.date(y, m, last).isoformat()
+
+
+def _verify_by(target_month, pub_delay=PUB_DELAY):
+    """검증기한 = (목표월 + 데이터 공개지연)월의 말일 — 결정일과 무관.
+    반응월 데이터가 실제로 공개되는 시점을 기준선으로 삼아, '결정일+시차' 방식이
+    낳던 사후정보 혼입(이미 관측된 반응월을 미래 기한으로 표기)을 제거한다."""
+    return _month_end(_shift(target_month, pub_delay))
 
 
 def load_ledger():
@@ -274,11 +283,15 @@ def load_ledger():
 def update_ledger(signals, T, run_date):
     """당일 신호를 원장에 append — 선행→반응@전환월 key로 중복 방지(재관측은 in-place 갱신).
 
-    · 판정일 = 최초 기록일(고정) · 검증기한 = 판정일 + 예상시차 + 2개월.
-    · 검증기한이 지난 pending 항목만 자동 채점: 반응 변수 변환값(전년동월비/차분)의
-      예측월(전환월 + 예상시차) 부호를 예측 방향(선행 방향 × 관계 부호)과 대조한다.
+    · 판정일 = 최초 기록일(고정) · 검증기한 = 목표월 + 데이터 공개지연(_verify_by, 결정일 무관).
+    · 사후정보 혼입 방지 — 목표월(전환월+시차)이 반응 계열의 최신 관측월(as_of) 이하이면
+      결정 시점에 이미 반응이 관측된 것이므로 "backtest"(사후 검증)로 분류해 그 자리에서
+      실제 부호로 즉시 채점한다. 미관측(목표월 > as_of)이면 "live"(전향 예측)로 대기한다.
+      kind는 최초 결정 시점 기준으로 고정한다 — 이후 데이터가 도착해도 backtest로 뒤집지
+      않는다(먼저 적어 둔 live 기록만이 전향 예측력의 증거다).
+    · 채점 = 반응 변수 변환값(전년동월비/차분)의 목표월 부호를 예측 방향(선행 방향×관계 부호)과 대조.
     한계: 단순 부호 규칙 — 크기·유의성·자기상관을 보지 않는다. 전환월이 없는 신호(방향
-    전환 미탐지)는 판정일 기준이 없어 원장에서 제외한다.
+    전환 미탐지)는 판정 기준이 없어 원장에서 제외한다.
     """
     led = load_ledger()
     entries = {e["id"]: e for e in led.get("entries", [])}
@@ -291,23 +304,35 @@ def update_ledger(signals, T, run_date):
         rel = -1 if (r is not None and r < 0) else 1
         dsign = 1 if s["dir"] == "+" else -1
         exp = "+" if dsign * rel > 0 else "-"
-        if key in entries:  # 같은 신호 재관측 — 판정일·검증기한은 고정, 생생 필드만 갱신
-            entries[key].update(last_seen=run_date, elapsed=s.get("elapsed"))
+        target = _shift(turn, lag)
+        yseries = T.get(s["y"]) or {}
+        as_of = max(yseries) if yseries else None  # 반응 계열 최신 관측월
+        kind = "backtest" if (as_of is not None and target <= as_of) else "live"
+        if key in entries:  # 재관측 — 판정일·시차·예측·kind는 고정, 생생 필드만 갱신
+            e = entries[key]
+            e.update(last_seen=run_date, elapsed=s.get("elapsed"))
+            if "kind" not in e:  # 구 스키마 1회 이관 — 결정일=오늘이라 현재 as_of 분류가 유효
+                e.update(kind=kind, as_of=as_of)
             continue
         entries[key] = {
             "id": key, "x": s["x"], "y": s["y"], "dir": s["dir"], "turn": turn,
-            "lag": lag, "r": r, "expect_dir": exp, "target_month": _shift(turn, lag),
-            "decided_on": run_date, "verify_by": _date_plus_months(run_date, lag + 2),
+            "lag": lag, "r": r, "expect_dir": exp, "target_month": target,
+            "kind": kind, "as_of": as_of,
+            "decided_on": run_date, "verify_by": _verify_by(target),
             "status": "pending", "observed_dir": None, "scored_on": None,
             "elapsed": s.get("elapsed"), "last_seen": run_date,
         }
-    for e in entries.values():  # 자동 채점 — 검증기한 지난 pending만
-        if e["status"] != "pending" or run_date < e["verify_by"]:
-            continue
+    for e in entries.values():
+        # 검증기한은 목표월의 순수 함수 — 구 항목(결정일 기준)도 여기서 목표월 기준으로 교정.
+        e["verify_by"] = _verify_by(e["target_month"])
+        if e["status"] in ("적중", "빗나감"):
+            continue  # 확정 채점은 되돌리지 않는다
         yv = (T.get(e["y"]) or {}).get(e["target_month"])
-        if yv is None:
-            e.update(status="미검증", scored_on=run_date)  # 반응월 표본 밖
+        if yv is None:  # 반응월 미관측 — live는 계속 대기, backtest면 표본 밖(미검증)
+            if e.get("kind") == "backtest":
+                e.update(status="미검증", scored_on=run_date)
             continue
+        # backtest는 즉시, live는 목표월 데이터가 관측되는 순간 채점(전향성은 판정일 고정으로 보존).
         obs = "+" if yv > 0 else "-" if yv < 0 else "0"
         e.update(observed_dir=obs, scored_on=run_date,
                  status="적중" if obs == e["expect_dir"]
@@ -393,14 +418,27 @@ def main():
     # 신호원장 — 당일 신호를 판정일·검증기한과 함께 기록·채점(축적 기록, 커밋 대상)
     run_date = time.strftime("%Y-%m-%d")
     led = update_ledger(bundle_signals, T, run_date)
-    _scored = [e for e in led["entries"] if e["status"] in ("적중", "빗나감")]
-    _hits = [e for e in _scored if e["status"] == "적중"]
-    ledger_view = {"entries": led["entries"],
-                   "kpi": {"total": len(led["entries"]), "verified": len(_scored),
-                           "hit_rate": round(len(_hits) / len(_scored) * 100) if _scored else None,
+    ents = led["entries"]
+
+    def _rate(scored):
+        hits = [e for e in scored if e["status"] == "적중"]
+        return round(len(hits) / len(scored) * 100) if scored else None
+
+    _scored = [e for e in ents if e["status"] in ("적중", "빗나감")]
+    _live = [e for e in ents if e.get("kind") == "live"]
+    _bt = [e for e in ents if e.get("kind") == "backtest"]
+    _live_scored = [e for e in _live if e["status"] in ("적중", "빗나감")]
+    _bt_scored = [e for e in _bt if e["status"] in ("적중", "빗나감")]
+    # 전향(live)·사후(backtest)를 분리 집계 — 지도의 예측력 증거는 오직 live 기록이다.
+    ledger_view = {"entries": ents,
+                   "kpi": {"total": len(ents), "live": len(_live), "backtest": len(_bt),
+                           "verified": len(_scored), "hit_rate": _rate(_scored),
+                           "live_verified": len(_live_scored), "live_hit_rate": _rate(_live_scored),
+                           "backtest_verified": len(_bt_scored), "backtest_hit_rate": _rate(_bt_scored),
                            "start": led["created"]}}
-    print(f"신호원장: 누적 {ledger_view['kpi']['total']} · 검증완료 "
-          f"{ledger_view['kpi']['verified']} · 적중률 {ledger_view['kpi']['hit_rate']} → data/ledger.json")
+    print(f"신호원장: 누적 {len(ents)} (전향 {len(_live)}·사후 {len(_bt)}) · 검증완료 {len(_scored)} "
+          f"· 전향적중률 {ledger_view['kpi']['live_hit_rate']} "
+          f"· 사후적중률 {ledger_view['kpi']['backtest_hit_rate']} → data/ledger.json")
 
     # 데이터 상태 매니페스트(時差 원천) — metrics가 쓴 視差 위에 병합
     def _months(*names):

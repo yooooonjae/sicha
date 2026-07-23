@@ -1,7 +1,8 @@
 config.json
 data/*
 !data/ledger.json
-out/
+out/*
+!out/site_bundle.json
 web/
 web.tmp/
 __pycache__/

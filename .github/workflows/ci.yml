@@ -1,11 +1,17 @@
-# 시차(視差) CI — 수지/순환 원천 데이터 없이 도는 순수 검사만.
-# 지표 단위 테스트 · 전 소스 바이트컴파일 · 사이트 JS 문법 검사.
+# 시차(視差) CI — 수지/순환 원천 데이터 없이 도는 검사만.
+# 지표·원장·계약 단위 테스트 · 전 소스 바이트컴파일 · 사이트 JS 문법 · 커밋된 번들로 빌드→DOM 계약.
 name: CI
 
 on:
   push:
   pull_request:
   workflow_dispatch:
+
+# 산출물 필수 — 계약 검사가 '산출물 없음'으로 조용히 skip 되지 않게 강제한다.
+# out/site_bundle.json은 리포에 커밋되고(원천 데이터 불필요한 자족 스냅샷), web/은 이 번들로
+# CI에서 빌드한다. 두 산출물이 부재하면 계약 테스트는 skip 대신 실패한다.
+env:
+  SICHA_REQUIRE_ARTIFACTS: "1"
 
 jobs:
   check:
@@ -23,11 +29,11 @@ jobs:
         with:
           node-version: "20"
 
-      # 순수 단위·계약 테스트 — 수지/순환 원천(sale_*.xml·ecos·kosis 등)에 의존하지 않는다.
+      # 단위·계약 테스트 — 수지/순환 원천(sale_*.xml·ecos·kosis 등)에 의존하지 않는다.
       # lags import는 부작용이 없어(load_series는 main()에서만 호출) 원천 데이터가 없는
       # CI 러너에서도 통과한다. pytest 불필요 — 파일 자체 러너로 실행(실패=비정상 종료).
-      # 계약 테스트(scope·event-window)는 out/(미커밋) 부재 시 순수 규칙만 돌고 번들 검증은
-      # 명시적으로 skip 한다. ledger 계약은 data/ledger.json이 커밋되어 실측까지 검증한다.
+      # 원장(data/ledger.json)·번들(out/site_bundle.json)이 커밋돼 있어 scope·event-window·
+      # ledger 계약이 실측까지 검증한다(SICHA_REQUIRE_ARTIFACTS=1 → 부재 시 skip 대신 실패).
       - name: Unit & contract tests (metrics·scope·ledger·event-window)
         run: |
           for t in tests/test_*.py; do
@@ -48,7 +54,12 @@ jobs:
             node --check "$f" || exit 1
           done
 
-      # DOM 계약(지도 17개 시도 path·판독 요소 존재) — 빌드 산출(web/, 미커밋)이 있으면
-      # 검증하고, CI에선 없어 skip(정상 종료)한다. 로컬 빌드 후 실검증된다.
+      # 사이트 빌드 — 커밋된 out/site_bundle.json + site/ 만으로 web/index.html 생성(수지/순환 불필요).
+      # 이 빌드가 DOM 계약(지도 path·판독 요소·원장 고지 문구)의 검증 대상을 만든다.
+      - name: Build site from committed bundle
+        run: python3 src/build/assemble.py
+
+      # DOM 계약(17개 시도 path·판독 요소·전향/사후 구분·사후 검증 고지) — 위 빌드 산출을 검증.
+      # SICHA_REQUIRE_ARTIFACTS=1 → web/ 부재 시 skip 대신 실패.
       - name: DOM contract test (map)
         run: node tests/test_map_contract.js

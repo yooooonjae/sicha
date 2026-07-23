@@ -19,6 +19,11 @@ const ROOT = path.resolve(__dirname, "..");
 const OUT = path.join(ROOT, "web", "index.html");
 
 if (!fs.existsSync(OUT)) {
+  // 산출물 필수 환경(CI: SICHA_REQUIRE_ARTIFACTS)에선 skip 대신 실패 — '있으면 반드시 실행' 강제.
+  if (process.env.SICHA_REQUIRE_ARTIFACTS) {
+    console.error(`  ✗ test_map_contract: [필수 산출물 누락] 빌드 산출 없음(${OUT})`);
+    process.exit(1);
+  }
   console.log(`  ⊘ SKIP test_map_contract: 빌드 산출 없음(${OUT}) — 검증 건너뜀`);
   process.exit(0);
 }
@@ -53,6 +58,10 @@ ok(/spread-wrap/.test(html), "확산 섹션 마운트(spread-wrap) 없음");
 ok(/kmap-region/.test(html), "지도 시도 path 렌더 클래스(kmap-region) 없음");
 ok(/id="sp-map"|sp-map/.test(html), "지도 마운트(sp-map) 없음");
 ok(/id="sp-read"|sp-read/.test(html), "판독 요소(sp-read) 없음");
+
+/* ③ 신호원장 — 전향(live)/사후(backtest) 구분 + 사후 검증 고지 (사후정보 혼입 방지 UI 계약) */
+ok(/backtest/.test(html), "신호원장 backtest(사후) 라벨 없음");
+ok(/전향 예측이 아니/.test(html), "backtest 사후 검증 고지 문구 없음 ('전향 예측이 아니…')");
 
 if (fails.length) {
   console.error("  ✗ test_map_contract — 계약 위반:");

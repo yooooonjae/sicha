@@ -13,12 +13,14 @@
    "expect_dir": "-",
    "target_month": "202607",
    "decided_on": "2026-07-23",
-   "verify_by": "2026-09-23",
+   "verify_by": "2026-08-31",
    "status": "pending",
    "observed_dir": null,
    "scored_on": null,
    "elapsed": 0,
-   "last_seen": "2026-07-23"
+   "last_seen": "2026-07-23",
+   "kind": "live",
+   "as_of": "202605"
   },
   {
    "id": "미분양→착공@202512",
@@ -31,12 +33,14 @@
    "expect_dir": "+",
    "target_month": "202601",
    "decided_on": "2026-07-23",
-   "verify_by": "2026-10-23",
-   "status": "pending",
-   "observed_dir": null,
-   "scored_on": null,
+   "verify_by": "2026-02-28",
+   "status": "적중",
+   "observed_dir": "+",
+   "scored_on": "2026-07-23",
    "elapsed": 5,
-   "last_seen": "2026-07-23"
+   "last_seen": "2026-07-23",
+   "kind": "backtest",
+   "as_of": "202605"
   },
   {
    "id": "주담대금리→거래량@202601",
@@ -49,12 +53,14 @@
    "expect_dir": "-",
    "target_month": "202601",
    "decided_on": "2026-07-23",
-   "verify_by": "2026-09-23",
-   "status": "pending",
-   "observed_dir": null,
-   "scored_on": null,
+   "verify_by": "2026-02-28",
+   "status": "빗나감",
+   "observed_dir": "+",
+   "scored_on": "2026-07-23",
    "elapsed": 4,
-   "last_seen": "2026-07-23"
+   "last_seen": "2026-07-23",
+   "kind": "backtest",
+   "as_of": "202607"
   }
  ]
 }

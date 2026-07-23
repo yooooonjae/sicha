@@ -5,6 +5,7 @@
 
 import datetime
 import json
+import os
 import re
 import shutil
 import sys
@@ -22,7 +23,11 @@ def robots() -> str:
 
 
 def git_commit() -> str:
-    """현재 HEAD 짧은 커밋 — git 바이너리 호출 없이 .git 직접 파싱(빌드 스탬프용)."""
+    """빌드 스탬프용 커밋 — env BUILD_SHA 우선(메인이 배포 시 주입), 없으면 HEAD 직접 파싱.
+    git 바이너리 호출 없이 .git 파싱으로 폴백한다."""
+    env = os.environ.get("BUILD_SHA")
+    if env and env.strip():
+        return env.strip()[:9]
     gd = ROOT / ".git"
     try:
         head = (gd / "HEAD").read_text().strip()

@@ -31,8 +31,8 @@ build-index: ; $(PY) src/build/assemble.py --index
 ## og: OG 이미지 재생성 (site/og.html → site/og.png, 헤드리스 크롬 1200×630)
 og: ; "$(CHROME)" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 --default-background-color=FFFFFFFF --screenshot="$(CURDIR)/site/og.png" "$(CURDIR)/site/og.html"
 
-## test: 지표·시차 부호 규칙 단위 테스트 (원자료 불필요)
-test: ; $(PY) tests/test_metrics.py
+## test: 전 단위·계약 테스트 (tests/test_*.py 전부 + node 지도 계약) — 산출물 있으면 실검증, 없으면 순수 규칙만
+test: ; @for t in tests/test_*.py; do echo "── $$t"; $(PY) "$$t" || exit 1; done && node tests/test_map_contract.js
 
 ## collect-rent: 전월세 실거래 수집(resume) — config.json service_key 필요
 collect-rent: ; $(PY) src/collect/rent.py

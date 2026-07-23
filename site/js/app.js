@@ -624,16 +624,18 @@
       }));
     }
 
-    /* 신호원장 — 예측 장부 + 자동 채점 KPI (축적 전엔 '축적 시작' 정직 표기) */
+    /* 신호원장 — 예측 장부 + 자동 채점 KPI (전향 live·사후 backtest 분리, 축적 전엔 '축적 시작' 정직 표기) */
     if (B.ledger) {
       const LD = B.ledger, kk = LD.kpi || {};
-      const verified = kk.verified || 0;
+      const live = kk.live || 0, bt = kk.backtest || 0, lv = kk.live_verified || 0, bv = kk.backtest_verified || 0;
       const kL = [
-        { v: String(kk.total || 0), l: "누적 신호 — 장부에 기록된 예측" },
-        { v: String(verified), l: "검증 완료 — 검증기한 경과·채점됨" },
-        verified
-          ? { v: kk.hit_rate + "%", l: "방향 적중률 — 예측 방향과 실제 반응 일치", c: kk.hit_rate >= 50 ? "pos" : "neg" }
-          : { v: "축적 시작", l: (kk.start || "—") + " — 검증기한 도래 전(정직 표기)", c: "mut" },
+        { v: `${live} · ${bt}`, l: "전향(live) · 사후(backtest) — 결정 시점 반응월 데이터 유무로 구분" },
+        lv
+          ? { v: kk.live_hit_rate + "%", l: `전향 방향 적중률 — live ${lv}건 채점(사후 backtest 제외)`, c: kk.live_hit_rate >= 50 ? "pos" : "neg" }
+          : { v: "축적 시작", l: (kk.start || "—") + " — 전향 예측 반응월 도래 전(정직 표기)", c: "mut" },
+        bv
+          ? { v: kk.backtest_hit_rate + "%", l: `사후 부호 일치 — backtest ${bv}건(전향 예측 아님·참고)`, c: "mut" }
+          : { v: "—", l: "사후 검증 없음 — 참고 지표", c: "mut" },
       ];
       const kEl = $("ledger-kpis");
       if (kEl) kEl.innerHTML = kL.map(x =>
@@ -641,12 +643,16 @@
       const stColor = s => s === "적중" ? "var(--pos)" : s === "빗나감" ? "var(--neg)" : "var(--ink-3)";
       const stLabel = s => s === "pending" ? "대기" : s;
       const dirWord = d => d === "-" ? "하락" : d === "+" ? "상승" : d;
+      const kindTag = k => k === "backtest"
+        ? `<span title="결정 시점에 반응월이 이미 관측돼 있던 사후 검증 — 전향 예측이 아니다" style="font-size:11px;font-weight:700;color:var(--ink-3);border:1px solid var(--rule);border-radius:3px;padding:1px 5px;white-space:nowrap">사후 backtest</span>`
+        : `<span title="결정 시점에 반응월이 미관측 — 미리 적어 둔 전향 예측" style="font-size:11px;font-weight:700;color:var(--eye-blue);border:1px solid var(--eye-blue);border-radius:3px;padding:1px 5px;white-space:nowrap">전향 live</span>`;
       const rows = (LD.entries || []).slice().reverse(); // 최신 판정 먼저
       const tEl = $("ledger-table");
       if (tEl) tEl.innerHTML = rows.length ? `<div class="table-scroll"><table class="sheet">
-        <thead><tr><th>판정일</th><th>신호(선행 → 반응)</th><th class="num">예상</th><th class="num">검증기한</th><th>상태</th></tr></thead><tbody>` +
+        <thead><tr><th>판정일</th><th>구분</th><th>신호(선행 → 반응)</th><th class="num">예상</th><th class="num">검증기한</th><th>상태</th></tr></thead><tbody>` +
         rows.map(e => `<tr>
           <td class="num">${e.decided_on}</td>
+          <td>${kindTag(e.kind)}</td>
           <td><b>${e.x}</b> ${dirWord(e.dir)} <span style="color:var(--ink-3)">→</span> <b>${e.y}</b></td>
           <td class="num">+${e.lag}M · ${dirWord(e.expect_dir)}</td>
           <td class="num">${e.verify_by}</td>
@@ -654,9 +660,10 @@
         </tr>`).join("") + `</tbody></table></div>` :
         `<p class="note" style="border-top:none;padding-top:0">아직 기록된 신호가 없다 — 선행 변수의 방향 전환이 잡히는 빌드부터 축적된다.</p>`;
       const nEl = $("ledger-note");
-      if (nEl) nEl.innerHTML = `채점 규칙: <b>검증기한(판정일 + 예상시차 + 2개월)</b>이 지난 신호만, 반응 변수 변환값(전년동월비·차분)의
-        <b>예측월(전환월 + 예상시차)</b> 부호를 예측 방향(선행 방향 × 관계 부호)과 대조한다. <b>단순 부호 규칙</b>이라 반응의 크기·유의성·자기상관은
-        보지 않으며, 반응월이 표본 밖이면 '미검증'이다. 신호는 선행 변수의 방향 전환이라 재빌드해도 같은 전환은 한 번만 기록된다(판정일 고정).`;
+      if (nEl) nEl.innerHTML = `채점 규칙: 반응 변수 변환값(전년동월비·차분)의 <b>목표월(전환월 + 예상시차)</b> 부호를 예측 방향(선행 방향 × 관계 부호)과 대조한다.
+        <b>검증기한 = 목표월 + 데이터 공개지연(1개월)</b>이라 결정일과 무관하다. 결정 시점에 목표월이 반응 계열의 최신 관측월보다 미래면 <b>전향(live)</b> 예측으로 대기하고,
+        이미 관측돼 있으면 <b>사후(backtest)</b>로 그 자리에서 채점한다 — <b>backtest는 사후 검증이며 전향 예측이 아니다.</b> <b>단순 부호 규칙</b>이라 반응의 크기·유의성·자기상관은
+        보지 않으며, 반응월이 표본 밖이면 '미검증'이다. 신호는 선행 변수의 방향 전환이라 재빌드해도 같은 전환은 한 번만 기록된다(판정일·kind 고정).`;
     } else { const lp = $("ledger"); if (lp) lp.hidden = true; }
 
     /* Ⅶ 지역확산 — 확산 지도(대표) + 발산 바 */

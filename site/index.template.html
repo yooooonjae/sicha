@@ -422,17 +422,19 @@
 <!-- 신호원장 — 예측의 장부 (Ⅷ 사건연구 뒤·Ⅸ 방법론 앞) ───────────── -->
 <section class="ch wrap" id="ledger">
   <div class="ch-head"><span class="no">附</span><h2>신호원장 — 예측의 장부</h2>
-    <div class="meta">기록 <b>판정일·예상시차·검증기한</b><br>채점 <b>검증기한 경과 후 자동</b></div></div>
+    <div class="meta">기록 <b>판정일·목표월·검증기한</b><br>구분 <b>전향(live)·사후(backtest)</b></div></div>
   <div class="ch-rule"></div>
   <p class="lede">시차지도가 말하는 "예상 반응 구간"은 사후 검증이 없으면 이야기로 남는다.
-  이 장부는 사이트가 매 빌드에 관측한 <b>현재 신호</b>를 판정일·예상시차·검증기한과 함께
-  적어 두고, 검증기한이 지나면 반응 변수가 실제로 예측 방향으로 움직였는지 <b>자동 채점</b>한다 —
-  축적된 기록만이 이 지도의 예측력을 스스로 증명하거나 반증한다.</p>
+  이 장부는 매 빌드에 관측한 <b>현재 신호</b>를 판정일·목표월과 함께 적어 두고, 반응월 데이터가
+  공개되면 반응 변수가 실제로 예측 방향으로 움직였는지 <b>자동 채점</b>한다. 결정 시점에 반응월이
+  아직 미관측이면 <b>전향(live)</b> 예측, 이미 관측돼 있으면 <b>사후(backtest)</b> 검증으로 나눈다 —
+  <b>backtest는 이미 공개된 반응월을 대조한 사후 검증이며 전향 예측이 아니다.</b> 지도의 예측력은
+  오직 축적되는 live 기록만이 스스로 증명하거나 반증한다.</p>
   <div class="plate" id="ledger-plate">
     <div class="viz-head">
-      <div class="viz-title">신호 장부 — 판정일 · 예상 · 검증기한 · 상태</div>
-      <div class="viz-unit">판정일 고정 · 재빌드해도 같은 전환은 한 번만</div>
-      <div class="viz-q">각 행은 선행 변수의 방향 전환(신호)과 반응 변수에 대한 예측이다</div>
+      <div class="viz-title">신호 장부 — 판정일 · 구분 · 예상 · 검증기한 · 상태</div>
+      <div class="viz-unit">판정일 고정 · 재빌드해도 같은 전환은 한 번만 · 검증기한 = 목표월 + 공개지연</div>
+      <div class="viz-q">전향(live)은 반응월 관측 전 미리 적은 예측, 사후(backtest)는 관측 뒤 대조한 검증이다</div>
     </div>
     <div class="kpi-row" id="ledger-kpis" style="margin:12px 0 14px"></div>
     <div id="ledger-table"></div>

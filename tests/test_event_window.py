@@ -12,6 +12,7 @@
 """
 
 import json
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,13 +34,21 @@ except ImportError:
         raise _SkipTest(msg)
 
 
+def _need(msg):
+    """산출물 필수 환경(CI: SICHA_REQUIRE_ARTIFACTS)에선 skip 대신 실패 —
+    '산출물 있으면 반드시 실행'을 강제해 계약 검사가 조용히 건너뛰지 않게 한다."""
+    if os.environ.get("SICHA_REQUIRE_ARTIFACTS"):
+        raise AssertionError(f"[필수 산출물 누락] {msg}")
+    _skip(msg)
+
+
 def _events():
     if not BUNDLE.exists():
-        _skip(f"번들 없음({BUNDLE}) — 빌드 산출 의존 검증 건너뜀")
+        _need(f"번들 없음({BUNDLE}) — 빌드 산출 의존 검증 건너뜀")
     b = json.loads(BUNDLE.read_text())
     ev = b.get("events")
     if not ev:
-        _skip("번들에 events 없음 — 검증 대상 없음")
+        _need("번들에 events 없음 — 검증 대상 없음")
     return ev
 
 
