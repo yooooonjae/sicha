@@ -67,14 +67,49 @@ nav.appbar .tabs a.on { color: var(--paper); background: var(--ink); }
   font-size: clamp(56px, 7.2vw, 88px); line-height: 1.06; margin-bottom: 22px;
 }
 .hero h1 .hanja { color: var(--ink); }
+/* 제목 완성구 — 매달린 대시 뒤 다음 줄 블록. 세리프 유지·애너글리프 없음(.ana는 한자부에만) */
+.hero h1 .tail {
+  display: block;
+  margin-top: 12px;
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 600;
+  color: var(--ink);
+}
 .hero .sub { max-width: 620px; color: var(--ink-2); font-size: 17px; margin-bottom: 30px; }
 .hero .sub b { color: var(--ink); font-weight: 600; }
 
 /* 좌 카피 열 · 우 도판 열 — 눈금자 위(z 1)로 올려 내용이 항상 앞에 선다 */
 .hero-copy { min-width: 0; position: relative; z-index: 1; }
 .hero-copy .cta-row { margin-bottom: 0; }
+/* 좌하 스탯 밴드 — CTA 40px 아래, 3항목 그리드·좌측 세로 틱(청·청·청록) */
+.hero-stats {
+  display: grid; grid-template-columns: repeat(3, auto); gap: 36px;
+  justify-content: start; margin-top: 40px;
+}
+.hero-stats .hs-item {
+  position: relative; padding-left: 14px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.hero-stats .hs-item::before {
+  content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 2px; height: 26px; border-radius: 1px; background: var(--eye-blue);
+}
+.hero-stats .hs-item.hs-time::before { background: var(--time-main); }
+.hero-stats .hs-v {
+  font-family: var(--font-display); font-size: 22px; font-weight: 600;
+  font-variant-numeric: tabular-nums; color: var(--ink); line-height: 1.1;
+}
+.hero-stats .hs-l { font-size: 11.5px; color: var(--ink-2); margin-top: 3px; line-height: 1.3; }
+@media (max-width: 640px) {
+  .hero-stats { gap: 20px; }
+  .hero-stats .hs-v { font-size: 19px; }
+}
 .hero-figure { grid-column: 2; align-self: center; width: 100%; max-width: 600px; margin: 0 auto; min-width: 0; position: relative; z-index: 1; }
 .hero-figure .desktop-only { width: 100%; height: auto; display: block; }
+/* 도판 라벨 halo — 계측선 위 텍스트 가독. stroke=배경색(라이트 #fafbfc=--paper)으로 뒤 선을 지운다 */
+.hero-figure text.hero-lbl {
+  paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+}
 
 /* 좌측 세로 시간 눈금자 — 계측 서명. 데스크톱 ≥1280px 전용(모바일 숨김). 워시 위·내용 뒤. */
 .hero-ruler { display: none; }
@@ -199,14 +234,38 @@ main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
 .kpi .v.neg { color: var(--neg); }
 .kpi .v.mut { color: var(--ink-3); }
 
-/* ── 장(章) 골격 ─────────────────────────────────── */
-section.ch { padding-block: clamp(64px, 7vw, 104px); }
+/* ── 장(章) 골격 — 관문에서 확립한 표지 의식(괘선·워터마크·관문색)을 전 장으로 ─── */
+section.ch { padding-block: 72px 80px; position: relative; isolation: isolate; }
 section.ch + section.ch { border-top: 1px solid var(--hairline); }
+
+/* 장 워터마크 — 로마숫자, 관문 워터마크보다 한 단 작게(140px), 우상 안쪽 배치 */
+section.ch .sec-wm { font-size: 140px; top: 14px; }
+#ch1 .sec-wm, #ch2 .sec-wm, #ch3 .sec-wm, #ch4 .sec-wm { color: rgba(29, 78, 216, .04); }
+#ch5 .sec-wm, #ch6 .sec-wm, #ch7 .sec-wm, #ch8 .sec-wm, #ledger .sec-wm, #ch9 .sec-wm { color: rgba(23, 107, 115, .04); }
+
+/* 장 이중 괘선 — 視差 장(Ⅰ~Ⅳ) 청·적 / 時差 장(Ⅴ~Ⅸ·附) 청록·적갈 */
+#ch1 .sec-rule, #ch2 .sec-rule, #ch3 .sec-rule, #ch4 .sec-rule { border-top-color: #1d4ed8; }
+#ch1 .sec-rule::after, #ch2 .sec-rule::after, #ch3 .sec-rule::after, #ch4 .sec-rule::after { border-top-color: #d3232e; }
+#ch5 .sec-rule, #ch6 .sec-rule, #ch7 .sec-rule, #ch8 .sec-rule, #ledger .sec-rule, #ch9 .sec-rule { border-top-color: var(--time-main); }
+#ch5 .sec-rule::after, #ch6 .sec-rule::after, #ch7 .sec-rule::after, #ch8 .sec-rule::after, #ledger .sec-rule::after, #ch9 .sec-rule::after { border-top-color: #b0452a; }
+
+/* 스크롤 리듬 — 짝수 장(Ⅱ·Ⅳ·Ⅵ·Ⅷ) 전폭 워시 밴드 + 상단 헤어라인 */
+#ch2::before, #ch4::before, #ch6::before, #ch8::before {
+  content: ""; position: absolute; top: 0; bottom: 0;
+  left: calc(50% - 50vw); width: 100vw; z-index: -1;
+  border-top: 1px solid var(--hairline);
+}
+#ch2::before, #ch4::before { background: rgba(29, 78, 216, .018); }
+#ch6::before, #ch8::before { background: rgba(23, 107, 115, .02); }
+main { overflow-x: clip; }  /* 전폭 밴드(100vw)가 가로 스크롤을 만들지 않게 — 세로는 visible 유지 */
+
 .ch-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 10px; flex-wrap: wrap; }
 .ch-head .no {
-  font-family: var(--font-display); font-size: 30px; color: var(--eye-blue);
+  font-family: var(--font-display); font-size: 20px; color: #1d4ed8;
   min-width: 40px;
 }
+#ch5 .ch-head .no, #ch6 .ch-head .no, #ch7 .ch-head .no, #ch8 .ch-head .no,
+#ledger .ch-head .no, #ch9 .ch-head .no { color: var(--time-main); }
 .ch-head h2 { font-size: clamp(24px, 3vw, 32px); }
 .ch-head .meta { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
 .ch-rule { height: 2px; background: var(--ink); margin-bottom: 26px; position: relative; }
@@ -259,7 +318,14 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 13.5px; min-wid
   .viz-head { grid-template-columns: 1fr; }
   .viz-head > .viz-unit { grid-column: 1; grid-row: 3; text-align: left; }
   .sec-wm { font-size: 120px; }
+  section.ch .sec-wm { font-size: 96px; }
 }
+/* 표 표면 — thead 옅은 면 + 표 상단 2px 관문색 보더(장 소속 따라 청/청록) */
+table.sheet thead tr { background: #f4f7f8; }
+:root[data-theme="dark"] table.sheet thead tr { background: var(--surface-2); }
+#ch1 table.sheet, #ch2 table.sheet, #ch3 table.sheet, #ch4 table.sheet { border-top: 2px solid #1d4ed8; }
+#ch5 table.sheet, #ch6 table.sheet, #ch7 table.sheet, #ch8 table.sheet,
+#ledger table.sheet, #ch9 table.sheet { border-top: 2px solid var(--time-main); }
 table.sheet th {
   text-align: left; font-size: 12px; letter-spacing: .06em; color: var(--ink-2);
   border-bottom: 2px solid var(--ink); padding: 8px 10px; white-space: nowrap;
@@ -356,6 +422,16 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 .pt-lag.mismatch { color: var(--time-neutral); background: var(--surface-2); border: 1px dashed var(--hairline-2); }
 .pt-edge .pt-dash { flex: 1; border-top: 1.5px dashed var(--rule); }
 .pt-inline { margin: 5px 0 7px 14px; padding: 14px 16px; border: 1px solid var(--hairline); border-left: 3px solid var(--time-main); border-radius: 8px; background: var(--surface-2); }
+
+/* Ⅴ 연구 카드 등급 배지 — A만 채움(흰 글자), B·C·짧은표본은 아웃라인 */
+.lag-grade {
+  display: inline-flex; align-items: center; margin-left: auto;
+  font-family: var(--font-num); font-weight: 800; font-size: 11.5px; letter-spacing: .02em;
+  border-radius: 5px; padding: 2px 8px; border: 1px solid transparent; white-space: nowrap;
+}
+.lag-grade.g-a { background: var(--time-main); color: #fff; }
+.lag-grade.g-b { color: var(--time-main-deep); border-color: #7fa8ac; }
+.lag-grade.g-c, .lag-grade.g-x { color: var(--ink-3); border-color: #c3cad3; }
 
 /* Ⅴ 연구 카드 그룹 헤더·배지 */
 .lag-grphead { display: flex; align-items: center; gap: 10px; margin-top: 12px; }

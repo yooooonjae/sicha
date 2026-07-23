@@ -56,6 +56,35 @@ def cutoff(bundle: dict) -> str:
     return max(ends).replace("-", ".") if ends else "—"
 
 
+def hero_stats(bundle: dict) -> dict:
+    """히어로 좌하 스탯 밴드 값 — 관문(home) KPI와 동일 번들 소스·동일 공식으로 계산.
+    app.js render()의 전세가율/현실화율 중앙값·시차지도 쌍 수와 문자열이 일치하도록 맞춘다
+    (하드코딩 회피). 데이터 결손 시 '—'."""
+    out = {"jeonse": "—", "real": "—", "lag": "—"}
+    J = bundle.get("jeonse") or {}
+    by_sgg = J.get("by_sgg") or {}
+    if by_sgg:
+        qc: dict = {}
+        for s in by_sgg.values():
+            q = s[-1]["q"]
+            qc[q] = qc.get(q, 0) + 1
+        # app.js: sort((a,b)=> qc[b]-qc[a] || (a>b?-1:1)) — 빈도 내림차순, 동률이면 분기 문자열 내림차순
+        ref_q = sorted(sorted(qc, reverse=True), key=lambda k: qc[k], reverse=True)[0]
+        ref = [p["ratio"] for s in by_sgg.values()
+               for p in [next((x for x in s if x["q"] == ref_q), None)] if p is not None]
+        if ref:
+            med = sorted(ref)[len(ref) // 2]           # Math.floor(n/2)
+            out["jeonse"] = f"{med:.1f}%"
+    by_year = (bundle.get("real") or {}).get("by_year") or {}
+    if by_year:
+        y = sorted(by_year)[-1]
+        out["real"] = f"{by_year[y]['med']:.1f}%"
+    grid = (bundle.get("lag") or {}).get("grid")
+    if isinstance(grid, list):
+        out["lag"] = f"{len(grid)}쌍"
+    return out
+
+
 def minify_json(path: Path) -> str:
     s = json.dumps(json.loads(path.read_text()), ensure_ascii=False, separators=(",", ":"))
     return (s.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
@@ -72,6 +101,10 @@ def main():
     tpl = tpl.replace("{{COMMIT}}", git_commit())
     tpl = tpl.replace("{{CUTOFF}}", cutoff(bundle_data))
     tpl = tpl.replace("{{ROBOTS}}", robots())
+    hs = hero_stats(bundle_data)   # 히어로 스탯 — 관문 KPI와 같은 소스 값(assemble가 주입)
+    tpl = tpl.replace("{{HERO_JEONSE_MED}}", hs["jeonse"])
+    tpl = tpl.replace("{{HERO_REAL_MED}}", hs["real"])
+    tpl = tpl.replace("{{HERO_LAG_N}}", hs["lag"])
 
     # 조사 분리 검사 — 강조 태그 닫힘과 조사 사이 공백/개행은 실화면 띄어쓰기가 된다 (5차 리뷰 채택)
     import re as _re

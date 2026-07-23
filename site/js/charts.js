@@ -473,7 +473,7 @@
         const v = grid.cells[r][c];
         if (!Number.isFinite(v)) { // 결측 — 무상관(0)으로 위장하지 않고 빈 셀로 (codex 지적)
           const miss = el("rect", { x: M.l + c * cw + 1, y: M.t + r * cellH + 1,
-            width: cw - 2, height: cellH - 2, fill: css("--surface-2"), rx: 5,
+            width: cw - 2, height: cellH - 2, fill: css("--heat-base"), rx: 2,
             stroke: css("--hairline-2"), "stroke-dasharray": "3 3" }, svg);
           bindTip(miss, () =>
             `<div class="t-title">${opts.xName || "X"} ${xv} · ${opts.yName || "Y"} ${yv}</div>자료 없음`);
@@ -485,7 +485,7 @@
         else { fill = css(seq[Math.min(6, Math.floor((v / maxAbs) * 6.99))]); op = 1; }
         const rect = el("rect", {
           x: M.l + c * cw + 1, y: M.t + r * cellH + 1,
-          width: cw - 2, height: cellH - 2, fill, rx: 5, opacity: op,
+          width: cw - 2, height: cellH - 2, fill, rx: 2, opacity: op,
         }, svg);
         const strong = Math.abs(v) / maxAbs > 0.5; // 진한 배경에만 흰 글자 (연한 셀은 먹색 — 대비 확보)
         const tcol = strong ? "#fff" : css("--ink-2");
@@ -696,7 +696,7 @@
   function hbars(root, items, opts) {
     opts = opts || {};
     const W = opts.width || 760, rowH = opts.rowH || 40;
-    const M = { t: 6, r: 96, b: 6, l: opts.labelW || 132 };
+    const M = { t: opts.medianLine ? 22 : 6, r: 96, b: 6, l: opts.labelW || 132 }; // 중앙값 소라벨 헤드룸
     const H = M.t + items.length * rowH + M.b;
     root.innerHTML = "";
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.aria || "" }, root);
@@ -717,8 +717,15 @@
       const lab = el("text", { x: M.l - 11, y: cy + rowH / 2 + 5, "text-anchor": "end", "font-size": 13.5, fill: isEm ? css("--blueprint") : css("--ink-2"), "font-weight": isEm ? 800 : 700 }, svg);
       lab.textContent = d.name;
       const barCol = css(isEm ? "--s1" : (opts.color || "--s1"));
+      // 순위 위계(opts.rankTiers) — 상위 5개만 본색, 6~25위 40%·26위~ 22% 명도 혼합(surface와 mix)
+      let barFill;
+      if (opts.rankTiers && !isEm && i >= 5) {
+        barFill = `color-mix(in srgb, ${barCol} ${i >= 25 ? 22 : 40}%, ${css("--surface")})`;
+      } else {
+        barFill = grad(svg, barCol, "h", -0.18, 0.16);
+      }
       const bar = el("rect", { x: M.l, y: cy + 8, width: Math.max(2, w2), height: rowH - 16,
-        fill: grad(svg, barCol, "h", -0.18, 0.16), rx: 6, opacity: isSel ? 1 : .95 }, svg);
+        fill: barFill, rx: 6, opacity: isSel ? 1 : .95 }, svg);
       el("text", { x: M.l + Math.max(2, w2) + 9, y: cy + rowH / 2 + 5, "font-size": 13, fill: css("--ink-2"), "font-family": "var(--font-num)", "font-weight": 700 }, svg)
         .textContent = opts.fmt ? opts.fmt(d.value) : fmt.num(d.value, 0);
       bindTip(bar, () => `<div class="t-title">${d.name}</div><b class="num">${opts.fmt ? opts.fmt(d.value) : fmt.num(d.value, 0)}</b>${opts.onSelect ? '<br><span style="opacity:.7">클릭: 상세 보기</span>' : ""}`);
@@ -735,6 +742,18 @@
         });
       }
     });
+    // 표본 중앙값 기준선 — 1px 점선 + 상단 소라벨 (순위 랭킹 차트 전용 opt-in)
+    if (opts.medianLine && finite.length) {
+      const sv = finite.map(d => d.value).slice().sort((a, b) => a - b);
+      const med = sv[Math.floor(sv.length / 2)];
+      const mx = M.l + ((W - M.l - M.r) * med) / hi;
+      el("line", { x1: mx, x2: mx, y1: M.t, y2: H - M.b, stroke: css("--axis"),
+        "stroke-width": 1, "stroke-dasharray": "3 3" }, svg);
+      const flip = mx > W - M.r - 78; // 우측 여백 부족 시 라벨을 선 왼쪽으로
+      el("text", { x: flip ? mx - 5 : mx + 5, y: 13, "text-anchor": flip ? "end" : "start",
+        "font-size": 10.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)
+        .textContent = "표본 중앙값 " + (opts.fmt ? opts.fmt(med) : fmt.num(med, 0));
+    }
     return svg;
   }
 
@@ -828,6 +847,13 @@
     x0 -= xp; x1 += xp; y0 -= yp; y1 += yp;
     const X = v => M.l + (v - x0) / (x1 - x0) * (W - M.l - M.r);
     const Y = v => M.t + (1 - (v - y0) / (y1 - y0)) * (H - M.t - M.b);
+    // 의미 사분면 워시(opt-in) — 좌상(전세가율 높음 × 현실화율 낮음) = 이중 시차 위험 구역
+    if (opts.riskQuad && opts.xRef != null && opts.yRef != null) {
+      el("rect", { x: M.l, y: M.t, width: Math.max(0, X(opts.xRef) - M.l),
+        height: Math.max(0, Y(opts.yRef) - M.t), fill: "rgba(211,35,46,.05)" }, svg);
+      el("text", { x: M.l + 10, y: M.t + 18, "font-size": 11, "font-weight": 700,
+        fill: css("--eye-red-deep"), opacity: .8 }, svg).textContent = opts.riskQuad;
+    }
     for (const tv of niceTicks(y0, y1, 5)) {
       el("line", { x1: M.l, x2: W - M.r, y1: Y(tv), y2: Y(tv), stroke: css("--grid"), "stroke-width": 1 }, svg);
       el("text", { x: M.l - 8, y: Y(tv) + 4, "text-anchor": "end", "font-size": 11.5, fill: css("--ink-3"), "font-family": "var(--font-num)" }, svg)

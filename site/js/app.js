@@ -205,8 +205,9 @@
         .map(([sgg, s]) => ({ name: nm(sgg), value: atRef(s) }))
         .filter(d => d.value != null)
         .sort((a, b) => b.value - a.value);
-      Charts.hbars($("j-rank"), latest, { width: 560, labelW: 118, rowH: 36,
-        color: "--s1", fmt: v => v.toFixed(1) + "%", aria: refQ + " 기준 시군구 전세가율" });
+      Charts.hbars($("j-rank"), latest, { width: 560, labelW: 118, rowH: 34,
+        color: "--s1", rankTiers: true, medianLine: true,
+        fmt: v => v.toFixed(1) + "%", aria: refQ + " 기준 시군구 전세가율" });
       const jru = $("j-rank-unit"); if (jru) jru.textContent = `% · ${refQ} 기준 · ${latest.length}개 시군구`;
 
       const rev = Object.entries(J.reverse || {})
@@ -244,8 +245,9 @@
 
       const rk = Object.entries(R.by_sgg).map(([sgg, r]) => ({
         name: nm(sgg), value: r.med })).sort((a, b) => b.value - a.value);
-      Charts.hbars($("r-rank"), rk, { width: 560, labelW: 118, rowH: 36,
-        color: "--s2", fmt: v => v.toFixed(1) + "%", aria: "시군구별 현실화율" });
+      Charts.hbars($("r-rank"), rk, { width: 560, labelW: 118, rowH: 34,
+        color: "--s2", rankTiers: true, medianLine: true,
+        fmt: v => v.toFixed(1) + "%", aria: "시군구별 현실화율" });
     }
 
     /* Ⅳ 사분면 */
@@ -257,6 +259,7 @@
         x: q.rr, y: q.jr, label: nm(q.sgg),
         group: (q.jr >= ym && q.rr < xm) ? "겹침" : "관측",
       })), { width: MOB ? 420 : 1160, height: MOB ? 520 : 480, xRef: xm, yRef: ym,
+        riskQuad: "관찰 우선 구역",
         groups: { "겹침": "--s2", "관측": "--s1" },
         xName: "현실화율(%) — 행정의 시차", yName: "전세가율(%) — 세입자의 시차",
         xFmt: v => v.toFixed(0), yFmt: v => v.toFixed(0),
@@ -498,7 +501,6 @@
         ["수요 → 가격", ["거래량|매매가", "거래량(서울)|전세가", "매매가(서울)|전세가"]],
         ["가격·재고 → 공급", ["매매가|미분양", "미분양|착공", "인허가|착공", "착공|준공", "준공|준공후미분양"]],
       ];
-      const GRP_TONE = ["--seq-600", "--seq-500", "--seq-400", "--seq-300"]; // A~D 청색 계열 농도 (좌측 3px 그룹선)
       const groupOf = g => { const k2 = g.x + "|" + g.y;
         const f = GROUPS.find(([, ks]) => ks.includes(k2)); return f ? f[0] : "기타"; };
       const ordered = [];
@@ -511,17 +513,20 @@
           ${gi >= 0 ? `<span class="lag-badge">${String.fromCharCode(65 + gi)}</span>` : ""}
           <span class="lag-grpname">${head}</span><span class="lag-grpcnt">· ${cnt}개 관계</span>
           ${restN ? `<button class="btn-sm lag-more" data-grp="${head}" style="margin-left:auto">나머지 ${restN}개 보기 ▾</button>` : ""}</div>` : "") + (g2 => {
-        const [gd, gc] = grade(g);
+        const [gd] = grade(g);
+        // 등급 문자 키 — 좌측 3px 등급 바·배지 스타일 결정 (A 채움 · B/C 아웃라인 · 짧은표본 회)
+        const gk = gd[0] === "A" ? "a" : gd[0] === "B" ? "b" : gd[0] === "C" ? "c" : "x";
+        const gBar = gk === "a" ? "var(--time-main)" : gk === "b" ? "#7fa8ac" : "#c3cad3";
         const ag = agreeShow(g);
         const rg = (t, o) => o ? `${t} <b class="num">+${o.lag}M</b> <span class="num" style="color:${rC(o.r)}">${o.r > 0 ? "+" : ""}${o.r.toFixed(2)}</span>` : `${t} <span style="color:var(--ink-3)">표본 부족</span>`;
         const per = g.period ? `${fmtYm(g.period[0])}–${fmtYm(g.period[1])}` : "—";
         const tv = g.x_transform === g.y_transform ? g.x_transform : `${g.x_transform}→${g.y_transform}`;
         const scopeTxt = g.scope_mismatch ? `${g.x_scope} → ${g.y_scope}` : (g.x_scope || "—");
-        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0;border-left:3px solid ${css(g.scope_mismatch ? "--time-supply" : gi >= 0 && gi < GRP_TONE.length ? GRP_TONE[gi] : "--rule")}">
+        return `<div class="plate${rest ? " lag-rest" : ""}" data-grp2="${groupOf(g)}" ${rest ? "hidden" : ""} style="margin-bottom:0;border-left:3px solid ${gBar}">
           <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
             <div class="viz-title">${g.x} → ${g.y}</div>
             ${g.scope_mismatch ? '<span class="scope-badge">공간 범위 불일치</span>' : ""}
-            <span class="num" style="margin-left:auto;font-weight:800;color:${gc}">${gd}</span>
+            <span class="lag-grade g-${gk}">${gd}</span>
           </div>
           <div class="lag-meta">
             <span><span class="lag-meta-k">공간 범위</span> ${g.scope_mismatch ? `<b class="scope-warn">${scopeTxt}</b>` : `<b>${scopeTxt}</b>`}</span>

@@ -67,6 +67,7 @@
   --seq-500: #47959b;
   --seq-600: #24757c;
   --seq-700: #13565d;
+  --heat-base: #f3f6f7;    /* 시차지도 빈 셀 기저 — 관측 쌍 아님을 옅은 타일로 */
 
   /* 타이포 */
   --font-display: "MaruBuri Sub", "Songti SC", "AppleMyungjo", "Noto Serif KR", serif; /* 시차 고유 — 마루부리 서브셋 1순위 (14차: 그릇만 통일, 활자는 정체성) */
@@ -130,6 +131,7 @@
   --seq-500: #3f958d;
   --seq-600: #5bb3aa;
   --seq-700: #8ad0c8;
+  --heat-base: #1b1e26;    /* 다크 — surface-2 톤 유지(빈 셀이 지면 위로 뜨지 않게) */
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .30), 0 3px 8px rgba(0, 0, 0, .24);
   --shadow-2: 0 1px 2px rgba(0, 0, 0, .34), 0 6px 18px rgba(0, 0, 0, .34);
