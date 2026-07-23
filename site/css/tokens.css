@@ -13,8 +13,8 @@
    charts.js 계약 변수(--ink*, --blueprint*, --s1/2, --seq-*, --pos/neg, --surface*, --axis, --grid, --hairline-2)를 반드시 정의한다. */
 
 :root {
-  /* 종이와 잉크 */
-  --paper: #ffffff;
+  /* 종이와 잉크 — 지면은 순백을 벗고 옅은 계측지(#fafbfc)로 내려, 카드(surface #fff)가 떠 보이게 한다 */
+  --paper: #fafbfc;
   --surface: #ffffff;
   --surface-2: #f4f6f8;    /* 지면(paper #fff)과 구분되는 보조 면 */
   --ink: #16181d;          /* 흑 — 시장의 눈(기준선) */

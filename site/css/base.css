@@ -9,7 +9,13 @@ html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-body);
   color: var(--ink);
-  background: var(--paper);
+  /* 지면 — 두 시선이 겹치는 대각 이중 워시(좌상 한기 청록·우상 적갈)를 옅은 계측지 위에 고정한다 */
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(1100px 700px at 12% 0%, rgba(23, 107, 115, .09), transparent 62%),
+    radial-gradient(1000px 660px at 88% 12%, rgba(176, 69, 42, .075), transparent 60%);
+  background-attachment: fixed, fixed;
+  background-repeat: no-repeat, no-repeat;
   line-height: 1.72;
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
@@ -24,12 +30,12 @@ body::before {
   background-image:
     linear-gradient(var(--cross) 1px, transparent 1px),
     linear-gradient(90deg, var(--cross) 1px, transparent 1px);
-  background-size: 96px 96px;
+  background-size: 112px 112px;
   -webkit-mask-image: radial-gradient(circle at center, #000 0, #000 1.5px, transparent 2.5px);
-  -webkit-mask-size: 96px 96px;
+  -webkit-mask-size: 112px 112px;
   mask-image: radial-gradient(circle at center, #000 0, #000 1.5px, transparent 2.5px);
-  mask-size: 96px 96px;
-  opacity: .9;
+  mask-size: 112px 112px;
+  opacity: .72;
 }
 main, nav, footer { position: relative; z-index: 1; }
 
@@ -56,6 +62,11 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing:
 }
 :root[data-theme="dark"] .anaglyph {
   text-shadow: 1.5px 0 0 rgba(255, 122, 128, .5), -1.5px 0 0 rgba(111, 150, 255, .5);
+}
+
+/* .ana — 히어로 대형 제목 전용 애너글리프(넓은 3px 오프셋·옅은 잉크). 큰 제목에만, 본문 금지. */
+.ana {
+  text-shadow: 3px 0 0 rgba(211, 35, 46, .22), -3px 0 0 rgba(29, 78, 216, .22);
 }
 
 @media (max-width: 640px) {

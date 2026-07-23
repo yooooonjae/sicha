@@ -50,18 +50,46 @@ nav.appbar .tabs a.on { color: var(--paper); background: var(--ink); }
 .toc-overlay a .no { font-family: var(--font-display); color: var(--eye-blue); width: 30px; }
 .toc-close { align-self: flex-end; margin-bottom: 8px; }
 
-/* ── 히어로 ───────────────────────────────────────── */
-.hero { padding: 96px 0 56px; }
+/* ── 히어로 — 서문 위상(2열: 좌 대형 타이포 · 우 세 눈 도판) ─────────────── */
+.hero {
+  padding: 96px 0 64px; position: relative; isolation: isolate;
+  display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center;
+}
+/* 데스크톱 — 첫 화면을 지배하는 서문: 74vh 세로 중앙 정렬 + 관문과 88px 이상 여백 */
+@media (min-width: 1000px) {
+  .hero { min-height: 74vh; align-content: center; padding: 64px 0 88px; }
+}
 .hero .eyebrow {
   font-size: 12.5px; letter-spacing: .22em; color: var(--ink-2);
   text-transform: uppercase; margin-bottom: 22px;
 }
 .hero h1 {
-  font-size: clamp(38px, 5.4vw, 62px); line-height: 1.22; margin-bottom: 26px;
+  font-size: clamp(56px, 7.2vw, 88px); line-height: 1.06; margin-bottom: 22px;
 }
 .hero h1 .hanja { color: var(--ink); }
-.hero .sub { max-width: 640px; color: var(--ink-2); font-size: 16.5px; margin-bottom: 30px; }
+.hero .sub { max-width: 620px; color: var(--ink-2); font-size: 17px; margin-bottom: 30px; }
 .hero .sub b { color: var(--ink); font-weight: 600; }
+
+/* 좌 카피 열 · 우 도판 열 — 눈금자 위(z 1)로 올려 내용이 항상 앞에 선다 */
+.hero-copy { min-width: 0; position: relative; z-index: 1; }
+.hero-copy .cta-row { margin-bottom: 0; }
+.hero-figure { grid-column: 2; align-self: center; width: 100%; max-width: 600px; margin: 0 auto; min-width: 0; position: relative; z-index: 1; }
+.hero-figure .desktop-only { width: 100%; height: auto; display: block; }
+
+/* 좌측 세로 시간 눈금자 — 계측 서명. 데스크톱 ≥1280px 전용(모바일 숨김). 워시 위·내용 뒤. */
+.hero-ruler { display: none; }
+@media (min-width: 1280px) {
+  .hero-ruler {
+    display: block; position: absolute; left: 28px; top: 0; bottom: 0; width: 14px;
+    z-index: 0; opacity: .55; pointer-events: none;
+    background-image:
+      repeating-linear-gradient(to bottom, #aab3bf 0, #aab3bf 1px, transparent 1px, transparent 12px),
+      repeating-linear-gradient(to bottom, #aab3bf 0, #aab3bf 1px, transparent 1px, transparent 60px);
+    background-size: 6px 100%, 14px 100%;
+    background-repeat: no-repeat, no-repeat;
+    background-position: left top, left top;
+  }
+}
 
 .cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 44px; }
 .btn {
@@ -79,14 +107,37 @@ nav.appbar .tabs a.on { color: var(--paper); background: var(--ink); }
 /* 時差 장(Ⅴ~Ⅷ) 액션 버튼 — 경로 재생·자동 스윕: 청록 계열로 일관 */
 #pp-play, #lab-play { color: var(--time-main-deep); border-color: var(--time-main); }
 #pp-play:hover, #lab-play:hover { color: var(--time-btn-hover); border-color: var(--time-btn-hover); background: var(--time-main-wash); }
+/* 히어로 1열 접힘 — 도판은 타이포 아래로 */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 30px; }
+  .hero-figure { grid-column: 1; max-width: 480px; margin: 2px 0 0; }
+}
 @media (max-width: 600px) {
   .cta-row { display: grid; grid-template-columns: 1fr; }
   .hero { padding: 56px 0 40px; }
 }
 
 /* ── 홈 분할 — 視差(공간)·時差(시간) 두 관문 섹션 ───────────── */
-.home-sec { padding-block: clamp(38px, 5.5vw, 72px); }
+.home-sec { padding-block: clamp(38px, 5.5vw, 72px); position: relative; overflow: hidden; isolation: isolate; }
 main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
+
+/* 관문 대형 워터마크 — 해당 한자를 세리프로 크게, 지면 뒤로(text 아래) */
+.sec-wm {
+  position: absolute; right: 24px; top: -30px; z-index: -1;
+  font-family: var(--font-display); font-size: 180px; line-height: 1; letter-spacing: .02em;
+  user-select: none; pointer-events: none;
+}
+#home-space .sec-wm { color: rgba(29, 78, 216, .05); }
+#home-time .sec-wm { color: rgba(23, 107, 115, .05); }
+
+/* 관문 제목 위 애너글리프 이중 괘선(96px 짧은 괘선) — 視差 청·적 / 時差 청록·적갈 */
+.sec-rule { height: 0; width: 96px; border-top: 3px solid; position: relative; margin-bottom: 16px; }
+.sec-rule::after { content: ""; position: absolute; left: 4px; right: -4px; top: 2px; border-top: 3px solid; opacity: .35; }
+#home-space .sec-rule { border-top-color: #1d4ed8; }
+#home-space .sec-rule::after { border-top-color: #d3232e; }
+#home-time .sec-rule { border-top-color: #176b73; }
+#home-time .sec-rule::after { border-top-color: #b0452a; }
+
 .home-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 3px; }
 .home-head .hanja { font-family: var(--font-display); font-size: clamp(22px, 3vw, 30px); letter-spacing: .02em; }
 .home-head .home-tag { font-size: 12px; letter-spacing: .16em; color: var(--ink-3); text-transform: uppercase; }
@@ -99,9 +150,15 @@ main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
 .nav-card { display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--hairline); border-radius: var(--radius);
   background: var(--surface); box-shadow: var(--shadow-1); padding: 15px 17px 14px; transition: transform .15s ease, border-color .15s ease; }
 .nav-card:hover { border-color: var(--ink-3); text-decoration: none; transform: translateY(-1px); }
-.nav-card .nc-no { font-family: var(--font-display); font-size: 14px; color: var(--eye-blue); letter-spacing: .04em; }
+/* 로마 숫자 승격 — 26px 세리프 · 관문 색(視差 청 / 時差 청록) */
+.nav-card .nc-no { font-family: var(--font-display); font-size: 26px; line-height: 1.05; color: #1d4ed8; letter-spacing: .04em; }
 #home-time .nav-card .nc-no { color: var(--time-main); }
 .nav-card .nc-t { font-weight: 700; font-size: 15px; color: var(--ink); }
+/* 카드 hover 시 제목 미세 애너글리프 시프트(모션 허용 시에만) */
+@media (prefers-reduced-motion: no-preference) {
+  .nav-card .nc-t { transition: text-shadow .2s ease; }
+  .nav-card:hover .nc-t { text-shadow: 1px 0 0 rgba(211, 35, 46, .28), -1px 0 0 rgba(29, 78, 216, .28); }
+}
 .nav-card .nc-d { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
 /* 時差 편 포커스 링 — 청록(재량) */
 #home-time :focus-visible, #ch5 :focus-visible, #ch6 :focus-visible, #ch7 :focus-visible, #ch8 :focus-visible { outline-color: var(--time-main); }
@@ -126,6 +183,15 @@ main > .home-sec + .home-sec { border-top: 1px solid var(--hairline); }
   box-shadow: var(--shadow-1);
 }
 .kpi .v { font-family: var(--font-num); font-size: 27px; font-weight: 600; letter-spacing: -.01em; }
+/* 홈 관문 KPI 4개 — 대형 세리프 계측값 + 숫자 위 눈금 틱 장식.
+   숫자는 잉크로 통일하고, 눈의 색(청·적)은 캡션 소형 라벨에만 남긴다. */
+#home-kpis .kpi .v { font-family: var(--font-display); font-size: clamp(34px, 3vw, 44px); font-variant-numeric: tabular-nums; line-height: 1.08; color: var(--ink); }
+#home-kpis .kpi .v::before {
+  content: ""; display: block; width: 48px; height: 12px; margin-bottom: 10px;
+  background: repeating-linear-gradient(90deg, var(--hairline-2) 0, var(--hairline-2) 1px, transparent 1px, transparent 8px);
+}
+#home-kpis .kpi .v.blue + .l { color: var(--eye-blue); }
+#home-kpis .kpi .v.red + .l { color: var(--eye-red-deep); }
 .kpi .v.blue { color: var(--eye-blue); }
 .kpi .v.red { color: var(--eye-red); }
 .kpi .l { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
@@ -192,6 +258,7 @@ table.sheet { width: 100%; border-collapse: collapse; font-size: 13.5px; min-wid
 @media (max-width: 640px) {
   .viz-head { grid-template-columns: 1fr; }
   .viz-head > .viz-unit { grid-column: 1; grid-row: 3; text-align: left; }
+  .sec-wm { font-size: 120px; }
 }
 table.sheet th {
   text-align: left; font-size: 12px; letter-spacing: .06em; color: var(--ink-2);
@@ -205,7 +272,7 @@ table.sheet tr.ref-row td { color: var(--ink-3); background: var(--surface-2); f
   border: 1px solid var(--hairline-2); border-radius: 5px; padding: 0 6px; margin-left: 5px; vertical-align: 1px; }
 
 /* 방법론 접힘 */
-details.method { border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); margin-bottom: 12px; }
+details.method { border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-1); margin-bottom: 12px; }
 details.method summary {
   cursor: pointer; padding: 14px 18px; font-weight: 600; font-size: 14.5px;
   list-style: none; display: flex; align-items: center; gap: 10px;
@@ -220,11 +287,11 @@ footer .sig { font-family: var(--font-display); font-size: 15px; color: var(--in
 footer .build-stamp { margin-top: 10px; font-size: 11.5px; letter-spacing: .04em; color: var(--ink-3); }
 footer .build-stamp .num { font-family: var(--font-num); }
 
-/* 자매 연구 카드 */
+/* 부속 연구 카드 */
 .sister {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   border: 1px solid var(--hairline); border-radius: var(--radius);
-  background: var(--surface-2); padding: 16px 20px; margin-top: 34px;
+  background: var(--surface-2); box-shadow: var(--shadow-1); padding: 16px 20px; margin-top: 34px;
 }
 .sister .t { font-size: 12px; letter-spacing: .18em; color: var(--ink-3); text-transform: uppercase; }
 .sister .n { font-weight: 600; }

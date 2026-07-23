@@ -27,12 +27,12 @@ tests/             지표·시차 부호 규칙 단위 테스트
 타깃 전체는 `make help`. 키·경로 설정은 예시 파일에서 복사한다:
 
 ```
-cp .env.example .env                  # SUJI_DIR·SUNHWAN_DIR (자매 리포 위치)
+cp .env.example .env                  # SUJI_DIR·SUNHWAN_DIR (부속 리포 위치)
 cp config.example.json config.json    # 수집 API 키 (커밋 금지)
 ```
 
 `make build`·`make test`는 키·원자료가 필요 없다 — 사이트는 외부 요청 없는 단일 파일이다.
-원자료는 자매 리포(수지·순환)를 홈(`~/개발`·`~/순환`)에 두거나, 다른 위치라면
+원자료는 부속 리포(수지·순환)를 홈(`~/개발`·`~/순환`)에 두거나, 다른 위치라면
 `SUJI_DIR`·`SUNHWAN_DIR` 환경변수로 각 리포의 경로를 지정한다.
 
 ## 방법의 태도

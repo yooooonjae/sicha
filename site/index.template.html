@@ -46,51 +46,66 @@
 
 <main id="top">
 <header class="hero wrap">
+  <div class="hero-ruler" aria-hidden="true"></div>
+  <div class="hero-copy">
   <p class="eyebrow">부동산 가격의 시차 관측 · {{BUILT_AT}} 기준</p>
-  <h1><span class="hanja anaglyph">視差</span>·<span class="hanja anaglyph">時差</span> —</h1>
+  <h1><span class="hanja ana">視差</span>·<span class="hanja ana">時差</span> —</h1>
   <p class="sub">같은 자산을 보는 세 눈이 만드는 <b>공간의 시차(視差)</b>와, 선행 신호가
   시장을 통과하는 <b>시간의 시차(時差)</b> — 부동산 가격의 두 각도를 공공 데이터로 계측한다.</p>
   <div class="cta-row">
     <a class="btn primary" href="#ch1">공간의 시차 보기 →</a>
     <a class="btn time" href="#ch5">시간의 시차 보기 →</a>
   </div>
+  </div>
 
-  <!-- 세 시선 다이어그램 — 데스크톱 SVG + 모바일 세로 마크업 -->
-  <div class="plate" id="hero-diagram" style="padding:10px 8px 4px">
-    <svg class="desktop-only" viewBox="0 0 1120 300" role="img" aria-label="세 개의 눈이 한 자산을 바라보는 시차 다이어그램" style="width:100%;height:auto;display:block">
+  <!-- 세 시선 다이어그램 — 데스크톱 SVG + 모바일 세로 마크업 (히어로 우측 도판으로 승격) -->
+  <div class="hero-figure" id="hero-diagram">
+    <svg class="desktop-only" viewBox="0 0 600 540" role="img" aria-label="세 개의 눈이 한 자산을 바라보는 시차 다이어그램" style="width:100%;height:auto;display:block">
       <defs>
         <marker id="mB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--eye-blue)"/></marker>
         <marker id="mR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--eye-red)"/></marker>
         <marker id="mK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker>
       </defs>
-      <line x1="60" y1="150" x2="1060" y2="150" stroke="var(--hairline)" stroke-width="1"/>
-      <line x1="560" y1="20" x2="560" y2="280" stroke="var(--hairline)" stroke-width="1"/>
-      <!-- 자산: 중앙의 관측 대상 -->
-      <rect x="545" y="135" width="30" height="30" fill="none" stroke="var(--ink)" stroke-width="2" transform="rotate(45 560 150)"/>
-      <circle cx="560" cy="150" r="3" fill="var(--ink)"/>
-      <text x="560" y="205" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">자산</text>
-      <text x="560" y="224" text-anchor="middle" font-size="11.5" fill="var(--ink-3)">같은 집, 세 개의 가격</text>
+      <!-- 계측 지반 — 기준 축 + 프로트랙터 링(각도 눈금) + 외곽 점선 링 -->
+      <line x1="30" y1="270" x2="575" y2="270" stroke="var(--hairline)" stroke-width="1"/>
+      <line x1="330" y1="25" x2="330" y2="515" stroke="var(--hairline)" stroke-width="1"/>
+      <circle cx="330" cy="270" r="205" fill="none" stroke="var(--hairline-2)" stroke-width="1" stroke-dasharray="2 6" opacity=".6"/>
+      <circle cx="330" cy="270" r="150" fill="none" stroke="var(--hairline-2)" stroke-width="1" opacity=".8"/>
+      <path d="M468 270L480 270M427.6 367.6L436.1 376.1M330 408L330 420M232.4 367.6L223.9 376.1M192 270L180 270M232.4 172.4L223.9 163.9M330 132L330 120M427.6 172.4L436.1 163.9" stroke="var(--axis)" stroke-width="1" opacity=".55"/>
+      <path d="M468.1 307L474.9 308.8M453.8 341.5L459.9 345M401.5 393.8L405 399.9M367 408.1L368.8 414.9M293 408.1L291.2 414.9M258.5 393.8L255 399.9M206.2 341.5L200.1 345M191.9 307L185.1 308.8M191.9 233L185.1 231.2M206.2 198.5L200.1 195M258.5 146.2L255 140.1M293 131.9L291.2 125.1M367 131.9L368.8 125.1M401.5 146.2L405 140.1M453.8 198.5L459.9 195M468.1 233L474.9 231.2" stroke="var(--hairline-2)" stroke-width="1" opacity=".8"/>
+      <!-- 시차각 호 — 기준선(시장의 시선)에서 각 시선까지의 각도 + 눈금 -->
+      <path d="M 400 270 A 70 70 0 0 0 275 226.7" fill="none" stroke="var(--eye-blue)" stroke-width="1.5" opacity=".8"/>
+      <path d="M387.2 237L394.1 233M363 212.8L367 205.9M330 204L330 196M297 212.8L293 205.9" stroke="var(--eye-blue)" stroke-width="1" opacity=".55"/>
+      <path d="M 426 270 A 96 96 0 0 1 254.6 329.4" fill="none" stroke="var(--eye-red)" stroke-width="1.5" opacity=".8"/>
+      <path d="M409.7 316L416.6 320M376 349.7L380 356.6M330 362L330 370M284 349.7L280 356.6" stroke="var(--eye-red)" stroke-width="1" opacity=".55"/>
+      <text x="213" y="262" text-anchor="middle" font-size="12" font-style="italic" fill="var(--ink-2)">시차각 = 리스크</text>
+      <!-- 시선 3개 -->
+      <line x1="121.7" y1="106" x2="290.7" y2="239.1" stroke="var(--eye-blue)" stroke-width="1.8" marker-end="url(#mB)"/>
+      <line x1="121.7" y1="434" x2="290.7" y2="300.9" stroke="var(--eye-red)" stroke-width="1.8" marker-end="url(#mR)"/>
+      <line x1="511" y1="270" x2="380" y2="270" stroke="var(--ink)" stroke-width="1.8" marker-end="url(#mK)"/>
       <!-- 청안: 세입자 -->
-      <circle cx="150" cy="60" r="17" fill="none" stroke="var(--eye-blue)" stroke-width="2"/>
-      <circle cx="150" cy="60" r="6" fill="var(--eye-blue)"/>
-      <line x1="176" y1="68" x2="528" y2="141" stroke="var(--eye-blue)" stroke-width="1.7" marker-end="url(#mB)"/>
-      <text x="150" y="30" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--eye-blue)">세입자의 눈</text>
-      <text x="252" y="82" font-size="12" fill="var(--eye-blue)" transform="rotate(11 252 82)">전세가 — 사용의 값</text>
+      <circle cx="95" cy="85" r="31" fill="none" stroke="var(--eye-blue)" stroke-width="1" stroke-dasharray="2 5" opacity=".38"/>
+      <circle cx="95" cy="85" r="22" fill="var(--surface)" stroke="var(--eye-blue)" stroke-width="2.5"/>
+      <circle cx="95" cy="85" r="7.5" fill="var(--eye-blue)"/>
+      <text x="95" y="48" text-anchor="middle" font-size="13" font-weight="700" fill="var(--eye-blue)">세입자의 눈</text>
+      <text x="195" y="149" font-size="11.5" fill="var(--eye-blue)" transform="rotate(38.2 195 149)">전세가 — 사용의 값</text>
       <!-- 적안: 행정 -->
-      <circle cx="150" cy="243" r="17" fill="none" stroke="var(--eye-red)" stroke-width="2"/>
-      <circle cx="150" cy="243" r="6" fill="var(--eye-red)"/>
-      <line x1="176" y1="235" x2="528" y2="159" stroke="var(--eye-red)" stroke-width="1.7" marker-end="url(#mR)"/>
-      <text x="150" y="285" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--eye-red)">행정의 눈</text>
-      <text x="252" y="230" font-size="12" fill="var(--eye-red)" transform="rotate(-11 252 230)">공시가 — 과세·담보의 기준</text>
-      <!-- 흑안: 시장 (우측) -->
-      <circle cx="970" cy="150" r="17" fill="none" stroke="var(--ink)" stroke-width="2"/>
-      <circle cx="970" cy="150" r="6" fill="var(--ink)"/>
-      <line x1="944" y1="150" x2="596" y2="150" stroke="var(--ink)" stroke-width="1.7" marker-end="url(#mK)"/>
-      <text x="970" y="120" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--ink)">시장의 눈</text>
-      <text x="760" y="140" font-size="12" fill="var(--ink-2)">실거래가 — 오늘의 합의</text>
-      <!-- 시차각 호 -->
-      <path d="M 500 137 A 62 62 0 0 1 500 163" fill="none" stroke="var(--axis)" stroke-width="1.2" stroke-dasharray="3 3"/>
-      <text x="470" y="155" text-anchor="end" font-size="11.5" fill="var(--ink-2)" font-style="italic">시차각 = 리스크</text>
+      <circle cx="95" cy="455" r="31" fill="none" stroke="var(--eye-red)" stroke-width="1" stroke-dasharray="2 5" opacity=".38"/>
+      <circle cx="95" cy="455" r="22" fill="var(--surface)" stroke="var(--eye-red)" stroke-width="2.5"/>
+      <circle cx="95" cy="455" r="7.5" fill="var(--eye-red)"/>
+      <text x="95" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="var(--eye-red)">행정의 눈</text>
+      <text x="195" y="391" font-size="11.5" fill="var(--eye-red)" transform="rotate(-38.2 195 391)">공시가 — 과세·담보의 기준</text>
+      <!-- 흑안: 시장 -->
+      <circle cx="545" cy="270" r="31" fill="none" stroke="var(--ink)" stroke-width="1" stroke-dasharray="2 5" opacity=".38"/>
+      <circle cx="545" cy="270" r="22" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.5"/>
+      <circle cx="545" cy="270" r="7.5" fill="var(--ink)"/>
+      <text x="545" y="232" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">시장의 눈</text>
+      <text x="445" y="258" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">실거래가 — 오늘의 합의</text>
+      <!-- 자산: 중앙의 관측 대상 -->
+      <rect x="308" y="248" width="44" height="44" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.5" transform="rotate(45 330 270)"/>
+      <circle cx="330" cy="270" r="4" fill="var(--ink)"/>
+      <text x="330" y="326" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">자산</text>
+      <text x="330" y="345" text-anchor="middle" font-size="11.5" fill="var(--ink-3)">같은 집 · 세 개의 가격</text>
     </svg>
     <div class="eye3-mob mobile-only" style="padding:4px 4px 2px">
       <div class="e3-eye black"><span class="e3-dot"></span><span><b>시장의 눈</b> — 실거래가 · 오늘의 합의</span></div>
@@ -104,6 +119,8 @@
 
 <!-- 홈 섹션 1 — 視差 · 공간의 차이 ─────────────────── -->
 <section class="home-sec wrap" id="home-space">
+  <div class="sec-wm" aria-hidden="true">視差</div>
+  <div class="sec-rule"></div>
   <div class="home-head"><span class="hanja">視差</span><span class="home-tag">공간의 차이</span></div>
   <p class="home-lede">같은 아파트에 세 개의 가격이 동시에 존재한다 — <b>시장(실거래)·세입자(전세)·행정(공시)</b>.
   세 시선의 각도차를 재면 보증금과 담보의 리스크가 보인다.</p>
@@ -118,6 +135,8 @@
 
 <!-- 홈 섹션 2 — 時差 · 시간의 차이 ─────────────────── -->
 <section class="home-sec wrap" id="home-time">
+  <div class="sec-wm" aria-hidden="true">時差</div>
+  <div class="sec-rule"></div>
   <div class="home-head"><span class="hanja">時差</span><span class="home-tag">시간의 차이</span></div>
   <p class="home-lede">세 가격은 같은 시각을 살지 않는다 — 공시는 연 1회, 전세는 2년 주기. 여기서부터는
   <b>선행 신호가 시장을 통과하는 시간</b>을 잰다 — 무엇이 먼저 움직이고, 반응은 몇 개월 뒤 오는가.</p>
@@ -508,7 +527,7 @@
 </main>
 
 <div class="wrap"><div class="sister">
-  <span class="t">자매 연구</span>
+  <span class="t">부속 연구</span>
   <span class="n">수지(收支) — 개별 사업의 손익 · 순환(循環) — 시장의 생애주기</span>
   <a class="btn" href="https://yoonjae.pages.dev" target="_blank" rel="noopener">수지 열기 →</a>
   <a class="btn" href="https://sunhwan.pages.dev" target="_blank" rel="noopener" style="margin-left:0">순환 열기 →</a>
