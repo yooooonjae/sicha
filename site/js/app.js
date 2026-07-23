@@ -307,16 +307,7 @@
         const g = gridResolve(x, y);
         return g ? (g.lag_near != null ? g.lag_near : g.lag) : null;
       };
-      const NODES = {
-        "기준금리": [95, 95], "주담대금리": [305, 95], "거래량": [515, 95],
-        "매매가": [725, 95], "전세가": [945, 95],
-        "미분양": [420, 275], "착공": [615, 275], "준공": [810, 275], "준공후미분양": [1010, 275],
-      };
-      const EDGES = [
-        ["기준금리", "주담대금리"], ["주담대금리", "거래량"], ["거래량", "매매가"],
-        ["매매가", "전세가"], ["매매가", "미분양"], ["미분양", "착공"],
-        ["착공", "준공"], ["준공", "준공후미분양"],
-      ];
+      // (구 NODES/EDGES 제거 — 데스크톱 노선도는 아래 else 블록이 자체 좌표를, 모바일은 CHAINS를 쓴다)
       const SUPPLY_EDGE = new Set(["매매가|미분양", "미분양|착공", "착공|준공", "준공|준공후미분양"]);
       const SUPPLY_NODE = new Set(["미분양", "착공", "준공", "준공후미분양"]);
       const rCol = v => v < 0 ? "var(--time-supply)" : "var(--time-main)";
@@ -406,52 +397,83 @@
         }));
         drawFlow();
       } else {
-        // ── 데스크톱: 네트워크 SVG(좌 70%) + 상세 패널(우 30%) ──
+        // ── 데스크톱: 노선도(위상 지도) — 주 노선(가로 1줄) + 공급 순환 고리(라운드 사각 루프) ──
+        //    역할 분담: 노선도 = 순서·구조 / 축 지도(lagmap) = 전달시간. 상세·재생·실험실 로직은 재사용.
         if (playBtn) playBtn.style.display = "";
         if (detail) detail.hidden = false;
-        const R0 = 34;
-        let svg = `<svg viewBox="0 0 1120 370" role="img" aria-label="신호 전달경로" style="width:100%;height:auto;display:block">`;
-        EDGES.forEach(([a, b], ei) => {
-          const [x1, y1] = NODES[a], [x2, y2] = NODES[b];
-          const lag = findLag(a, b);
-          const g0 = gridResolve(a, b);
-          const mismatch = !!(g0 && g0.scope_mismatch);  // 공간 범위 불일치 = 탐색적(경로는 유지)
-          const supply = SUPPLY_EDGE.has(a + "|" + b);
+        const XFER = "매매가";                                  // 환승역(두 노선 교차)
+        const SUP_N = new Set(["미분양", "착공", "준공", "준공후미분양", "인허가"]);
+        const N = {   // 역 좌표 — 주 노선(y=70 가로) + 공급 루프(라운드 사각: 미분양·착공·준공·준공후미분양 네 모서리)
+          "기준금리": [104, 70], "주담대금리": [320, 70], "거래량": [536, 70], "매매가": [752, 70], "전세가": [968, 70],
+          "미분양": [656, 284], "착공": [656, 392], "준공": [1040, 392], "준공후미분양": [1040, 284], "인허가": [548, 350],
+        };
+        const rOf = k => k === XFER ? 12 : 9;
+        const f1 = v => Math.round(v * 10) / 10;
+        const straight = (a, b) => {   // 직선 구간 — 역 반지름+여백만큼 양끝 트림
+          const [x1, y1] = N[a], [x2, y2] = N[b], dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+          const ux = dx / L, uy = dy / L, ta = rOf(a) + 4, tb = rOf(b) + 4;
+          return `M ${f1(x1 + ux * ta)} ${f1(y1 + uy * ta)} L ${f1(x2 - ux * tb)} ${f1(y2 - uy * tb)}`;
+        };
+        // 구간 — DOM/재생 순서: 주 노선(왼→오) → 공급 고리(순서대로). route: main=청록·sup=적갈. (lx,ly)=+kM 라벨 중심.
+        const SEGS = [
+          { a: "기준금리", b: "주담대금리", route: "main", d: straight("기준금리", "주담대금리"), lx: 212, ly: 53 },
+          { a: "주담대금리", b: "거래량", route: "main", d: straight("주담대금리", "거래량"), lx: 428, ly: 53 },
+          { a: "거래량", b: "매매가", route: "main", d: straight("거래량", "매매가"), lx: 642, ly: 53 },
+          { a: "매매가", b: "전세가", route: "main", d: straight("매매가", "전세가"), lx: 860, ly: 53 },
+          { a: "매매가", b: "미분양", route: "sup", d: "M 745 85 C 742 145 672 250 660 272", lx: 706, ly: 168 },
+          { a: "미분양", b: "착공", route: "sup", d: straight("미분양", "착공"), lx: 678, ly: 340 },
+          { a: "인허가", b: "착공", route: "sup", d: straight("인허가", "착공"), lx: 596, ly: 356 },
+          { a: "착공", b: "준공", route: "sup", d: straight("착공", "준공"), lx: 848, ly: 378 },
+          { a: "준공", b: "준공후미분양", route: "sup", d: straight("준공", "준공후미분양"), lx: 1018, ly: 340 },
+        ];
+        const LP = {   // 역 라벨 [x, y, anchor] — 기본은 노드 아래, 환승·모서리는 밖으로
+          "기준금리": [104, 92, "middle"], "주담대금리": [320, 92, "middle"], "거래량": [536, 92, "middle"],
+          "매매가": [762, 92, "start"], "전세가": [968, 92, "middle"],
+          "미분양": [642, 288, "end"], "착공": [656, 415, "middle"], "준공": [1040, 415, "middle"],
+          "준공후미분양": [1054, 288, "start"], "인허가": [534, 354, "end"],
+        };
+        const routeCol = r => r === "main"
+          ? ["var(--time-main)", "var(--time-main-deep)", "var(--time-main-wash)"]
+          : ["var(--time-supply)", "var(--time-supply-deep)", "var(--time-supply-wash)"];
+
+        let eStr = "", hStr = "", pStr = "", lStr = "";
+        SEGS.forEach((s, i) => {
+          const lag = findLag(s.a, s.b);
+          const g0 = gridResolve(s.a, s.b);
+          const mism = !!(g0 && g0.scope_mismatch);          // 공간 범위 불일치 = 탐색적(점선 라벨로 표시, 상세는 유지)
           const zero = lag === 0;
-          // 색 의미화(時差 팔레트): 공간 범위 불일치 = 회 점선(탐색적, 우선) · 금융·수요 = 청록 실선 ·
-          //           공급 피드백 = 적갈 점선 · 동행(0M) = 회 실선(펄스 없음)
-          const col = mismatch ? "var(--time-neutral)" : zero ? "var(--time-neutral)" : supply ? "var(--time-supply)" : "var(--time-main)";
-          const mk = mismatch || zero ? "arrow-mute" : supply ? "arrow-supply" : "arrow-demand";
-          const dashed = mismatch || supply;
-          let d;
-          if (y1 === y2) d = `M ${x1 + R0} ${y1} L ${x2 - R0 - 8} ${y2}`;
-          else d = `M ${x1 - 14} ${y1 + R0 - 6} L ${x2 + 26} ${y2 - R0 + 2}`;
-          svg += `<path id="pe${ei}" d="${d}" fill="none" stroke="${col}" stroke-width="1.8" opacity="${mismatch ? .5 : zero ? .55 : .8}"${dashed ? ' stroke-dasharray="6 5"' : ""} marker-end="url(#${mk})"/>`;
-          if (lag && !mismatch) {  // 동행(0M)·불일치(탐색적)는 확정 펄스를 그리지 않는다
-            const dur = Math.max(1.4, lag * 0.55);
-            svg += `<circle r="4.5" fill="${supply ? "var(--time-supply)" : "var(--time-main)"}" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#pe${ei}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
-          }
-          if (lag != null) {
-            const mx = (x1 + x2) / 2, my = y1 === y2 ? y1 - 16 : (y1 + y2) / 2 + 2;
-            const txt = zero ? "0M 동행" : "+" + lag + "M";
-            const w3 = zero ? 80 : 62;
-            const pillBg = mismatch || zero ? "var(--surface-2)" : supply ? "var(--time-supply-wash)" : "var(--time-main-wash)";
-            const pillFg = mismatch ? "var(--time-neutral)" : zero ? "var(--ink-2)" : supply ? "var(--time-supply-deep)" : "var(--time-main-deep)";
-            svg += `<g class="path-lag${mismatch ? " mismatch" : ""}" data-x="${a}" data-y="${b}" style="cursor:pointer">
-              <rect x="${mx - w3 / 2}" y="${my - 15}" width="${w3}" height="23" rx="11.5" fill="${pillBg}"${mismatch ? ' stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 2"' : ""}/>
-              <text x="${mx}" y="${my + 1}" text-anchor="middle" font-size="14" font-weight="700" fill="${pillFg}" font-family="${zero ? "var(--font-body)" : "var(--font-num)"}">${txt}</text>
-              <title>${a} → ${b}${mismatch ? ` · 공간 범위 불일치(${g0.x_scope} → ${g0.y_scope}) — 탐색적, 경로 유지` : zero ? " — 월간 자료에서는 선후를 구분할 수 없다" : ""} — 우측에 상세</title></g>`;
-          }
+          const [rc, rcD, rcW] = routeCol(s.route);
+          eStr += `<path class="ppmap-edge" id="ppe${i}" d="${s.d}" fill="none" stroke="${rc}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+          hStr += `<path class="ppmap-hit" d="${s.d}" data-x="${s.a}" data-y="${s.b}" fill="none" stroke="transparent" stroke-width="16"/>`;
+          if (lag == null) return;                           // 시차 표에 없는 쌍은 라벨·펄스 생략(선은 유지)
+          const dur = zero ? 1.1 : Math.max(1.3, lag * 0.5);  // 재생 점 — 전달시간에 따라 속도차
+          pStr += `<circle r="4.5" fill="${rc}" opacity="0"><animateMotion class="path-anim" dur="${dur}s" repeatCount="indefinite" begin="indefinite"><mpath href="#ppe${i}"/></animateMotion><set attributeName="opacity" to="1" begin="pp-play.click"/></circle>`;
+          const txt = zero ? "0M" : "+" + lag + "M";
+          const w = txt.length * 7 + 12;
+          const pillAttr = mism
+            ? `fill="var(--surface)" stroke="${rc}" stroke-width="1.2" stroke-dasharray="3 2"`
+            : `fill="${rcW}"`;
+          lStr += `<g class="ppmap-lag" role="button" tabindex="0" data-x="${s.a}" data-y="${s.b}" aria-label="${s.a}에서 ${s.b}로 ${zero ? "0개월 동행" : "+" + lag + "개월"}${mism ? " · 공간 범위 불일치" : ""}">`
+            + `<rect class="ppmap-pill" x="${f1(s.lx - w / 2)}" y="${s.ly - 8.5}" width="${w}" height="17" rx="8.5" ${pillAttr}/>`
+            + `<text x="${s.lx}" y="${s.ly + 4}" text-anchor="middle" font-size="11" font-weight="700" font-family="var(--font-num)" fill="${rcD}" pointer-events="none">${txt}</text></g>`;
         });
-        for (const [nm2, [x, y]] of Object.entries(NODES)) {
-          const supply = SUPPLY_NODE.has(nm2);
-          svg += `<circle cx="${x}" cy="${y}" r="${R0 - 6}" fill="var(--surface)" stroke="${supply ? "var(--time-supply)" : "var(--time-main)"}" stroke-width="2"/>
-            <text x="${x}" y="${y + 4.5}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${nm2}</text>`;
-        }
-        // 화살촉을 계열 색으로 분리(時差 팔레트): 수요=청록 · 공급=적갈 · 동행=회
-        const arrowM = (id, fill) => `<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${fill}"/></marker>`;
-        svg += `<defs>${arrowM("arrow-demand", "var(--time-main)")}${arrowM("arrow-supply", "var(--time-supply)")}${arrowM("arrow-mute", "var(--time-neutral)")}</defs></svg>`;
-        pp.innerHTML = svg;
+
+        let nStr = "";
+        Object.keys(N).forEach(k => {
+          const [x, y] = N[k], rc = SUP_N.has(k) ? "var(--time-supply)" : "var(--time-main)";
+          const [lxp, lyp, anc] = LP[k];
+          const circ = k === XFER   // 환승역 — 이중 링(청록 외선 + 적갈 내선)
+            ? `<circle cx="${x}" cy="${y}" r="12" fill="var(--surface)" stroke="var(--time-main)" stroke-width="2.5"/><circle cx="${x}" cy="${y}" r="6.5" fill="none" stroke="var(--time-supply)" stroke-width="2.5"/>`
+            : `<circle cx="${x}" cy="${y}" r="9" fill="var(--surface)" stroke="${rc}" stroke-width="2.5"/>`;
+          nStr += `<g class="ppmap-stn">${circ}<text x="${lxp}" y="${lyp}" text-anchor="${anc}" font-size="13" font-weight="700" fill="var(--ink)">${k}</text></g>`;
+        });
+        // 공급 고리 되돌이(회귀) 상단 레일 — 무데이터·무펄스(순환 느낌만). 적갈 옅은 점선.
+        const retStr = `<path class="ppmap-return" d="M 1027 284 L 669 284" fill="none" stroke="var(--time-supply)" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round" opacity="0.32" aria-hidden="true"/>`;
+
+        pp.innerHTML = `<svg class="ppmap-svg" viewBox="64 22 1092 416" role="img" aria-label="신호 전달경로 노선도 — 금융·수요 주 노선과 공급 순환 고리, 매매가 환승">`
+          + retStr + eStr + hStr + pStr + nStr + lStr + `</svg>`;
+
+        // 재생 — 기존 #pp-play 계약 재사용(점이 주 노선→공급 순서로 흐름). path만 새 geometry.
         if (playBtn && !playBtn.dataset.bound) {
           playBtn.dataset.bound = "1";
           playBtn.addEventListener("click", () => {
@@ -459,15 +481,63 @@
             playBtn.textContent = "재생 중"; playBtn.disabled = true;
           });
         }
+        // 상세 패널 — 기존 detailHTML·bindOpen 재사용(데이터 연결 유지)
         const showDetail = (x, y, gEl) => {
           if (!detail) return;
           detail.innerHTML = detailHTML(x, y);
           bindOpen(detail);
-          pp.querySelectorAll(".path-lag").forEach(o => o.classList.remove("on"));
+          pp.querySelectorAll(".ppmap-lag").forEach(o => o.classList.remove("on"));
           if (gEl) gEl.classList.add("on");
         };
-        pp.querySelectorAll(".path-lag").forEach(g2 => g2.addEventListener("click", () =>
-          showDetail(g2.dataset.x, g2.dataset.y, g2)));
+        // 호버 #tip(쌍 이름·+kM·r·n) — charts.js #tip 싱글턴·Charts.tipHide 재사용(hover 시점엔 이미 존재)
+        const tipHtml = (x, y) => {
+          const g = gridResolve(x, y), lag = findLag(x, y);
+          if (!g) return `<div class="t-title">${x} → ${y}</div>`;
+          return `<div class="t-title">${x} → ${y}</div>${lag === 0 ? "0M 동행" : "+" + lag + "M"} · r ${g.r > 0 ? "+" : ""}${g.r.toFixed(2)} · n=${g.n}${g.scope_mismatch ? " · <span style='color:var(--time-supply-deep)'>공간 범위 불일치</span>" : ""}`;
+        };
+        const ppTipShow = (html, cx, cy) => {
+          let t = document.getElementById("tip");
+          if (!t) { t = document.createElement("div"); t.id = "tip"; document.body.appendChild(t); }
+          t.innerHTML = html; t.style.left = cx + "px"; t.style.top = cy + "px"; t.classList.add("on");
+        };
+        const bindPpTip = (node, x, y) => {
+          node.setAttribute("data-tip", "1");
+          const show = ev => ppTipShow(tipHtml(x, y), ev.clientX, ev.clientY);
+          node.addEventListener("pointerenter", show);
+          node.addEventListener("pointermove", show);
+          node.addEventListener("pointerleave", () => Charts.tipHide());
+        };
+        // 클릭·키보드(role=button·tabindex·Enter/Space) — 라벨 pill + 구간 히트영역 둘 다 상세 패널로
+        pp.querySelectorAll(".ppmap-lag").forEach(g2 => {
+          const fire = () => showDetail(g2.dataset.x, g2.dataset.y, g2);
+          g2.addEventListener("click", fire);
+          g2.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fire(); } });
+          bindPpTip(g2, g2.dataset.x, g2.dataset.y);
+        });
+        pp.querySelectorAll(".ppmap-hit").forEach(h => {
+          const lagEl = pp.querySelector(`.ppmap-lag[data-x="${h.dataset.x}"][data-y="${h.dataset.y}"]`);
+          h.addEventListener("click", () => showDetail(h.dataset.x, h.dataset.y, lagEl));
+          bindPpTip(h, h.dataset.x, h.dataset.y);
+        });
+        // 등장 모션 — 노선 왼→오 드로우(0.9s) + 역·라벨 순차 페이드(40ms 스태거). reduced-motion·재렌더는 즉시 최종(캡처 경로).
+        if (!REDUCE_MOTION && !pp.dataset.ppmapAnim) {
+          pp.dataset.ppmapAnim = "1";
+          const edges = [...pp.querySelectorAll(".ppmap-edge")];
+          const stns = [...pp.querySelectorAll(".ppmap-stn")];
+          const lags = [...pp.querySelectorAll(".ppmap-lag")];
+          edges.forEach(p => { const L = p.getTotalLength(); p.style.strokeDasharray = L; p.style.strokeDashoffset = L; p.style.transition = "none"; });
+          stns.forEach(g => { g.style.opacity = "0"; g.style.transition = "none"; });
+          lags.forEach(g => { g.style.opacity = "0"; g.style.transition = "none"; });
+          const io2 = new IntersectionObserver(es => es.forEach(en => {
+            if (!en.isIntersecting) return;
+            io2.disconnect();
+            edges.forEach((p, i) => { p.style.transition = `stroke-dashoffset .9s cubic-bezier(.4,0,.2,1) ${i * 70}ms`; p.style.strokeDashoffset = "0"; });
+            stns.forEach((g, i) => { g.style.transition = `opacity .3s ease ${260 + i * 40}ms`; g.style.opacity = "1"; });
+            lags.forEach((g, i) => { g.style.transition = `opacity .3s ease ${520 + i * 30}ms`; g.style.opacity = "1"; });
+            setTimeout(() => edges.forEach(p => { p.style.strokeDasharray = ""; p.style.strokeDashoffset = ""; p.style.transition = ""; }), 1600);
+          }), { threshold: 0.15 });
+          io2.observe(pp);
+        }
       }
     }
 

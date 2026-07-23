@@ -33,7 +33,7 @@ nav.appbar .tabs a.on { color: var(--paper); background: var(--ink); }
   nav.appbar .tabs { display: none; }
   .toc-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    margin-left: auto; padding: 7px 14px; font-size: 13.5px;
+    margin-left: auto; padding: 7px 14px; min-height: 44px; font-size: 13.5px;
     border: 1px solid var(--rule); border-radius: var(--radius);
     background: var(--surface); color: var(--ink); cursor: pointer;
   }
@@ -461,6 +461,19 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
 .pt-edge .pt-dash { flex: 1; border-top: 1.5px dashed var(--rule); }
 .pt-inline { margin: 5px 0 7px 14px; padding: 14px 16px; border: 1px solid var(--hairline); border-left: 3px solid var(--time-main); border-radius: 8px; background: var(--surface-2); }
 
+/* ── Ⅴ 전달경로 노선도(위상 지도) — 데스크톱 SVG (.ppmap-*) ──
+   주 노선(청록)·공급 순환 고리(적갈)·매매가 환승역. 상세/재생/실험실 로직은 app.js가 재사용. */
+.ppmap-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.ppmap-lag, .ppmap-hit { cursor: pointer; }
+.ppmap-lag { outline: none; }
+.ppmap-lag:focus-visible { outline: 2px solid var(--time-main); outline-offset: 3px; border-radius: 10px; }
+/* 선택된 구간 — 라벨 pill 강조(잉크 테두리, 점선 해제) */
+.ppmap-lag.on .ppmap-pill { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .ppmap-lag .ppmap-pill { transition: transform .16s ease, filter .16s ease; transform-box: fill-box; transform-origin: center; }
+  .ppmap-lag:hover .ppmap-pill { transform: translateY(-1px); filter: drop-shadow(0 2px 3px rgba(20, 22, 29, .20)); }
+}
+
 /* Ⅴ 연구 카드 등급 배지 — A만 채움(흰 글자), B·C·짧은표본은 아웃라인 */
 .lag-grade {
   display: inline-flex; align-items: center; margin-left: auto;
@@ -548,6 +561,23 @@ select.btn-sm { color: var(--ink); font-weight: 600; }
   .path-split { grid-template-columns: 1fr; gap: 0; }
   .path-detail { display: none; }
   .spread-split { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* ── 초소형 뷰포트 반응형 (외부 반응형 감사 반영) ── */
+/* 터치 타깃 — 차트 소형 버튼·광역시 보조 버튼 최소 높이 44px */
+@media (max-width: 640px) {
+  .btn-sm { min-height: 44px; }
+  .sp-metros .sp-metro { min-height: 44px; }
+}
+/* ≤380px — 앱바 압축(간격·브랜드·목차 버튼 패딩) */
+@media (max-width: 380px) {
+  nav.appbar .row { gap: 8px; }
+  .brand { font-size: 16px; }
+  .toc-btn { padding-inline: 10px; }
+}
+/* ≤360px — 히어로 제목 clamp 최소치 하향(56→46px) */
+@media (max-width: 360px) {
+  .hero h1 { font-size: 46px; }
 }
 
 /* ── 차트 툴팁(#tip 싱글턴) — charts.js가 body에 붙임: fixed+기본 숨김 필수 ── */
