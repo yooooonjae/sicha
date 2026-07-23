@@ -555,6 +555,8 @@
       const rC = v => v < 0 ? "var(--time-supply)" : "var(--time-main)";
       const agreeShow = g => g.agree == null ? null
         : (g.r < 0 ? 100 - g.agree : g.agree);
+      // Granger p값 표기 — 0.05 경계 근처는 3자리(색과 숫자가 어긋나지 않게), 그 위는 2자리.
+      const fmtP = v => v == null ? "—" : v < 0.001 ? "<0.001" : v < 0.1 ? v.toFixed(3) : v.toFixed(2);
       const spark = (ws, maxLag) => {
         if (!ws || ws.length < 3) return '<span style="font-size:12px;color:var(--ink-3)">이동창 표본 부족</span>';
         const ML = maxLag || 24;
@@ -590,6 +592,7 @@
             const label = grade(g)[0];   // "A" · "B" · "C" · "짧은 표본"
             return {
               lead: g.x, react: g.y, k: g.lag, r: g.r, n: g.n, grade: label,
+              gp: g.gp, gpr: g.gpr,   // Granger p값(순·역방향) — 칩 툴팁에 병기
               cls: label === "A" ? "fill" : label[0] === "B" ? "light" : "outline", // C·짧은 표본 → 점선
               sign: g.r < 0 ? "supply" : "main", overflow: g.lag > 30,
             };
@@ -637,6 +640,10 @@
           <div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">
             ${ag != null ? `방향 일치 <b class="num">${ag}%</b>${g.r < 0 ? " (역방향 기준)" : ""}` : "방향 일치 표본 부족"}
             &nbsp;·&nbsp; ${rg("인상기", g.regime_up)} &nbsp;·&nbsp; ${rg("인하기", g.regime_down)}</div>
+          ${g.gp != null ? `<div style="font-size:12.5px;color:var(--ink-2);margin-bottom:6px">
+            <span style="color:var(--ink-3)">Granger</span> <b class="num" style="color:${g.gp < 0.05 ? "var(--ink)" : "var(--ink-3)"}">p=${fmtP(g.gp)}</b>
+            <span style="color:var(--ink-3)">(역방향 ${fmtP(g.gpr)}${g.gl ? " · " + g.gl + "차" : ""})</span>
+            <span style="color:var(--ink-3);font-size:11.5px">· 검정 결과도 탐색적 참고</span></div>` : ""}
           <div style="display:flex;align-items:center;gap:8px">${spark(g.windows, g.max_lag)}
             <span style="font-size:12px;color:var(--ink-3)">이동창(60M)별 최적 시차 — 0~${g.max_lag || 24}M</span></div>
         </div>`;

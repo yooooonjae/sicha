@@ -9,6 +9,7 @@
 
 import datetime
 import json
+import math
 import os
 import re
 import time
@@ -238,6 +239,165 @@ def rolling_lag(xm, ym_, win=60, step=6, max_lag=MAX_LAG):
     return out
 
 
+# ── Granger 인과 검정 — 제한/비제한 F-검정 (Ⅴ 탐색적 상관에 통계 검정을 병기) ──────
+#
+# 각 쌍 X→Y에 대해 두 회귀의 잔차제곱합(RSS)을 비교한다:
+#   제한(restricted)    : Y_t ~ Y_{t-1..p}                (자기 과거만)
+#   비제한(unrestricted): Y_t ~ Y_{t-1..p} + X_{t-1..p}   (X의 과거를 추가)
+# X의 과거가 Y 예측을 유의하게 개선하면(RSS가 크게 감소) "X가 Y를 Granger-선행"한다.
+#   F = ((RSS_r − RSS_u)/p) / (RSS_u/(n − 2p − 1)),  df1 = p, df2 = n − 2p − 1
+# p값 = F분포 상측꼬리 P(F>f) — statsmodels 없이 순수 파이썬으로 정칙 불완전베타
+#   I_x(a,b)를 Numerical Recipes 연분수로 계산한다(정확도 <1e-6, 기준 임계값 대조 검증).
+#
+# 표현 규칙: 교차상관과 동일하게 "예측적 선후"일 뿐 단독 인과가 아니다. 검정은 추가 필드일
+# 뿐 관측 수치(전달시간·r)를 바꾸지 않는다. 한계는 방법론에 명시 — 비정상성·구조변화·
+# 자기상관 이분산을 보정하지 않으며, 표본이 짧아 자유도가 부족하면 검정하지 않는다(null).
+
+GRANGER_CAND = (3, 6)   # 후보 시차 차수 — 3=단기 전달·6=반년 전달(월자료 관례). 짧은 표본은 3만 가능.
+GRANGER_MIN_DF = 10     # 잔차 자유도(df2) 최소 — 이 미만이면 F-검정 불신 → null
+
+
+def _betacf(a, b, x):
+    """정칙 불완전베타의 연분수(Numerical Recipes betacf) — I_x(a,b) 계산의 핵심."""
+    MAXIT, EPS, FPMIN = 300, 1e-16, 1e-300
+    qab, qap, qam = a + b, a + 1.0, a - 1.0
+    c = 1.0
+    d = 1.0 - qab * x / qap
+    d = 1.0 / (FPMIN if abs(d) < FPMIN else d)
+    h = d
+    for m in range(1, MAXIT + 1):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1.0 + aa * d
+        if abs(d) < FPMIN:
+            d = FPMIN
+        c = 1.0 + aa / c
+        if abs(c) < FPMIN:
+            c = FPMIN
+        d = 1.0 / d
+        h *= d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1.0 + aa * d
+        if abs(d) < FPMIN:
+            d = FPMIN
+        c = 1.0 + aa / c
+        if abs(c) < FPMIN:
+            c = FPMIN
+        d = 1.0 / d
+        de = d * c
+        h *= de
+        if abs(de - 1.0) < EPS:
+            break
+    return h
+
+
+def _betai(a, b, x):
+    """정칙 불완전베타 I_x(a,b) ∈ [0,1] — F분포 CDF의 재료. math.lgamma만 사용(순수 파이썬)."""
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    lbeta = math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
+    bt = math.exp(lbeta + a * math.log(x) + b * math.log(1.0 - x))
+    if x < (a + 1.0) / (a + b + 2.0):
+        return bt * _betacf(a, b, x) / a
+    return 1.0 - bt * _betacf(b, a, 1.0 - x) / b
+
+
+def f_sf(f, d1, d2):
+    """F(d1,d2)의 상측꼬리 P(F>f) = Granger p값. 상측을 직접 계산해 작은 p의 정밀도를 지킨다.
+    P(F≤f)=I_x(d1/2,d2/2), x=d1·f/(d1·f+d2) → P(F>f)=I_{1−x}(d2/2,d1/2)."""
+    if f <= 0 or d1 <= 0 or d2 <= 0:
+        return 1.0
+    return _betai(d2 / 2.0, d1 / 2.0, d2 / (d2 + d1 * f))
+
+
+def _rss(y, cols):
+    """OLS 잔차제곱합 — 절편은 평균중심화로 흡수, 예측열은 수정 그람-슈미트(MGS)로 직교화.
+    X'X 정규방정식을 만들지 않아 지속계열 시차의 강한 다중공선성에도 수치 안정적이다
+    (X'X는 조건수를 제곱한다). 앞 열과 공선인 열은 건너뛴다(사영 공간·RSS 불변)."""
+    n = len(y)
+    my = sum(y) / n
+    resid = [v - my for v in y]          # 중심화한 y에서 시작 — 각 직교방향 사영을 차례로 뺀다
+    basis = []                           # [(직교벡터, 제곱노름)]
+    for col in cols:
+        mc = sum(col) / n
+        v = [col[t] - mc for t in range(n)]
+        for u, un2 in basis:             # 기존 기저에 대해 직교화
+            fac = sum(v[t] * u[t] for t in range(n)) / un2
+            for t in range(n):
+                v[t] -= fac * u[t]
+        vn2 = sum(x * x for x in v)
+        if vn2 < 1e-18:                   # 공선 열 — 정보 없음, 건너뜀
+            continue
+        basis.append((v, vn2))
+        fac = sum(resid[t] * v[t] for t in range(n)) / vn2
+        for t in range(n):
+            resid[t] -= fac * v[t]
+    return sum(x * x for x in resid)
+
+
+def _lag_rows(xm, ym_, p):
+    """(Y_t, [Y_{t-1..p}], [X_{t-1..p}]) 행 — 2p개 시차값이 모두 존재하는 연속월만.
+    제한·비제한이 같은 표본 위에 서도록(중첩 비교의 전제) X·Y 시차가 모두 있어야 포함한다."""
+    rows = []
+    for t in sorted(ym_):
+        yl, xl, ok = [], [], True
+        for i in range(1, p + 1):
+            ti = _shift(t, -i)
+            if ti in ym_ and ti in xm:
+                yl.append(ym_[ti])
+                xl.append(xm[ti])
+            else:
+                ok = False
+                break
+        if ok:
+            rows.append((ym_[t], yl, xl))
+    return rows
+
+
+def granger(xm, ym_):
+    """X(xm)가 Y(ym_)를 Granger-선행하는가. → (p값, 사용 차수) 또는 (None, 차수 or None).
+
+    차수 p 선택: 후보 {3,6} 중 비제한모형 AIC 최소. 둘 다 가능하면 공통표본(더 짧은 쪽 =
+      큰 p의 표본)에서 AIC를 비교한다 — AIC의 n·ln(RSS/n) 항이 표본크기에 의존하므로 같은
+      표본에서 재야 정당하기 때문이다. p=6이 자유도 부족이면 자동으로 p=3만 남는다(표본
+      짧으면 3 규칙과 일치). 어느 차수도 df2<GRANGER_MIN_DF면 검정 불가 → None."""
+    feas = []
+    for p in GRANGER_CAND:
+        rows = _lag_rows(xm, ym_, p)
+        if len(rows) - (2 * p + 1) >= GRANGER_MIN_DF:
+            feas.append((p, rows))
+    if not feas:
+        return None, None
+    if len(feas) >= 2:                       # 공통표본(행 수 최소 = 최대 차수의 표본)에서 AIC 비교
+        rows_c = min((r for _, r in feas), key=len)
+        nc = len(rows_c)
+        yc = [r[0] for r in rows_c]
+        aic = {}
+        for p, _r in feas:
+            cols = ([[r[1][i] for r in rows_c] for i in range(p)]
+                    + [[r[2][i] for r in rows_c] for i in range(p)])
+            ru = _rss(yc, cols)
+            if ru > 0:
+                aic[p] = nc * math.log(ru / nc) + 2 * (2 * p + 1)
+        p_sel = min(aic, key=aic.get) if aic else feas[0][0]
+    else:
+        p_sel = feas[0][0]
+    rows = next(r for pp, r in feas if pp == p_sel)   # 선택 차수는 자체 최대표본으로 검정(정보 최대)
+    n = len(rows)
+    y = [r[0] for r in rows]
+    ycols = [[r[1][i] for r in rows] for i in range(p_sel)]
+    xcols = [[r[2][i] for r in rows] for i in range(p_sel)]
+    rss_u = _rss(y, ycols + xcols)
+    rss_r = _rss(y, ycols)
+    df1, df2 = p_sel, n - (2 * p_sel + 1)
+    if rss_u <= 0 or df2 <= 0:
+        return None, p_sel
+    fstat = (max(0.0, rss_r - rss_u) / df1) / (rss_u / df2)   # X가 무기여면 F=0 → p=1(정상)
+    return round(f_sf(fstat, df1, df2), 6), p_sel
+
+
 # 쌍별 탐색 상한 — 24 고정은 착공→준공(20개월+)류에서 우측 경계 절단을 만든다 (12차 리뷰)
 PAIRS = [  # (선행, 반응, 최대 탐색 시차)
     ("기준금리", "주담대금리", 18), ("기준금리", "거래량", 18), ("기준금리", "매매가", 18),
@@ -369,6 +529,10 @@ def main():
         g["x_transform"], g["y_transform"] = tlabel(a), tlabel(b)
         g["period"] = overlap_period(T[a], T[b], res["lag"])
         g["agree"] = agree_pct(T[a], T[b], res["lag"])
+        # Granger 검정 — gp: X→Y p값 · gl: 사용 차수 · gpr: 역방향 Y→X p값(방향성 근거).
+        # 기존 필드·원장 로직은 불변, 추가 필드일 뿐이다. 자유도 부족이면 null.
+        g["gp"], g["gl"] = granger(T[a], T[b])
+        g["gpr"], _ = granger(T[b], T[a])
         for rg_name, rg_key in [("up", "up"), ("down", "down")]:
             sub = {t: v for t, v in T[a].items() if reg.get(t) == rg_key}
             best = None
@@ -384,7 +548,8 @@ def main():
         print(f"  {a} → {b}: +{res['lag']}M r={res['r']} 일치 {g['agree']}% "
               f"| 인상 {ru and f'+{ru[chr(108)+chr(97)+chr(103)]}M {ru[chr(114)]}'} "
               f"| 인하 {rd and f'+{rd[chr(108)+chr(97)+chr(103)]}M {rd[chr(114)]}'} "
-              f"| 창 {len(g['windows'])}")
+              f"| 창 {len(g['windows'])} "
+              f"| G p={g['gp']}({g['gl']}차) 역={g['gpr']}")
 
     # 홈 현재 신호 — 대표 쌍의 선행 변수 최근 방향 전환 + 경과
     signals = []

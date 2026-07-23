@@ -646,7 +646,8 @@
         const fire = () => opts.onChip && opts.onChip(c.lead, c.react);
         g.addEventListener("click", fire);
         g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); fire(); } });
-        bindTip(g, () => `<div class="t-title">${c.lead} → ${c.react}</div>+${c.k}M · r ${c.r > 0 ? "+" : ""}${c.r.toFixed(2)} · n=${c.n} · ${c.grade}${c.overflow ? " · 축 상한(+30M) 밖" : ""}`);
+        const fmtP = v => v == null ? "—" : v < 0.001 ? "<0.001" : v < 0.1 ? v.toFixed(3) : v.toFixed(2);
+        bindTip(g, () => `<div class="t-title">${c.lead} → ${c.react}</div>+${c.k}M · r ${c.r > 0 ? "+" : ""}${c.r.toFixed(2)} · n=${c.n} · ${c.grade}${c.gp != null ? ` · Granger p=${fmtP(c.gp)} (역 ${fmtP(c.gpr)})` : ""}${c.overflow ? " · 축 상한(+30M) 밖" : ""}`);
       });
     });
 
