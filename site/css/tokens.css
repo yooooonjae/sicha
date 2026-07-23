@@ -38,7 +38,7 @@
   --time-supply-deep: #874624;
   --time-supply-wash: #f6ebe3;
   --time-neutral: #717985;
-  --time-neutral-wash: #e6e9ee;    /* grid·hairline-2와 구분되는 회 톤 */
+  --time-neutral-wash: #dfe3ea;    /* grid·hairline-2와 구분되는 회 톤 */
   --time-btn: var(--time-main);            /* 時差 장(Ⅴ~Ⅷ) 주 CTA·활성 버튼 — 청록 계열 일관 */
   --time-btn-hover: var(--time-main-deep);
 
@@ -49,7 +49,7 @@
   --s1: var(--eye-blue);
   --s2: var(--eye-red);
   --pos: #0e7a4a;          /* 상승·양(+) */
-  --neg: #c23b2e;          /* 하락·음(−) — 역전세의 색: s2·eye-red와 분리 */
+  --neg: #b0452a;          /* 하락·음(−) — 역전세의 색: s2·eye-red와 분리 */
 
   /* 괘선·격자 — 계측지 */
   --rule: #d9dde3;
@@ -60,7 +60,7 @@
   --cross: #d3d8e0;        /* 모눈 교차 십자 */
 
   /* 히트맵·확산지도·카드 톤 램프 (라이트) — 時差 편 전용이라 청록(time-main 계열)으로 통일 */
-  --seq-100: #e8f1f1;      /* grid와 구분 — 히트맵 기저 셀 소실 해소 */
+  --seq-100: #dde9ea;      /* grid와 구분 — 히트맵 기저 셀 소실 해소 */
   --seq-200: #d5e8e8;
   --seq-300: #abd2d3;
   --seq-400: #78b5b7;
@@ -114,7 +114,7 @@
   --time-neutral-wash: #2b3038;    /* grid·hairline-2와 구분 */
 
   --pos: #4fd396;
-  --neg: #e06a5c;           /* 역전세의 색 (다크) — s2·eye-red와 분리 */
+  --neg: #de7a55;           /* 역전세의 색 (다크) — s2·eye-red와 분리 */
 
   --rule: #2c313a;
   --hairline: #23272f;
